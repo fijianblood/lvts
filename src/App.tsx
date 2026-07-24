@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import './index.css';
 import NavBar from './components/NavBar';
+import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import ServicesPage from './pages/ServicesPage';
 import WebsitePage from './pages/WebsitePage';
@@ -76,6 +77,7 @@ export default function App() {
           {renderPage(page, navigate)}
         </motion.div>
       </AnimatePresence>
+      <Footer />
     </>
   );
 }

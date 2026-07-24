@@ -190,22 +190,6 @@ export default function ContactPage() {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer style={{ background: '#f1f5f9', borderTop: '1px solid #e2e8f0', padding: '2.5rem 1.5rem', textAlign: 'center' }}>
-        <div style={{ maxWidth: 700, margin: '0 auto' }}>
-          <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: '1.2rem', color: '#0f172a', marginBottom: '0.5rem' }}>
-            JS<span style={{ color: '#06b6d4' }}>🏝</span>LvTS
-          </div>
-          <div style={{ fontSize: '0.8rem', color: '#64748b', lineHeight: 1.8 }}>
-            LomaVata Tech Services · Raiwai, Suva, Fiji<br />
-            Maka Ni Dau Vaámaé Na Moú · Living With Technology ☪
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '1.5rem' }}>
-            © 2026 LomaVata Tech Services. All Rights Reserved.
-          </div>
-        </div>
-      </footer>
     </>
   );
 }
