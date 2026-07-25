@@ -58,8 +58,7 @@ export default function NavBar({ page, onNav }: NavBarProps) {
         style={{
           pointerEvents: 'auto', display: 'flex', alignItems: 'flex-end', gap: 10,
           padding: '10px 14px', borderRadius: 22, maxWidth: 'calc(100vw - 20px)',
-          background: 'rgba(255,255,255,0.65)', backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          border: '1px solid rgba(255,255,255,0.6)', boxShadow: '0 10px 40px rgba(15,23,42,0.18), 0 1px 0 rgba(255,255,255,0.4) inset',
+          transformOrigin: 'bottom center',
         }}>
         {LINKS.map((l, i) => {
           const Icon = l.icon;
@@ -97,6 +96,14 @@ export default function NavBar({ page, onNav }: NavBarProps) {
 
       <style>{`
         .dock::-webkit-scrollbar { display: none; }
+        .dock {
+          background: rgba(255,255,255,0.65);
+          backdrop-filter: blur(20px) saturate(180%);
+          -webkit-backdrop-filter: blur(20px) saturate(180%);
+          border: 1px solid rgba(255,255,255,0.6);
+          box-shadow: 0 10px 40px rgba(15,23,42,0.18), 0 1px 0 rgba(255,255,255,0.4) inset;
+          transition: transform 0.35s cubic-bezier(0.22,1,0.36,1), background 0.35s ease, backdrop-filter 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease, opacity 0.35s ease;
+        }
         .dock-tooltip {
           position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
           background: rgba(15,23,42,0.92); color: #fff; font-size: 0.7rem; font-weight: 600;
@@ -104,6 +111,26 @@ export default function NavBar({ page, onNav }: NavBarProps) {
           opacity: 0; pointer-events: none; transition: opacity 0.15s;
         }
         .dock-item:hover .dock-tooltip { opacity: 1; }
+        @media (hover: hover) and (pointer: fine) {
+          .dock {
+            transform: scale(0.8);
+            opacity: 0.55;
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(6px) saturate(140%);
+            -webkit-backdrop-filter: blur(6px) saturate(140%);
+            border-color: rgba(255,255,255,0.2);
+            box-shadow: 0 4px 16px rgba(15,23,42,0.08);
+          }
+          .dock:hover {
+            transform: scale(1);
+            opacity: 1;
+            background: rgba(255,255,255,0.65);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-color: rgba(255,255,255,0.6);
+            box-shadow: 0 10px 40px rgba(15,23,42,0.18), 0 1px 0 rgba(255,255,255,0.4) inset;
+          }
+        }
         @media (max-width: 640px) {
           .dock { gap: 6px !important; padding: 8px 10px !important; overflow-x: auto; }
         }
