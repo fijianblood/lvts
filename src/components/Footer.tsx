@@ -12,7 +12,7 @@ export default function Footer() {
       <footer style={{ background: '#f1f5f9', borderTop: '1px solid #e2e8f0', padding: '2.5rem 1.5rem 5rem', textAlign: 'center' }}>
         <div style={{ maxWidth: 700, margin: '0 auto' }}>
           <div style={{ fontSize: '0.8rem', color: '#64748b', lineHeight: 1.8 }}>
-            Maka Ni Dau Vaámaé Na Moú · LomaVata Tech Services <br />
+            Maka Ni Dau Vaámaé Na Moú · Nobody can kill except God <br />
             Living With Technology · Raiwai, Suva, Fiji ☪ · © 2026 LomaVata Tech Services. All Rights Reserved.
           </div>
         </div>
