@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   IconTool, IconWorld, IconCube, IconGift, IconTruck,
-  IconDeviceGamepad2, IconHammer, IconAntenna, IconHeartbeat, IconDeviceTv, IconMessageCircle, IconMail,
+  IconDeviceGamepad2, IconHammer, IconChalkboard, IconHeartbeat, IconDeviceTv, IconMessageCircle, IconMail,
 } from '@tabler/icons-react';
 
 interface NavBarProps {
@@ -19,7 +19,7 @@ const LINKS = [
   { id: 'ranger', label: 'Ranger XL', icon: IconTruck, color: '#16a34a' },
   { id: 'play', label: 'Play', icon: IconDeviceGamepad2, color: '#ec4899' },
   { id: 'tools', label: 'Tools', icon: IconHammer, color: '#f97316' },
-  { id: 'comic', label: 'Na Signala', icon: IconAntenna, color: '#0891b2' },
+  { id: 'whiteboard', label: 'Whiteboard', icon: IconChalkboard, color: '#0891b2' },
   { id: 'meditrack', label: 'MediTrack', icon: IconHeartbeat, color: '#c1443b' },
   { id: 'tv', label: 'Live TV', icon: IconDeviceTv, color: '#0f172a' },
   { id: 'ask', label: 'Ask LvTS', icon: IconMessageCircle, color: '#6366f1' },

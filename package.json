@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@excalidraw/excalidraw": "^0.18.1",
     "@tabler/icons-react": "^3.45.0",
     "framer-motion": "^12.42.2",
     "heic2any": "^0.0.4",
