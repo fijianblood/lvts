@@ -9,14 +9,14 @@ export default function Footer() {
         />
       </div>
 
-      <footer style={{ background: '#f1f5f9', borderTop: '1px solid #e2e8f0', padding: '2.5rem 1.5rem', textAlign: 'center' }}>
+      <footer style={{ background: '#f1f5f9', borderTop: '1px solid #e2e8f0', padding: '2.5rem 1.5rem 6rem', textAlign: 'center' }}>
         <div style={{ maxWidth: 700, margin: '0 auto' }}>
+          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '1.5rem' }}>
+            © 2026 LomaVata Tech Services. All Rights Reserved.
+          </div>
           <div style={{ fontSize: '0.8rem', color: '#64748b', lineHeight: 1.8 }}>
             LomaVata Tech Services · Raiwai, Suva, Fiji<br />
             Maka Ni Dau Vaámaé Na Moú · Living With Technology ☪
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '1.5rem' }}>
-            © 2026 LomaVata Tech Services. All Rights Reserved.
           </div>
         </div>
       </footer>
