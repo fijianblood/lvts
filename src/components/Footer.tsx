@@ -15,8 +15,8 @@ export default function Footer() {
             © 2026 LomaVata Tech Services. All Rights Reserved.
           </div>
           <div style={{ fontSize: '0.8rem', color: '#64748b', lineHeight: 1.8 }}>
-            LomaVata Tech Services · Raiwai, Suva, Fiji<br />
-            Maka Ni Dau Vaámaé Na Moú · Living With Technology ☪
+            Maka Ni Dau Vaámaé Na Moú · Living With Technology<br />
+            LomaVata Tech Services · Raiwai, Suva, Fiji ☪
           </div>
         </div>
       </footer>
