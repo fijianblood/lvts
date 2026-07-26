@@ -34,8 +34,12 @@ const RULES: Rule[] = [
     reply: "The Ranger XL page is a personal project — a service-log dashboard for Joe's 2024 Ford Ranger, built to show off what LomaVata Tech Services can build for you. Sites like it start from about $5/month.",
   },
   {
+    keywords: ['tech tips', 'repair commands', 'cmd tools', 'sfc', 'dism', 'chkdsk', 'rammap', 'sysinternals', 'search indexer', 'memory leak', 'memory hog', 'downloads'],
+    reply: "Check out the Tech Tips & Downloads section on the Home page — free guides on Windows 11 Repair Commands (sfc, DISM, chkdsk), fixing a slow PC (the Search Indexer / high CPU issue), and RAMMap by Sysinternals for memory analysis. Click any of the three cards there and the full-size image opens in a new tab.",
+  },
+  {
     keywords: ['repair', 'laptop', 'pc', 'computer', 'screen', 'virus', 'malware', 'slow', 'broken', 'fix', 'printer'],
-    reply: "PC & laptop repairs start from FJD $25, with an upfront quote and no hidden fees — any brand (Dell, HP, Acer, ASUS, Toshiba, Apple). Joe also handles virus/malware removal, OS installs, screen replacements, and printer/peripheral setup. Check the Services page for the full list, or hit Contact to book one in.",
+    reply: "PC & laptop repairs start from FJD $25, with an upfront quote and no hidden fees — any brand (Dell, HP, Acer, ASUS, Toshiba, Apple). Joe also handles virus/malware removal, OS installs, screen replacements, and printer/peripheral setup. Check the Services page for the full list, or hit Contact to book one in.\n\nLooking for the free Windows repair/slow-PC/RAMMap guides instead? Those are under Tech Tips & Downloads on the Home page.",
   },
   {
     keywords: ['price', 'prices', 'cost', 'how much', 'quote', 'fee', 'fees'],

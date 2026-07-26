@@ -34,6 +34,12 @@ export default defineConfig({
         // isn't forced to download megabytes of code/media they never use.
         globPatterns: ['index.html', 'favicon.png', 'pwa-192.png', 'pwa-512.png', 'apple-touch-icon.png', 'icons.svg', 'assets/index-*.js', 'assets/index-*.css'],
         navigateFallback: '/lvts/index.html',
+        // Don't hijack direct navigations to real static files (images, videos,
+        // pdfs, etc — anything with a file extension) — only fall back to the
+        // SPA shell for actual app routes. Without this, clicking a
+        // target="_blank" link straight to e.g. /lvts/rammap.png gets
+        // intercepted as a navigation and incorrectly redirected to index.html.
+        navigateFallbackDenylist: [/\.[a-zA-Z0-9]{2,5}$/],
         runtimeCaching: [
           {
             // Any other hashed JS/CSS chunk (dynamic imports like jspdf,
