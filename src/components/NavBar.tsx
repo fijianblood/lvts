@@ -12,6 +12,7 @@ interface NavBarProps {
 
 const LINKS = [
   { id: 'home', label: 'Home' },
+  { id: 'ask', label: 'Ask LvTS', icon: IconMessageCircle, color: '#6366f1' },
   { id: 'services', label: 'Services', icon: IconTool, color: '#2563eb' },
   { id: 'website', label: 'Website', icon: IconWorld, color: '#06b6d4' },
   { id: 'threed', label: '3D Sites', icon: IconCube, color: '#7c3aed' },
@@ -22,7 +23,6 @@ const LINKS = [
   { id: 'whiteboard', label: 'Whiteboard', icon: IconChalkboard, color: '#0891b2' },
   { id: 'meditrack', label: 'MediTrack', icon: IconHeartbeat, color: '#c1443b' },
   { id: 'tv', label: 'Live TV', icon: IconDeviceTv, color: '#0f172a' },
-  { id: 'ask', label: 'Ask LvTS', icon: IconMessageCircle, color: '#6366f1' },
   { id: 'contact', label: 'Contact', icon: IconMail, color: '#ef4444' },
 ];
 
