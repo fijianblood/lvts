@@ -16,8 +16,9 @@ import AskLvtsPage from './pages/AskLvtsPage';
 import WhiteboardPage from './pages/WhiteboardPage';
 import MediTrackPage from './pages/MediTrackPage';
 import LiveTvPage from './pages/LiveTvPage';
+import SeoToolsPage from './pages/SeoToolsPage';
 
-const VALID_PAGES = ['home', 'services', 'website', 'threed', 'rewards', 'ranger', 'play', 'tools', 'whiteboard', 'meditrack', 'tv', 'ask', 'contact'];
+const VALID_PAGES = ['home', 'services', 'website', 'threed', 'rewards', 'ranger', 'play', 'tools', 'whiteboard', 'meditrack', 'tv', 'seo', 'ask', 'contact'];
 
 function initialPage() {
   const hash = window.location.hash.replace('#', '');
@@ -37,6 +38,7 @@ function renderPage(page: string, onNav: (p: string) => void) {
     case 'whiteboard': return <WhiteboardPage />;
     case 'meditrack': return <MediTrackPage onNav={onNav} />;
     case 'tv':       return <LiveTvPage />;
+    case 'seo':      return <SeoToolsPage />;
     case 'ask':      return <AskLvtsPage />;
     case 'contact':  return <ContactPage />;
     default:         return null;
