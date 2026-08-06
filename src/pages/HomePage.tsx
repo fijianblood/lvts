@@ -183,18 +183,19 @@ export default function HomePage({ onNav }: { onNav: (p: string) => void }) {
       <section style={{ padding: '80px 1.5rem', background: '#f8fafc' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: '3rem', alignItems: 'center' }}>
           <div ref={aboutRef} className="fade-in" style={{ position: 'relative' }}>
-            <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 8px 40px rgba(0,0,0,0.08)' }}>
-              <img src={`${import.meta.env.BASE_URL}joewithmv2.jpg`} alt="LomaVata Tech Services" style={{ width: '100%', objectFit: 'cover', display: 'block' }} />
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(15,23,42,0.5) 0%, transparent 60%)' }} />
-              <div style={{ position: 'absolute', bottom: '1rem', left: '1rem', right: '1rem' }}>
+            <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 8px 40px rgba(0,0,0,0.08)', position: 'relative' }}>
+              <video
+                autoPlay muted loop playsInline controls preload="auto"
+                aria-label="A quick video introduction to who I am and what I do"
+                style={{ width: '100%', display: 'block', objectFit: 'cover' }}
+              >
+                <source src={`${import.meta.env.BASE_URL}about-me-intro.mp4`} type="video/mp4" />
+              </video>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '1rem', background: 'linear-gradient(to bottom, rgba(15,23,42,0.55) 0%, transparent 70%)', pointerEvents: 'none' }}>
                 {['IT Consultant','Web Dev','Fiji 🏝'].map(t => (
                   <span key={t} style={{ background: 'rgba(37,99,235,0.85)', borderRadius: 6, padding: '0.2rem 0.6rem', fontSize: '0.7rem', fontWeight: 600, color: '#fff', marginRight: '0.4rem', backdropFilter: 'blur(4px)' }}>{t}</span>
                 ))}
               </div>
-            </div>
-            <div className="card-3d" style={{ position: 'absolute', bottom: '-1.5rem', right: '-1.5rem', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '0.8rem 1.1rem', boxShadow: '0 8px 24px rgba(0,0,0,0.1)' }}>
-              <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '1.1rem', fontWeight: 700, color: '#0891b2' }}>@fijianblood8</div>
-              <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 2 }}>TikTok · IT Tips & Tricks</div>
             </div>
           </div>
 
