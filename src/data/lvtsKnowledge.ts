@@ -4,7 +4,83 @@ export interface KnowledgeEntry {
   answer: string;
 }
 
-export const WINDOWS_KNOWLEDGE: KnowledgeEntry[] = [
+export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
+  {
+    id: 'about-lvts',
+    keywords: [
+      'what do you do', 'who are you', 'about lvts', 'about lomavata', 'services do you offer',
+      'what services', 'what can you help', 'who is this', 'company', 'business',
+    ],
+    answer:
+      "**LomaVata Tech Services (LvTS)** is a locally owned IT business in Raiwai, Suva, Fiji — founded by Josese Sahib. \"Loma Vata\" means togetherness.\n\n" +
+      "We handle:\n" +
+      "- PC & laptop repair and Windows 11 troubleshooting\n" +
+      "- Website design & development\n" +
+      "- Networking setup (home/office)\n" +
+      "- CCTV installation\n" +
+      "- Remote IT support\n" +
+      "- Laptops, accessories & software — via our online store\n\n" +
+      "Ask me about any of these, or [chat with us directly on WhatsApp](https://wa.me/6797466941) for anything specific.",
+  },
+  {
+    id: 'computer-laptop-repair',
+    keywords: [
+      'fix my laptop', 'fix my computer', 'laptop repair', 'computer repair', 'pc repair',
+      'not turning on', 'broken laptop', 'laptop not working', 'screen replacement',
+      'laptop screen', 'how much for a repair', 'repair cost', 'repair price',
+    ],
+    answer:
+      "**PC & laptop repair**\n\n" +
+      "We repair desktops and laptops — hardware issues (screens, batteries, won't turn on), software problems, virus removal, and general troubleshooting.\n\n" +
+      "Pricing depends on the issue, so the best way to get an accurate quote is to [message us on WhatsApp](https://wa.me/6797466941) with what's wrong, or call **833 1088 / 746 6941**. We're in Raiwai, Suva if you'd rather drop it off.\n\n" +
+      "If it's a Windows 11 software issue, try asking me about the specific symptom (e.g. \"my PC is slow\", \"black screen\", \"Wi-Fi not working\") — I might be able to walk you through a fix right now.",
+  },
+  {
+    id: 'website-services',
+    keywords: [
+      'website', 'web design', 'build a website', 'web development', 'new site',
+      'online presence', 'landing page', 'ecommerce site',
+    ],
+    answer:
+      "**Website design & development**\n\n" +
+      "We build websites for local businesses — from simple landing pages to full sites with online stores, booking forms, and custom features (like this chat!).\n\n" +
+      "Pricing depends on scope — check out the **Website** page in the nav for details, or [message us on WhatsApp](https://wa.me/6797466941) to talk through what you need.",
+  },
+  {
+    id: 'online-store',
+    keywords: [
+      'store', 'buy', 'shop', 'vitikart', 'purchase', 'for sale', 'where can i buy',
+      'sell laptops', 'accessories',
+    ],
+    answer:
+      "**Our online store**\n\n" +
+      "LvTS sells laptops, accessories, software, and digital services (website design, remote IT support, PDF conversion, and more) through our **VitiKart marketplace store**:\n\n" +
+      "[www.vitikart.com.fj/marketplace/joesahib.html](https://www.vitikart.com.fj/marketplace/joesahib.html)\n\n" +
+      "Prices and stock change, so check the store listing directly for current pricing — or [message us on WhatsApp](https://wa.me/6797466941) if you're after something specific and we'll confirm availability.",
+  },
+  {
+    id: 'contact-hours',
+    keywords: [
+      'hours', 'open', 'contact', 'phone number', 'address', 'location', 'call you',
+      'where are you', 'opening hours', 'whatsapp',
+    ],
+    answer:
+      "**Contact LvTS**\n\n" +
+      "- Phone: **833 1088 / 746 6941**\n" +
+      "- WhatsApp: [wa.me/6797466941](https://wa.me/6797466941)\n" +
+      "- Email: lomavatatechfiji@gmail.com\n" +
+      "- Location: Raiwai, Suva, Fiji\n" +
+      "- Hours: Monday–Friday, 8:00am–5:00pm Fiji time (WhatsApp us anytime for after-hours or urgent issues)",
+  },
+  {
+    id: 'talk-to-human',
+    keywords: [
+      'human', 'real person', 'talk to someone', 'agent', 'representative', 'speak to joe',
+      'speak to someone', 'not helpful', 'talk to a person',
+    ],
+    answer:
+      "No problem — [tap here to chat with us directly on WhatsApp](https://wa.me/6797466941) and a real person will reply. You can also call **833 1088 / 746 6941**.",
+  },
   {
     id: 'wifi-reset',
     keywords: [

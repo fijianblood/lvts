@@ -1,126 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Send, Sparkles, RotateCcw } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { WINDOWS_KNOWLEDGE } from '../data/windowsKnowledge';
-
-interface ChatMessage {
-  id: string;
-  role: 'user' | 'bot';
-  text: string;
-  streaming?: boolean;
-}
-
-const WELCOME =
-  "Bula! 👋 I'm the LvTS Windows 11 troubleshooting assistant. Ask me about Wi-Fi issues, slow PCs, corrupted files, disk space, blue screens, and more. If I can't help, call LvTS directly on **833 1088**.";
-
-const NO_MATCH =
-  "I don't have a canned answer for that one yet — for anything I can't cover, reach LvTS directly on **833 1088 / 746 6941** or lomavatatechfiji@gmail.com, and we'll sort it out.";
-
-const SUGGESTED_PROMPTS = [
-  'My Wi-Fi is not connecting',
-  'How do I repair corrupted system files?',
-  'My screenshots show a black screen',
-  'How do I free up disk space?',
-  'My PC is really slow',
-];
-
-function findAnswer(input: string): string {
-  const text = input.toLowerCase();
-  let best: { score: number; answer: string } | null = null;
-  for (const entry of WINDOWS_KNOWLEDGE) {
-    let score = 0;
-    for (const kw of entry.keywords) {
-      if (text.includes(kw)) score += kw.split(' ').length;
-    }
-    if (score > 0 && (!best || score > best.score)) best = { score, answer: entry.answer };
-  }
-  return best ? best.answer : NO_MATCH;
-}
-
-const markdownComponents = {
-  p: (props: React.ComponentProps<'p'>) => <p style={{ margin: '0 0 0.5em' }} {...props} />,
-  ul: (props: React.ComponentProps<'ul'>) => <ul style={{ margin: '0 0 0.5em', paddingLeft: '1.2em' }} {...props} />,
-  ol: (props: React.ComponentProps<'ol'>) => <ol style={{ margin: '0 0 0.5em', paddingLeft: '1.2em' }} {...props} />,
-  li: (props: React.ComponentProps<'li'>) => <li style={{ margin: '0.15em 0' }} {...props} />,
-  a: (props: React.ComponentProps<'a'>) => (
-    <a {...props} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'underline' }} />
-  ),
-  strong: (props: React.ComponentProps<'strong'>) => <strong style={{ fontWeight: 700 }} {...props} />,
-  code: (props: React.ComponentProps<'code'>) => (
-    <code style={{ background: 'rgba(15,23,42,0.06)', borderRadius: 4, padding: '0.1em 0.35em', fontSize: '0.85em', fontFamily: 'monospace' }} {...props} />
-  ),
-  pre: (props: React.ComponentProps<'pre'>) => (
-    <pre style={{ background: '#0f172a', color: '#e2e8f0', borderRadius: 8, padding: '0.6em 0.8em', margin: '0.4em 0', overflowX: 'auto', fontSize: '0.82em' }} {...props} />
-  ),
-};
-
-function uid() {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
-}
+import { type ChatMessage, SUGGESTED_PROMPTS, markdownComponents } from '../lib/lvtsChat';
+import { useLvtsChat } from '../lib/useLvtsChat';
 
 export default function AskLvtsPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const { messages, input, setInput, isTyping, busy, handleSend, resetChat } = useLvtsChat(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const hasWelcomed = useRef(false);
-  const busy = isTyping || messages.some(m => m.streaming);
 
   useEffect(() => {
     inputRef.current?.focus();
-    if (hasWelcomed.current) return;
-    hasWelcomed.current = true;
-    return streamMessage(WELCOME, 400);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   }, [messages, isTyping]);
-
-  function streamMessage(fullText: string, initialDelay = 0) {
-    const id = uid();
-    let interval: ReturnType<typeof setInterval> | null = null;
-    const timeout = window.setTimeout(() => {
-      setIsTyping(false);
-      setMessages(prev => [...prev, { id, role: 'bot', text: '', streaming: true }]);
-      let i = 0;
-      interval = setInterval(() => {
-        i += Math.random() < 0.3 ? 2 : 1;
-        const chunk = fullText.slice(0, i);
-        setMessages(prev => prev.map(m => (m.id === id ? { ...m, text: chunk } : m)));
-        if (i >= fullText.length) {
-          if (interval) clearInterval(interval);
-          setMessages(prev => prev.map(m => (m.id === id ? { ...m, text: fullText, streaming: false } : m)));
-        }
-      }, 18);
-    }, initialDelay);
-    return () => {
-      clearTimeout(timeout);
-      if (interval) clearInterval(interval);
-    };
-  }
-
-  function handleSend(text: string) {
-    const trimmed = text.trim();
-    if (!trimmed || busy) return;
-    setMessages(prev => [...prev, { id: uid(), role: 'user', text: trimmed }]);
-    setInput('');
-    setIsTyping(true);
-
-    const answer = findAnswer(trimmed);
-    streamMessage(answer, 500);
-  }
-
-  function resetChat() {
-    setMessages([]);
-    setInput('');
-    setIsTyping(false);
-    streamMessage(WELCOME, 200);
-    inputRef.current?.focus();
-  }
 
   return (
     <section style={{ padding: '120px 1.5rem 80px', position: 'relative', overflow: 'hidden' }}>
@@ -129,13 +25,13 @@ export default function AskLvtsPage() {
 
       <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center', marginBottom: '2rem', position: 'relative' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#7c3aed', marginBottom: '0.75rem' }}>
-          <Sparkles size={14} /> Windows 11 Troubleshooting
+          <Sparkles size={14} /> LvTS Assistant
         </div>
         <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(2rem,5vw,3.2rem)', color: '#0f172a', lineHeight: 1.1, marginBottom: '1rem' }}>
           Ask <span className="grad-text">LvTS</span>
         </h1>
         <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: 1.75 }}>
-          Type your Windows 11 problem and get step-by-step fixes — Wi-Fi issues, slow PCs, corrupted files, disk space, and more.
+          PC & laptop repairs, Windows 11 troubleshooting, websites, or our online store — ask away, or get straight through to a real person on WhatsApp.
         </p>
       </div>
 
@@ -153,7 +49,7 @@ export default function AskLvtsPage() {
             <Sparkles size={17} color="#fff" />
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>LvTS Windows 11 Assistant</div>
+            <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>LvTS Assistant</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', color: '#94a3b8' }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
               Online
@@ -161,7 +57,7 @@ export default function AskLvtsPage() {
           </div>
           {messages.length > 0 && (
             <button
-              onClick={resetChat}
+              onClick={() => { resetChat(); inputRef.current?.focus(); }}
               aria-label="Ask another question"
               style={{
                 display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#f8fafc',
@@ -232,7 +128,7 @@ export default function AskLvtsPage() {
       </div>
 
       <p style={{ maxWidth: 700, margin: '0.9rem auto 0', textAlign: 'center', fontSize: '0.72rem', color: '#94a3b8' }}>
-        This assistant answers common Windows 11 issues instantly — for anything else, or if a fix doesn't work, call LvTS on 833 1088 / 746 6941.
+        This assistant answers common questions instantly — for anything else, WhatsApp <a href="https://wa.me/6797466941" target="_blank" rel="noopener noreferrer" style={{ color: '#7c3aed', fontWeight: 600 }}>746 6941</a> or call 833 1088.
       </p>
 
       <style>{`

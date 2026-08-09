@@ -13,6 +13,7 @@ import ContactPage from './pages/ContactPage';
 import PlayPage from './pages/PlayPage';
 import ToolsPage from './pages/ToolsPage';
 import AskLvtsPage from './pages/AskLvtsPage';
+import ChatWidget from './components/ChatWidget';
 import WhiteboardPage from './pages/WhiteboardPage';
 import MediTrackPage from './pages/MediTrackPage';
 import SeoToolsPage from './pages/SeoToolsPage';
@@ -80,6 +81,7 @@ export default function App() {
         </motion.div>
       </AnimatePresence>
       <Footer />
+      <ChatWidget page={page} />
     </>
   );
 }
