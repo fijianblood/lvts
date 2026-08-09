@@ -2,7 +2,8 @@ import { useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   IconTool, IconWorld, IconCube, IconGift, IconTruck,
-  IconDeviceGamepad2, IconHammer, IconChalkboard, IconHeartbeat, IconDeviceTv, IconSeo, IconMessageCircle, IconMail,
+  IconDeviceGamepad2, IconHammer, IconChalkboard, IconHeartbeat, IconSeo, IconMessageCircle, IconMail,
+  IconTopologyStar3,
 } from '@tabler/icons-react';
 
 interface NavBarProps {
@@ -22,7 +23,7 @@ const LINKS = [
   { id: 'tools', label: 'Tools', icon: IconHammer, color: '#f97316' },
   { id: 'whiteboard', label: 'Whiteboard', icon: IconChalkboard, color: '#0891b2' },
   { id: 'meditrack', label: 'MediTrack', icon: IconHeartbeat, color: '#c1443b' },
-  { id: 'tv', label: 'Live TV', icon: IconDeviceTv, color: '#0f172a' },
+  { id: 'network', label: 'Network Setup', icon: IconTopologyStar3, color: '#f2a93c' },
   { id: 'seo', label: 'SEO Tools', icon: IconSeo, color: '#2563eb' },
   { id: 'contact', label: 'Contact', icon: IconMail, color: '#ef4444' },
 ];

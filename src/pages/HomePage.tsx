@@ -140,6 +140,13 @@ export default function HomePage({ onNav }: { onNav: (p: string) => void }) {
               onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#fff'; }}>
               💬 Ask LvTS
             </a>
+            <button onClick={() => onNav('network')}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#fff', border: '1.5px solid rgba(242,169,60,0.45)', color: '#b76e00', padding: '0.85rem 2rem', borderRadius: 10, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(242,169,60,0.12)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(242,169,60,0.08)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.transform = 'translateY(0)'; }}
+              aria-label="View the interactive 3D small-office network diagram">
+              🖧 See Network Setup
+            </button>
           </div>
 
           {/* Live demo showcase */}

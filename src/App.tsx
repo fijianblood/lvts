@@ -15,10 +15,10 @@ import ToolsPage from './pages/ToolsPage';
 import AskLvtsPage from './pages/AskLvtsPage';
 import WhiteboardPage from './pages/WhiteboardPage';
 import MediTrackPage from './pages/MediTrackPage';
-import LiveTvPage from './pages/LiveTvPage';
 import SeoToolsPage from './pages/SeoToolsPage';
+import NetworkDiagramPage from './pages/NetworkDiagramPage';
 
-const VALID_PAGES = ['home', 'services', 'website', 'threed', 'rewards', 'ranger', 'play', 'tools', 'whiteboard', 'meditrack', 'tv', 'seo', 'ask', 'contact'];
+const VALID_PAGES = ['home', 'services', 'website', 'threed', 'rewards', 'ranger', 'play', 'tools', 'whiteboard', 'meditrack', 'seo', 'network', 'ask', 'contact'];
 
 function initialPage() {
   const hash = window.location.hash.replace('#', '');
@@ -37,8 +37,8 @@ function renderPage(page: string, onNav: (p: string) => void) {
     case 'tools':    return <ToolsPage />;
     case 'whiteboard': return <WhiteboardPage />;
     case 'meditrack': return <MediTrackPage onNav={onNav} />;
-    case 'tv':       return <LiveTvPage />;
     case 'seo':      return <SeoToolsPage />;
+    case 'network':  return <NetworkDiagramPage onNav={onNav} />;
     case 'ask':      return <AskLvtsPage />;
     case 'contact':  return <ContactPage />;
     default:         return null;
