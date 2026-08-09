@@ -10,7 +10,8 @@ export interface ChatMessage {
 export const WHATSAPP_URL = 'https://wa.me/6797466941';
 
 export const WELCOME =
-  "Bula! 👋 I'm the LvTS assistant. Ask me about PC/laptop repairs, Windows 11 troubleshooting, websites, or our online store. If I can't help, I'll get you straight through to a real person on WhatsApp.";
+  "Bula! I'm **Loma** 🌺 Welcome to LomaVata Tech Services. Whether you need IT support, a website, or just have a question — I'm here. What can I help you with?\n\n" +
+  "*Ni Bula vinaka mai Lomavata Tech Services. Ke o ni gadreva na veivuke ni IT, na i vola mata ni nomu kabani, se dua na vakatataro — keitou sa tiko qoi. Meu na vukei kemuni e na cava nikua?*";
 
 export const NO_MATCH =
   "I don't have a canned answer for that one yet — [tap here to chat with us directly on WhatsApp](" + WHATSAPP_URL + "), or call LvTS on **833 1088 / 746 6941**.";

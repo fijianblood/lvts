@@ -40,7 +40,7 @@ export default function ChatWidget({ page }: { page: string }) {
               <Sparkles size={15} color="#fff" />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.85rem' }}>LvTS Assistant</div>
+              <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.85rem' }}>Loma</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.68rem', color: '#94a3b8' }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
                 Online
@@ -122,7 +122,7 @@ export default function ChatWidget({ page }: { page: string }) {
       {/* Bubble toggle */}
       <button
         onClick={() => setIsOpen(v => !v)}
-        aria-label={isOpen ? 'Close chat' : 'Chat with LvTS'}
+        aria-label={isOpen ? 'Close chat' : 'Chat with Loma'}
         style={{
           position: 'fixed', bottom: 20, right: 16, zIndex: 61,
           width: 56, height: 56, borderRadius: '50%', border: 'none', cursor: 'pointer',

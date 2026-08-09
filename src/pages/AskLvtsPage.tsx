@@ -25,7 +25,7 @@ export default function AskLvtsPage() {
 
       <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center', marginBottom: '2rem', position: 'relative' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#7c3aed', marginBottom: '0.75rem' }}>
-          <Sparkles size={14} /> LvTS Assistant
+          <Sparkles size={14} /> Loma
         </div>
         <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(2rem,5vw,3.2rem)', color: '#0f172a', lineHeight: 1.1, marginBottom: '1rem' }}>
           Ask <span className="grad-text">LvTS</span>
@@ -49,7 +49,7 @@ export default function AskLvtsPage() {
             <Sparkles size={17} color="#fff" />
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>LvTS Assistant</div>
+            <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>Loma</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', color: '#94a3b8' }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
               Online
