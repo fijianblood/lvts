@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Send, Sparkles } from 'lucide-react';
+import { Send, Sparkles, RotateCcw } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { WINDOWS_KNOWLEDGE } from '../data/windowsKnowledge';
 
@@ -114,6 +114,14 @@ export default function AskLvtsPage() {
     streamMessage(answer, 500);
   }
 
+  function resetChat() {
+    setMessages([]);
+    setInput('');
+    setIsTyping(false);
+    streamMessage(WELCOME, 200);
+    inputRef.current?.focus();
+  }
+
   return (
     <section style={{ padding: '120px 1.5rem 80px', position: 'relative', overflow: 'hidden' }}>
       <div className="orb" style={{ width: 400, height: 400, background: 'rgba(124,58,237,0.07)', top: '-8%', left: '-5%' }} />
@@ -144,13 +152,29 @@ export default function AskLvtsPage() {
           <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#2563eb,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Sparkles size={17} color="#fff" />
           </div>
-          <div>
+          <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>LvTS Windows 11 Assistant</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', color: '#94a3b8' }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
               Online
             </div>
           </div>
+          {messages.length > 0 && (
+            <button
+              onClick={resetChat}
+              aria-label="Ask another question"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#f8fafc',
+                border: '1px solid #e2e8f0', borderRadius: 999, padding: '0.4rem 0.75rem',
+                fontSize: '0.72rem', fontWeight: 600, color: '#334155', cursor: 'pointer',
+                fontFamily: "'Space Grotesk',sans-serif", flexShrink: 0, transition: 'border-color 0.15s, background 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#7c3aed'; e.currentTarget.style.background = '#faf5ff'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = '#f8fafc'; }}
+            >
+              <RotateCcw size={13} /> New question
+            </button>
+          )}
         </div>
 
         {/* Messages */}
