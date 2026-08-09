@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Send, Sparkles } from 'lucide-react';
-import { getBotReply, SUGGESTED_PROMPTS } from '../lib/askBotEngine';
+import ReactMarkdown from 'react-markdown';
+import { WINDOWS_KNOWLEDGE } from '../data/windowsKnowledge';
 
 interface ChatMessage {
   id: string;
@@ -9,7 +10,49 @@ interface ChatMessage {
   streaming?: boolean;
 }
 
-const WELCOME = "Bula! 👋 I'm the LvTS virtual assistant. Ask me about repairs, web design, pricing, rewards, or how to reach Joe — happy to help.";
+const WELCOME =
+  "Bula! 👋 I'm the LvTS Windows 11 troubleshooting assistant. Ask me about Wi-Fi issues, slow PCs, corrupted files, disk space, blue screens, and more. If I can't help, call LvTS directly on **833 1088**.";
+
+const NO_MATCH =
+  "I don't have a canned answer for that one yet — for anything I can't cover, reach LvTS directly on **833 1088 / 746 6941** or lomavatatechfiji@gmail.com, and we'll sort it out.";
+
+const SUGGESTED_PROMPTS = [
+  'My Wi-Fi is not connecting',
+  'How do I repair corrupted system files?',
+  'My screenshots show a black screen',
+  'How do I free up disk space?',
+  'My PC is really slow',
+];
+
+function findAnswer(input: string): string {
+  const text = input.toLowerCase();
+  let best: { score: number; answer: string } | null = null;
+  for (const entry of WINDOWS_KNOWLEDGE) {
+    let score = 0;
+    for (const kw of entry.keywords) {
+      if (text.includes(kw)) score += kw.split(' ').length;
+    }
+    if (score > 0 && (!best || score > best.score)) best = { score, answer: entry.answer };
+  }
+  return best ? best.answer : NO_MATCH;
+}
+
+const markdownComponents = {
+  p: (props: React.ComponentProps<'p'>) => <p style={{ margin: '0 0 0.5em' }} {...props} />,
+  ul: (props: React.ComponentProps<'ul'>) => <ul style={{ margin: '0 0 0.5em', paddingLeft: '1.2em' }} {...props} />,
+  ol: (props: React.ComponentProps<'ol'>) => <ol style={{ margin: '0 0 0.5em', paddingLeft: '1.2em' }} {...props} />,
+  li: (props: React.ComponentProps<'li'>) => <li style={{ margin: '0.15em 0' }} {...props} />,
+  a: (props: React.ComponentProps<'a'>) => (
+    <a {...props} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'underline' }} />
+  ),
+  strong: (props: React.ComponentProps<'strong'>) => <strong style={{ fontWeight: 700 }} {...props} />,
+  code: (props: React.ComponentProps<'code'>) => (
+    <code style={{ background: 'rgba(15,23,42,0.06)', borderRadius: 4, padding: '0.1em 0.35em', fontSize: '0.85em', fontFamily: 'monospace' }} {...props} />
+  ),
+  pre: (props: React.ComponentProps<'pre'>) => (
+    <pre style={{ background: '#0f172a', color: '#e2e8f0', borderRadius: 8, padding: '0.6em 0.8em', margin: '0.4em 0', overflowX: 'auto', fontSize: '0.82em' }} {...props} />
+  ),
+};
 
 function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -66,9 +109,9 @@ export default function AskLvtsPage() {
     setMessages(prev => [...prev, { id: uid(), role: 'user', text: trimmed }]);
     setInput('');
     setIsTyping(true);
-    const reply = getBotReply(trimmed);
-    const thinkDelay = 500 + Math.random() * 500;
-    streamMessage(reply, thinkDelay);
+
+    const answer = findAnswer(trimmed);
+    streamMessage(answer, 500);
   }
 
   return (
@@ -78,13 +121,13 @@ export default function AskLvtsPage() {
 
       <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center', marginBottom: '2rem', position: 'relative' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#7c3aed', marginBottom: '0.75rem' }}>
-          <Sparkles size={14} /> Virtual Assistant
+          <Sparkles size={14} /> Windows 11 Troubleshooting
         </div>
         <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(2rem,5vw,3.2rem)', color: '#0f172a', lineHeight: 1.1, marginBottom: '1rem' }}>
           Ask <span className="grad-text">LvTS</span>
         </h1>
         <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: 1.75 }}>
-          Chat with our assistant about services, pricing, or anything else on the site.
+          Type your Windows 11 problem and get step-by-step fixes — Wi-Fi issues, slow PCs, corrupted files, disk space, and more.
         </p>
       </div>
 
@@ -102,7 +145,7 @@ export default function AskLvtsPage() {
             <Sparkles size={17} color="#fff" />
           </div>
           <div>
-            <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>LvTS Assistant</div>
+            <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>LvTS Windows 11 Assistant</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', color: '#94a3b8' }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
               Online
@@ -165,7 +208,7 @@ export default function AskLvtsPage() {
       </div>
 
       <p style={{ maxWidth: 700, margin: '0.9rem auto 0', textAlign: 'center', fontSize: '0.72rem', color: '#94a3b8' }}>
-        This assistant answers from what's on the site — for anything else, reach Joe directly via the Contact page.
+        This assistant answers common Windows 11 issues instantly — for anything else, or if a fix doesn't work, call LvTS on 833 1088 / 746 6941.
       </p>
 
       <style>{`
@@ -181,6 +224,7 @@ export default function AskLvtsPage() {
           color: #7c3aed;
         }
         @keyframes lvts-blink { 50% { opacity: 0; } }
+        .lvts-md pre code { background: transparent; padding: 0; border-radius: 0; }
       `}</style>
     </section>
   );
@@ -188,6 +232,7 @@ export default function AskLvtsPage() {
 
 function Bubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user';
+  const useMarkdown = !isUser && !message.streaming;
   return (
     <div style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start' }}>
       <div
@@ -196,10 +241,14 @@ function Bubble({ message }: { message: ChatMessage }) {
           maxWidth: '78%', padding: '0.65rem 0.95rem', borderRadius: isUser ? '14px 14px 3px 14px' : '14px 14px 14px 3px',
           background: isUser ? 'linear-gradient(135deg,#2563eb,#7c3aed)' : '#f1f5f9',
           color: isUser ? '#fff' : '#0f172a', fontSize: '0.88rem', lineHeight: 1.6,
-          whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+          whiteSpace: useMarkdown ? 'normal' : 'pre-wrap', wordBreak: 'break-word',
         }}
       >
-        {message.text}
+        {useMarkdown ? (
+          <div className="lvts-md">
+            <ReactMarkdown components={markdownComponents}>{message.text}</ReactMarkdown>
+          </div>
+        ) : message.text}
       </div>
     </div>
   );

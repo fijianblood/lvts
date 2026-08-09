@@ -1,0 +1,185 @@
+export interface KnowledgeEntry {
+  id: string;
+  keywords: string[];
+  answer: string;
+}
+
+export const WINDOWS_KNOWLEDGE: KnowledgeEntry[] = [
+  {
+    id: 'wifi-reset',
+    keywords: [
+      'wifi', 'wi-fi', 'wireless', 'network adapter', 'internet not working',
+      'no internet', 'can\'t connect', 'cant connect', 'disconnect', 'no wifi',
+    ],
+    answer:
+      "**Wi-Fi / network not working — hard reset the network stack**\n\n" +
+      "1. Open **Command Prompt as Administrator** (right-click Start → Terminal (Admin)).\n" +
+      "2. Run:\n```\nnetcfg -d\n```\n" +
+      "3. Restart your PC.\n" +
+      "4. Reconnect to Wi-Fi — you'll need to re-enter your Wi-Fi password.\n\n" +
+      "This does a full reset of all network adapters, so it fixes most stubborn Wi-Fi/Ethernet issues — but it **wipes saved Wi-Fi passwords and network profiles**, so only use it if reconnecting normally isn't working.",
+  },
+  {
+    id: 'repair-system-files',
+    keywords: [
+      'corrupt', 'corrupted', 'system file', 'sfc', 'dism', 'repair windows',
+      'windows broken', 'keeps crashing', 'random errors', 'file checker',
+    ],
+    answer:
+      "**Repair corrupted Windows system files**\n\n" +
+      "Open **Command Prompt as Administrator** and run these two, in order:\n\n" +
+      "1. Scan and fix corrupted files:\n```\nsfc /scannow\n```\n" +
+      "2. Repair the underlying Windows image (run this even if step 1 finds nothing, or if it fails):\n```\nDISM /Online /Cleanup-Image /RestoreHealth\n```\n\n" +
+      "Flow: **Scan → Diagnose → Repair → Stable system**. This fixes most cases of random errors, missing files, and general instability. It can take 10–20 minutes — let it finish.",
+  },
+  {
+    id: 'black-screen-screenshot',
+    keywords: [
+      'black screen', 'screenshot black', 'recording black', 'screen record',
+      'streaming black', 'zoom black', 'teams black', 'obs black', 'video call black',
+      'share screen black',
+    ],
+    answer:
+      "**Black box in screenshots, screen recordings, or video calls**\n\n" +
+      "This is almost always caused by **Hardware Acceleration** in your browser — the video/graphics layer doesn't get captured properly by screenshot or recording tools.\n\n" +
+      "Fix it in whichever browser you use:\n" +
+      "- **Chrome / Edge**: Settings → System → turn off \"Use hardware acceleration when available\"\n" +
+      "- **Firefox**: Settings → General → Performance → uncheck \"Use recommended performance settings\" → uncheck \"Use hardware acceleration when available\"\n\n" +
+      "Restart the browser afterward for it to take effect.",
+  },
+  {
+    id: 'restore-previous-version',
+    keywords: [
+      'restore', 'previous version', 'shadow copy', 'shadow copies', 'vssadmin',
+      'recover file', 'lost file', 'deleted file', 'overwrote file', 'undo save',
+    ],
+    answer:
+      "**Recover a previous version of a file (shadow copies)**\n\n" +
+      "Windows 11 can keep restore points for files via Volume Shadow Copy. To check what's available:\n\n" +
+      "1. Open **Command Prompt as Administrator**.\n" +
+      "2. Run:\n```\nvssadmin list shadows\n```\n" +
+      "3. If shadow copies exist, right-click the file or folder in File Explorer → **Properties** → **Previous Versions** tab to restore an earlier copy.\n\n" +
+      "Note: this needs admin privileges, and only works if System Restore/shadow copies were enabled on the drive beforehand.",
+  },
+  {
+    id: 'slow-pc-diagnose',
+    keywords: [
+      'slow', 'laggy', 'freezing', 'freeze', 'frozen', 'high cpu', 'high memory',
+      'bottleneck', 'not responding', 'lag', 'sluggish', 'why is my pc slow',
+    ],
+    answer:
+      "**Diagnosing a slow or frozen PC — use Resource Monitor**\n\n" +
+      "How to open it:\n" +
+      "- Press **Win + R**, type `resmon`, hit Enter — or\n" +
+      "- Search \"Resource Monitor\" in the Start menu — or\n" +
+      "- Task Manager → **Performance** tab → **Open Resource Monitor**\n\n" +
+      "What to check:\n" +
+      "- **CPU tab** — find which process is hogging the processor, or frozen apps\n" +
+      "- **Memory tab** — real-time RAM read/write, track which app is eating memory\n" +
+      "- **Disk tab** — see which process is hammering the disk, causing slowdowns\n" +
+      "- **Network tab** — spot unexpected data usage or connections\n\n" +
+      "**Key feature**: right-click a frozen app → **Analyze Wait Chain** — this shows you exactly which process is blocking it, which is usually the real culprit.",
+  },
+  {
+    id: 'free-disk-space',
+    keywords: [
+      'disk space', 'storage full', 'low on space', 'free up space', 'c drive full',
+      'disk cleanup', 'temp files', 'reserved storage', 'running out of space',
+    ],
+    answer:
+      "**Free up disk space**\n\n" +
+      "1. **Disk Cleanup** — search \"Disk Cleanup\" in Start, select your drive, tick everything (including \"Previous Windows installations\" and \"Windows Update Cleanup\" if present), and run it. Removes temp files and old update leftovers.\n" +
+      "2. **Clear the TEMP folder** — press Win + R, type `%temp%`, delete everything you can (skip files in use).\n" +
+      "3. **Disable Reserved Storage** — Windows sets aside 7–10GB for updates. If you need the space, this can be freed via Settings → System → Storage → Storage Sense, or through the registry (ask us if you want a hand with this one — it's easy to do wrong).\n\n" +
+      "Do these in order — Disk Cleanup alone recovers most space for most people.",
+  },
+  {
+    id: 'optimize-drives',
+    keywords: [
+      'optimize drive', 'defrag', 'defragment', 'drive optimization', 'defragsvc',
+      'disk running slow', 'hard drive slow',
+    ],
+    answer:
+      "**Optimize / defragment your drives**\n\n" +
+      "Windows 11 handles this automatically via the **Optimize drives** service (service name: `defragsvc`), which optimizes files on storage drives to run more efficiently — SSDs get TRIM, HDDs get defragmented.\n\n" +
+      "To run it manually or check the schedule:\n" +
+      "1. Search \"Defragment and Optimize Drives\" in Start (or open Settings → System → Storage → Advanced storage settings → Drive optimization).\n" +
+      "2. Select your drive → **Optimize**.\n\n" +
+      "If it's not running on schedule, check the service is enabled: press Win + R, type `services.msc`, find **Optimize drives**, and make sure it's not disabled.",
+  },
+  {
+    id: 'windows-update-stuck',
+    keywords: [
+      'update stuck', 'windows update', 'update failing', 'update not installing',
+      'update slow', 'update won\'t install', 'update error',
+    ],
+    answer:
+      "**Windows Update stuck, slow, or failing**\n\n" +
+      "1. Settings → **Windows Update** → run the built-in **Windows Update Troubleshooter** first (Settings → System → Troubleshoot → Other troubleshooters).\n" +
+      "2. If updates are slow because it's uploading to other PCs on your network (Delivery Optimization), turn that off: Settings → Windows Update → Advanced options → Delivery Optimization → toggle **Allow downloads from other PCs** off.\n" +
+      "3. Still stuck? Run the system file repair steps first (ask me about \"repair corrupted system files\") — a broken Windows image is a common cause of updates that won't install.",
+  },
+  {
+    id: 'restore-point-create',
+    keywords: [
+      'restore point', 'system restore', 'backup before', 'safety net', 'undo changes',
+      'rollback',
+    ],
+    answer:
+      "**Create a System Restore point (do this before any big changes)**\n\n" +
+      "1. Search \"Create a restore point\" in Start and open it.\n" +
+      "2. Select your main drive (usually C:) → **Configure** → make sure protection is **On**.\n" +
+      "3. Click **Create**, give it a name (e.g. \"before troubleshooting\"), and confirm.\n\n" +
+      "If something goes wrong later, you can roll Windows back to this exact point via the same window → **System Restore**. Always worth doing before installing drivers, running deep tweaks, or making registry changes.",
+  },
+  {
+    id: 'bsod',
+    keywords: [
+      'blue screen', 'bsod', 'crash dump', 'stop code', 'system crashed',
+    ],
+    answer:
+      "**Blue Screen of Death (BSOD) troubleshooting**\n\n" +
+      "1. Note the **stop code** shown on the blue screen (e.g. `MEMORY_MANAGEMENT`, `IRQL_NOT_LESS_OR_EQUAL`) — this tells you what actually failed.\n" +
+      "2. Turn on more detail for next time: Settings → search \"Advanced startup\" isn't it — instead enable **BSoD Verbose Mode** so Windows shows full diagnostic info during a crash instead of just the summary screen.\n" +
+      "3. Run the system file repair steps (`sfc /scannow` + `DISM /Online /Cleanup-Image /RestoreHealth`) — corrupted files are a common cause.\n" +
+      "4. If it keeps happening after a driver or hardware change, that's usually the trigger — recently updated graphics/network drivers are the most common culprit.\n\n" +
+      "If it's recurring, it's worth having us take a look — repeated BSODs are often a hardware or driver issue that's hard to fully diagnose remotely.",
+  },
+  {
+    id: 'background-apps',
+    keywords: [
+      'background apps', 'apps running background', 'battery drain', 'resources',
+      'startup apps', 'too many apps running',
+    ],
+    answer:
+      "**Stop apps running in the background (frees CPU/RAM/battery)**\n\n" +
+      "1. Settings → **Apps** → **Installed apps** → click the **⋯** next to an app → **Advanced options** → set \"Let this app run in the background\" to **Never** for anything you don't need running constantly.\n" +
+      "2. Also check **Task Manager** → **Startup apps** tab, and disable anything you don't need launching every boot.\n\n" +
+      "This is one of the easiest ways to speed up an older or lower-spec PC without changing any settings that affect stability.",
+  },
+  {
+    id: 'visual-effects-performance',
+    keywords: [
+      'visual effects', 'animations', 'speed up pc', 'best performance', 'old pc slow',
+      'low spec',
+    ],
+    answer:
+      "**Set visual effects to Best Performance (speeds up older/lower-spec PCs)**\n\n" +
+      "1. Search \"Advanced System Settings\" in Start.\n" +
+      "2. Under the **Advanced** tab → **Performance** → **Settings**.\n" +
+      "3. Select **Adjust for best performance** (or manually uncheck the animation/shadow options you don't care about).\n\n" +
+      "This disables the animations and transparency effects that cost GPU/CPU on older hardware — noticeable improvement on machines that struggle to keep up.",
+  },
+  {
+    id: 'services-manual',
+    keywords: [
+      'services', 'svchost', 'startup type', 'disable service', 'services.msc',
+    ],
+    answer:
+      "**Trimming background services (advanced)**\n\n" +
+      "Some services set to \"Automatic\" aren't needed on every system and can be switched to **Manual** so they only start when actually needed, reducing background load.\n\n" +
+      "1. Press **Win + R**, type `services.msc`.\n" +
+      "2. Find a service, right-click → **Properties** → change **Startup type** to **Manual**.\n\n" +
+      "⚠️ Be careful here — disabling the wrong service can break features you rely on. If you're not sure which ones are safe to touch, it's better to have us take a look than guess.",
+  },
+];
