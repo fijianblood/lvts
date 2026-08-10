@@ -258,4 +258,65 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
       "2. Find a service, right-click → **Properties** → change **Startup type** to **Manual**.\n\n" +
       "⚠️ Be careful here — disabling the wrong service can break features you rely on. If you're not sure which ones are safe to touch, it's better to have us take a look than guess.",
   },
+  {
+    id: 'debloat-windows',
+    keywords: [
+      'bloatware', 'debloat', 'remove apps', 'unwanted apps', 'pre-installed apps',
+      'too many apps', 'clean up windows', 'remove candy crush', 'remove xbox app',
+      'uninstall onedrive', 'uninstall edge',
+    ],
+    answer:
+      "**Remove bloatware / unwanted pre-installed apps**\n\n" +
+      "1. Settings → **Apps** → **Installed apps**.\n" +
+      "2. Find the app, click the **⋯** → **Uninstall**.\n\n" +
+      "Most pre-installed apps (games, Xbox extras, etc.) uninstall this way. A few (like Edge or OneDrive) resist normal uninstalling because Windows treats them as system components — removing those safely needs extra steps that can break things if done wrong.\n\n" +
+      "If you want a proper clean sweep of a new or cluttered PC, that's something we do as part of setup — [message us on WhatsApp](https://wa.me/6797466941) and we'll sort it out.",
+  },
+  {
+    id: 'privacy-telemetry',
+    keywords: [
+      'telemetry', 'spying', 'privacy', 'stop windows tracking', 'data collection',
+      'diagnostic data', 'windows tracking me',
+    ],
+    answer:
+      "**Reduce Windows telemetry / data collection**\n\n" +
+      "1. Settings → **Privacy & security** → **Diagnostics & feedback**.\n" +
+      "2. Set diagnostic data to **Required diagnostic data only** (the minimum Windows allows on Home/Pro editions).\n" +
+      "3. While you're there, turn off **Tailored experiences** and review **App permissions** (location, camera, mic) for anything you don't want apps accessing.\n\n" +
+      "Windows Home/Pro can't fully disable telemetry — Required diagnostic data is as low as it goes without enterprise policy tools.",
+  },
+  {
+    id: 'classic-right-click-menu',
+    keywords: [
+      'right click menu', 'right-click menu', 'old context menu', 'classic context menu',
+      'show more options', 'context menu missing',
+    ],
+    answer:
+      "**Get the classic full right-click menu back**\n\n" +
+      "Windows 11 hides most options behind \"Show more options\" by default. Quick way each time: **Shift + F10** (or just click \"Show more options\").\n\n" +
+      "To make the full classic menu the default permanently, open **Command Prompt as Administrator** and run:\n```\nreg add \"HKCU\\Software\\Classes\\CLSID\\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\\InprocServer32\" /f /ve\n```\nThen restart Explorer (or reboot) for it to take effect. You can reverse it later by deleting that registry key.",
+  },
+  {
+    id: 'install-multiple-apps',
+    keywords: [
+      'install multiple apps', 'set up new pc', 'new laptop setup', 'install software quickly',
+      'winget', 'batch install apps',
+    ],
+    answer:
+      "**Install apps quickly (new PC or reinstall)**\n\n" +
+      "Windows 11 has a built-in package manager called **winget**. Open **Command Prompt** or **PowerShell** and run, e.g.:\n```\nwinget install Google.Chrome\nwinget install 7zip.7zip\n```\n" +
+      "`winget search <name>` finds the right package ID for any app first.\n\n" +
+      "If you'd rather not do this yourself, full new-PC setup (drivers, essential apps, debloat, updates) is something we offer — [message us on WhatsApp](https://wa.me/6797466941) for a quote.",
+  },
+  {
+    id: 'disable-hibernation',
+    keywords: [
+      'hibernation', 'hiberfil.sys', 'hibernate disable', 'free up c drive space hibernation',
+    ],
+    answer:
+      "**Disable hibernation (frees disk space)**\n\n" +
+      "Hibernation reserves a file (`hiberfil.sys`) roughly the size of your RAM — on a desktop that never hibernates, that's wasted space.\n\n" +
+      "Open **Command Prompt as Administrator** and run:\n```\npowercfg /hibernate off\n```\n" +
+      "Only do this on a **desktop**, or a laptop you're sure you never hibernate (closing the lid may use Sleep instead, which is unaffected) — hibernation is genuinely useful on most laptops, so don't disable it there without a reason.",
+  },
 ];
