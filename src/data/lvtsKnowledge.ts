@@ -309,6 +309,63 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
       "If you'd rather not do this yourself, full new-PC setup (drivers, essential apps, debloat, updates) is something we offer — [message us on WhatsApp](https://wa.me/6797466941) for a quote.",
   },
   {
+    id: 'cmd-reference',
+    keywords: [
+      'cmd commands', 'command line', 'command prompt commands', 'list of windows commands',
+      'useful commands', 'run commands', 'run dialog', 'control panel shortcuts',
+      'windows shortcuts', 'cmd cheat sheet', 'command line cheat sheet', 'terminal commands',
+    ],
+    answer:
+      "**Handy Windows 11 Command Prompt & Run commands**\n\n" +
+      "**Quick launch (Win + R, then type):**\n" +
+      "- `appwiz.cpl` — Programs and Features (uninstall software)\n" +
+      "- `devmgmt.msc` — Device Manager\n" +
+      "- `diskmgmt.msc` — Disk Management\n" +
+      "- `services.msc` — Services\n" +
+      "- `compmgmt.msc` — Computer Management\n" +
+      "- `msconfig` — System Configuration / startup programs\n" +
+      "- `taskmgr` — Task Manager\n" +
+      "- `eventvwr` — Event Viewer (see error logs)\n" +
+      "- `ncpa.cpl` — Network Connections\n" +
+      "- `firewall.cpl` — Windows Firewall settings\n" +
+      "- `powercfg.cpl` — Power Options\n" +
+      "- `regedit` — Registry Editor\n" +
+      "- `dxdiag` — DirectX Diagnostic Tool\n" +
+      "- `winver` — check your Windows version/build\n" +
+      "- `mstsc` — Remote Desktop Connection\n" +
+      "- `cleanmgr` — Disk Cleanup\n\n" +
+      "**Networking:**\n" +
+      "- `ipconfig /all` — full network config\n" +
+      "- `ipconfig /release` then `ipconfig /renew` — force a new IP address (fixes many \"no internet\" cases)\n" +
+      "- `ipconfig /flushdns` — clear the DNS cache (fixes sites that won't load after a DNS change)\n" +
+      "- `ping <host>` (add `-t` for continuous) — check if a host is reachable\n" +
+      "- `tracert <host>` — trace the network path to a host\n" +
+      "- `netstat -af` — active connections; `-o` also shows which process (PID) owns each\n" +
+      "- `getmac /v` — MAC address of your network adapters\n" +
+      "- `nslookup <domain>` — DNS lookup\n" +
+      "- `netsh wlan show wlanreport` — generates a detailed Wi-Fi health report (HTML)\n\n" +
+      "**Disk & system health:**\n" +
+      "- `chkdsk /f /r` — check and fix disk errors (needs a restart on the system drive)\n" +
+      "- `sfc /scannow` — repair corrupted system files\n" +
+      "- `DISM /Online /Cleanup-Image /RestoreHealth` — repair the Windows image itself\n" +
+      "- `robocopy <source> <dest> /MIR` — reliable, resumable bulk copy/backup/mirror\n\n" +
+      "**Processes:**\n" +
+      "- `tasklist` — list running processes\n" +
+      "- `taskkill /IM name.exe /F` — force-close a process by name\n\n" +
+      "**Power (laptops):**\n" +
+      "- `powercfg /batteryreport` — generates an HTML battery health report\n" +
+      "- `powercfg /energy` — generates a power efficiency diagnostic report\n\n" +
+      "**Handy one-liners:**\n" +
+      "- `start .` or `explorer .` — open the current folder in File Explorer\n" +
+      "- `cmd /k <command>` — run a command and keep the window open\n" +
+      "- `findstr \"text\" file.txt` — search for text inside a file\n" +
+      "- **F7** in Command Prompt — shows your command history\n" +
+      "- `command1 && command2` — chains commands; the second only runs if the first succeeds\n" +
+      "- `shutdown /r /fw /t 0` — restart straight into BIOS/UEFI firmware settings\n\n" +
+      "⚠️ A couple of these (`chkdsk`, disk/firewall commands) can affect your system if used carelessly — if you're not confident, [message us on WhatsApp](https://wa.me/6797466941) and we'll walk you through it or do it for you.\n\n" +
+      "Curated from a longer [community reference on ServerFault](https://serverfault.com/questions/3780/useful-command-line-commands-on-windows?rq=1).",
+  },
+  {
     id: 'disable-hibernation',
     keywords: [
       'hibernation', 'hiberfil.sys', 'hibernate disable', 'free up c drive space hibernation',
