@@ -24,13 +24,33 @@ export const SUGGESTED_PROMPTS = [
   'My PC is really slow',
 ];
 
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function hasWord(text: string, word: string): boolean {
+  return new RegExp(`\\b${escapeRegex(word)}\\b`).test(text);
+}
+
+function hasKeyword(text: string, keyword: string): boolean {
+  const words = keyword.split(' ');
+  // Single words need a word-boundary check — otherwise short keywords like
+  // "hi" would match inside "th_is_", "wh_i_te", "n_i_ght", etc.
+  if (words.length === 1) return hasWord(text, keyword);
+  // Multi-word phrases match if every word is present anywhere in the input
+  // (not necessarily adjacent) — natural phrasing constantly inserts filler
+  // words ("is", "my", "the") that would break an exact-phrase substring
+  // check, e.g. "start menu not opening" vs "my start menu is not opening".
+  return words.every(w => hasWord(text, w));
+}
+
 export function findAnswer(input: string): string {
   const text = input.toLowerCase();
   let best: { score: number; answer: string } | null = null;
   for (const entry of LVTS_KNOWLEDGE) {
     let score = 0;
     for (const kw of entry.keywords) {
-      if (text.includes(kw)) score += kw.split(' ').length;
+      if (hasKeyword(text, kw)) score += kw.split(' ').length;
     }
     if (score > 0 && (!best || score > best.score)) best = { score, answer: entry.answer };
   }

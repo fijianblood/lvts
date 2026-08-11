@@ -8,7 +8,7 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
   {
     id: 'about-lvts',
     keywords: [
-      'what do you do', 'who are you', 'about lvts', 'about lomavata', 'services do you offer',
+      'who are you', 'about lvts', 'about lomavata', 'services do you offer',
       'what services', 'what can you help', 'who is this', 'company', 'business',
     ],
     answer:
@@ -26,7 +26,7 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
     id: 'computer-laptop-repair',
     keywords: [
       'fix my laptop', 'fix my computer', 'laptop repair', 'computer repair', 'pc repair',
-      'not turning on', 'broken laptop', 'laptop not working', 'screen replacement',
+      'broken laptop', 'laptop not working', 'screen replacement',
       'laptop screen', 'how much for a repair', 'repair cost', 'repair price',
     ],
     answer:
@@ -80,6 +80,211 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
     ],
     answer:
       "No problem — [tap here to chat with us directly on WhatsApp](https://wa.me/6797466941) and a real person will reply. You can also call **833 1088 / 746 6941**.",
+  },
+  {
+    id: 'greeting-hello',
+    keywords: [
+      'hi', 'hey', 'hello', 'bula', 'kia ora', 'good morning', 'good afternoon', 'good evening',
+      'yo',
+    ],
+    answer:
+      "Bula! 👋 Ask me about PC/laptop repairs, Windows 11 troubleshooting, websites, our online store, the Weave Playground contest, or anything else LvTS — what can I help with?",
+  },
+  {
+    id: 'greeting-thanks',
+    keywords: ['thank you', 'thanks', 'thank', 'vinaka', 'cheers', 'appreciate it'],
+    answer: "Vinaka vakalevu! 🙏 Anything else I can help with?",
+  },
+  {
+    id: 'greeting-bye',
+    keywords: ['bye', 'goodbye', 'see you', 'moce', 'later', 'cya'],
+    answer: "Moce! Feel free to come back anytime, or [message us on WhatsApp](https://wa.me/6797466941) if anything comes up. 👋",
+  },
+  {
+    id: 'weave-playground',
+    keywords: [
+      'weave', 'playground', 'coding game', 'the game', 'win $50', '$50 contest', 'level 37',
+      'level 36', 'level 50', 'how do i win', 'play the game', 'weave playground',
+    ],
+    answer:
+      "**The Weave Playground**\n\n" +
+      "It's a tiny coding language Joe built from scratch — real interpreter, running live in your browser, with keywords mapped to web-dev concepts (`state`, `component`, `mount`, `route`). 50 levels, plus a free sandbox to freestyle in.\n\n" +
+      "**Two $50 FJD contests:**\n" +
+      "- **Phase 1 (levels 1–36):** 12–30 August 2026. First to finish level 36, screenshot the victory page, and post it in the comments wins $50 FJD.\n" +
+      "- **Phase 2 (levels 37–50):** locked until 10 September 2026, running to 20 October 2026. First to finish level 50 in that window wins a second $50 FJD.\n\n" +
+      "Sign up with your name, email, and phone on the **Play** page to start — that's how we contact the winner.",
+  },
+  {
+    id: 'three-d-websites',
+    keywords: [
+      '3d website', '3d site', '3d sites', 'animated site', 'interactive website',
+      'product viewer', 'virtual showroom',
+    ],
+    answer:
+      "**3D websites**\n\n" +
+      "Interactive, animated 3D sections for your site — product viewers, virtual showrooms, animated heroes. Starting from around FJD $150 for a single animated section, or FJD $600 for a full multi-section 3D build.\n\n" +
+      "Prices can vary by scope, so check the **3D Sites** page or [message us on WhatsApp](https://wa.me/6797466941) to confirm for your project.",
+  },
+  {
+    id: 'lomavata-rewards',
+    keywords: [
+      'rewards', 'lomavata rewards', 'prize draw', 'loyalty', 'giveaway', 'win a prize',
+      'weekly draw', 'mega draw',
+    ],
+    answer:
+      "**LomaVata Rewards**\n\n" +
+      "A loyalty and prize draw program — buy a Single Entry or a Monthly Membership and get automatically entered into weekly draws, plus a monthly Mega Draw, for grocery vouchers, fuel vouchers, and cash prizes. Payments go through M-PAiSA or MyCash.\n\n" +
+      "Check the **Rewards** page for current pricing and sign-up.",
+  },
+  {
+    id: 'meditrack',
+    keywords: [
+      'meditrack', 'blood pressure', 'health dashboard', 'medical history',
+      'doctor appointment tracker', 'blood results',
+    ],
+    answer:
+      "**MediTrack Fiji**\n\n" +
+      "A free personal health dashboard — track blood pressure trends, blood test results, and doctor's appointments over time. Everything is stored only on your own device; nothing gets uploaded anywhere.\n\n" +
+      "Find it under the **MediTrack** page in the nav.",
+  },
+  {
+    id: 'free-tools',
+    keywords: [
+      'pdf tool', 'pdf converter', 'merge pdf', 'image to pdf', 'heic', 'convert pdf',
+    ],
+    answer:
+      "**Free browser tools**\n\n" +
+      "The **Tools** page has a free Image → PDF converter and a PDF merge tool — both run entirely in your browser, nothing gets uploaded anywhere.",
+  },
+  {
+    id: 'laptop-wont-turn-on',
+    keywords: [
+      "won't turn on", 'wont turn on', 'not turning on', 'no power', 'dead laptop', 'not booting',
+      "doesn't power on", 'wont boot',
+    ],
+    answer:
+      "**Laptop won't turn on**\n\n" +
+      "1. Check the charger is actually delivering power — try a different outlet or cable if you have one, and look for a charging light on the laptop.\n" +
+      "2. Hold the power button for 20–30 seconds with the charger unplugged (drains residual power, fixes a surprising number of \"dead\" laptops).\n" +
+      "3. If the battery is removable, take it out, hold power for 30 seconds, then reconnect power without the battery and try turning it on.\n" +
+      "4. Watch and listen for any signs of life — fan spinning, lights, beeps — even with a blank screen. That points to a display issue rather than a power issue.\n\n" +
+      "If none of that works, it's likely a hardware fault (charging port, battery, motherboard) — best to [bring it in or message us on WhatsApp](https://wa.me/6797466941) for a proper diagnosis.",
+  },
+  {
+    id: 'battery-charging',
+    keywords: [
+      'battery draining fast', 'battery life', "won't charge", 'wont charge', 'charging issue',
+      'battery replacement', 'not charging', 'battery drain',
+    ],
+    answer:
+      "**Battery draining fast or not charging**\n\n" +
+      "1. Check Settings → System → Power & battery → Battery usage to see which app is draining it.\n" +
+      "2. Lower screen brightness and turn off background apps you don't need (ask me about \"background apps\" for the steps).\n" +
+      "3. If it won't charge at all, try a different cable/charger first — charging cables fail more often than the laptop itself.\n" +
+      "4. A battery that drains fast even when new, or won't hold charge above a certain %, usually needs replacing.\n\n" +
+      "For a battery replacement quote, [message us on WhatsApp](https://wa.me/6797466941) with your laptop model.",
+  },
+  {
+    id: 'overheating',
+    keywords: [
+      'overheating', 'fan noise', 'laptop hot', 'fan loud', 'laptop too hot', 'thermal',
+    ],
+    answer:
+      "**Overheating / loud fan**\n\n" +
+      "1. Make sure the vents aren't blocked — use it on a hard, flat surface, not a bed or your lap.\n" +
+      "2. Compressed air on the vents can clear surface dust, but built-up internal dust usually needs a proper clean.\n" +
+      "3. Check Task Manager for a process pegging the CPU (ask me about \"my PC is slow\" for how).\n\n" +
+      "If it's still hot after cleaning, the internal fan or thermal paste likely needs servicing — [message us on WhatsApp](https://wa.me/6797466941) to book a clean/service.",
+  },
+  {
+    id: 'virus-malware',
+    keywords: ['virus', 'malware', 'infected', 'popup ads', 'ransomware', 'suspicious program'],
+    answer:
+      "**Virus / malware removal**\n\n" +
+      "1. Settings → **Privacy & security** → **Windows Security** → **Virus & threat protection** → **Scan options** → run a **Full scan** (takes a while, let it finish).\n" +
+      "2. If pop-ups are the main symptom, check your browser's extensions and remove anything you don't recognize.\n" +
+      "3. Uninstall any recently installed programs you don't recognize (Settings → Apps → Installed apps).\n\n" +
+      "If it's ransomware, keeps coming back, or you're not confident doing this yourself, stop and [message us on WhatsApp](https://wa.me/6797466941) — professional removal is safer than guessing on something that could involve your data.",
+  },
+  {
+    id: 'forgot-password',
+    keywords: [
+      'forgot password', 'forgot my password', 'locked out', "can't log in", 'cant log in',
+      'password reset',
+    ],
+    answer:
+      "**Forgot your Windows password**\n\n" +
+      "- **Microsoft account:** go to [account.live.com/password/reset](https://account.live.com/password/reset) from another device to reset it.\n" +
+      "- **Local account:** if you set up security questions, they'll appear after a few failed attempts on the login screen.\n" +
+      "- No recovery option set up: this needs a password reset from installation media or professional help — it's easy to lose your files doing this wrong.\n\n" +
+      "If you're locked out with no recovery option, [message us on WhatsApp](https://wa.me/6797466941) rather than trying random tools — we can usually get you back in without losing data.",
+  },
+  {
+    id: 'windows10-eol',
+    keywords: [
+      'windows 10 support ending', 'windows 10 end of support', 'should i upgrade to windows 11',
+      'windows 10 eol', 'windows 10 no more updates', 'upgrade to windows 11',
+    ],
+    answer:
+      "**Windows 10 has reached end of support**\n\n" +
+      "Microsoft stopped providing free security updates for Windows 10 in October 2025. Running it now means no more security patches — worth upgrading if your PC supports Windows 11.\n\n" +
+      "Check eligibility: Settings → **Windows Update** → it'll tell you if your PC can upgrade for free. If it can't (older hardware), it's worth talking to us about either an upgrade path or a replacement — [message us on WhatsApp](https://wa.me/6797466941) and we'll advise honestly rather than just upselling a new machine.",
+  },
+  {
+    id: 'printer-issues',
+    keywords: [
+      'printer not working', 'printer offline', 'printer is offline', 'paper jam',
+      'printer not printing',
+    ],
+    answer:
+      "**Printer not working**\n\n" +
+      "1. Settings → **Bluetooth & devices** → **Printers & scanners** → click your printer → make sure \"Use printer offline\" is **off**.\n" +
+      "2. Restart the **Print Spooler** service: Win + R → `services.msc` → find **Print Spooler** → right-click → Restart.\n" +
+      "3. For a paper jam, always pull paper in the direction it normally feeds — pulling backward can damage the rollers.\n\n" +
+      "Still stuck? [Message us on WhatsApp](https://wa.me/6797466941) with the printer model and what's happening.",
+  },
+  {
+    id: 'no-sound',
+    keywords: ['no sound', 'audio not working', 'speakers not working', 'sound not working'],
+    answer:
+      "**No sound**\n\n" +
+      "1. Right-click the speaker icon in the taskbar → make sure the right output device is selected and volume isn't muted/at 0.\n" +
+      "2. Settings → **System** → **Sound** → check the correct output device is set as default.\n" +
+      "3. Try `devmgmt.msc` (Device Manager) → **Sound, video and game controllers** → right-click your audio driver → **Update driver**.\n\n" +
+      "If it's still silent after that, [message us on WhatsApp](https://wa.me/6797466941) — could be a hardware fault.",
+  },
+  {
+    id: 'bluetooth-issues',
+    keywords: ['bluetooth not connecting', 'bluetooth not working', "can't pair bluetooth", 'cant pair bluetooth'],
+    answer:
+      "**Bluetooth not connecting**\n\n" +
+      "1. Settings → **Bluetooth & devices** → make sure Bluetooth is **on**.\n" +
+      "2. Remove the device and re-pair it from scratch — a stale pairing is the most common cause.\n" +
+      "3. Make sure the device itself is in pairing mode (usually a button hold) and not already connected to something else.\n\n" +
+      "Still not connecting? [Message us on WhatsApp](https://wa.me/6797466941) with the device you're trying to pair.",
+  },
+  {
+    id: 'booking-warranty-payment',
+    keywords: [
+      'book a repair', 'drop off', 'turnaround time', 'how long does a repair take',
+      'warranty on repair', 'payment methods', 'do you accept mpaisa', 'do you accept mycash',
+      'how do i pay',
+    ],
+    answer:
+      "**Booking, turnaround, and payment**\n\n" +
+      "[Message us on WhatsApp](https://wa.me/6797466941) or call **833 1088 / 746 6941** with what's wrong — we'll give you a quote and you can drop the device off in Raiwai, Suva, or arrange pickup.\n\n" +
+      "We accept **M-PAiSA** and **MyCash**, along with card payments. Turnaround time and warranty terms depend on the job, so we'll confirm specifics when you book — just ask.",
+  },
+  {
+    id: 'store-shipping-returns',
+    keywords: [
+      'shipping', 'delivery time', 'how long does shipping take', 'return policy', 'refund',
+      'can i return',
+    ],
+    answer:
+      "**Shipping & returns**\n\n" +
+      "Store items ship through our **VitiKart** marketplace listing — [www.vitikart.com.fj/marketplace/joesahib.html](https://www.vitikart.com.fj/marketplace/joesahib.html) — where shipping cost and timing are shown per item at checkout.\n\n" +
+      "For returns, refunds, or anything order-specific, [message us on WhatsApp](https://wa.me/6797466941) with your order details and we'll sort it out.",
   },
   {
     id: 'wifi-reset',
@@ -224,7 +429,7 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
   {
     id: 'background-apps',
     keywords: [
-      'background apps', 'apps running background', 'battery drain', 'resources',
+      'background apps', 'apps running background', 'resources',
       'startup apps', 'too many apps running',
     ],
     answer:
@@ -262,7 +467,7 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
     id: 'debloat-windows',
     keywords: [
       'bloatware', 'debloat', 'remove apps', 'unwanted apps', 'pre-installed apps',
-      'too many apps', 'clean up windows', 'remove candy crush', 'remove xbox app',
+      'too many apps', 'remove candy crush', 'remove xbox app',
       'uninstall onedrive', 'uninstall edge',
     ],
     answer:
@@ -375,5 +580,233 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
       "Hibernation reserves a file (`hiberfil.sys`) roughly the size of your RAM — on a desktop that never hibernates, that's wasted space.\n\n" +
       "Open **Command Prompt as Administrator** and run:\n```\npowercfg /hibernate off\n```\n" +
       "Only do this on a **desktop**, or a laptop you're sure you never hibernate (closing the lid may use Sleep instead, which is unaffected) — hibernation is genuinely useful on most laptops, so don't disable it there without a reason.",
+  },
+  {
+    id: 'clear-cache-cookies',
+    keywords: [
+      'clear cache', 'clear cookies', 'remove cookies', 'browser cache', 'browsing data',
+      'delete cookies', 'clear browsing history', 'cache and cookies',
+    ],
+    answer:
+      "**Clear cache & cookies (browser + laptop-wide)**\n\n" +
+      "**In your browser:**\n" +
+      "- **Chrome/Edge:** press `Ctrl+Shift+Delete` → pick a time range → tick **Cookies** and **Cached images and files** → Clear.\n" +
+      "- **Firefox:** `Ctrl+Shift+Delete` → same idea, tick **Cookies** and **Cache** → Clear Now.\n\n" +
+      "**Laptop-wide temp/cache clean-out:**\n" +
+      "1. Press **Win + R**, type `%temp%`, hit Enter — a folder opens.\n" +
+      "2. Select all (`Ctrl+A`) and delete. Windows will skip any files currently in use — that's normal, just skip those.\n\n" +
+      "This is the single most common \"speed up my PC\" fix — browsers and Windows both accumulate junk here over time.",
+  },
+  {
+    id: 'prefetch-folder',
+    keywords: ['prefetch', 'prefetch folder', 'superfetch', 'sysmain'],
+    answer:
+      "**Prefetch folder**\n\n" +
+      "Windows watches which programs you open and caches launch data in `C:\\Windows\\Prefetch` so they start faster next time. It's normally self-managing and best left alone.\n\n" +
+      "If you're troubleshooting a slow or misbehaving PC and want to clear it anyway:\n" +
+      "1. Press **Win + R**, type `prefetch`, hit Enter (Windows will ask for admin permission).\n" +
+      "2. Select all and delete.\n\n" +
+      "Windows just rebuilds it automatically — nothing breaks, but don't expect a dramatic speed difference either. It's a minor troubleshooting step, not a real fix for a genuinely slow PC (ask me about \"my PC is slow\" for the actual diagnosis steps).",
+  },
+  {
+    id: 'high-disk-usage',
+    keywords: [
+      'high disk usage', '100% disk usage', 'disk running at 100', 'disk usage 100',
+      'disk always at 100', 'disk stuck at 100', 'disk stuck',
+    ],
+    answer:
+      "**Disk stuck at 100% usage**\n\n" +
+      "1. Open **Task Manager** (`Ctrl+Shift+Esc`) → **Processes** tab → click the **Disk** column header to sort by usage and see what's hammering it.\n" +
+      "2. Common culprits: Windows Search indexing (wait it out, or Settings → **Privacy & security** → **Searching Windows** → adjust what gets indexed), a pending antivirus scan, or Windows Update downloading in the background.\n" +
+      "3. If it's constant even when idle, run the system file repair steps (ask me about \"repair corrupted system files\") — a corrupted install is a common cause.\n\n" +
+      "If a specific app is always the culprit, [message us on WhatsApp](https://wa.me/6797466941) with the process name and we can help pin it down.",
+  },
+  {
+    id: 'high-memory-usage',
+    keywords: [
+      'ram usage', 'memory usage', 'high ram usage', 'running out of memory', 'ram full',
+      'out of memory',
+    ],
+    answer:
+      "**High RAM/memory usage**\n\n" +
+      "1. Task Manager (`Ctrl+Shift+Esc`) → **Processes** → click the **Memory** column to sort and see what's using it.\n" +
+      "2. Browsers are the usual suspect — each tab and extension eats RAM. Close tabs you're not using, or check for a runaway extension.\n" +
+      "3. Check **Startup apps** in Task Manager and disable anything unnecessary from launching at boot (ask me about \"background apps\" too).\n\n" +
+      "If usage stays high with everything closed, that can point to a memory leak in a specific app or driver — [message us on WhatsApp](https://wa.me/6797466941) with what you're seeing.",
+  },
+  {
+    id: 'onedrive-sync',
+    keywords: [
+      'onedrive not syncing', 'onedrive stuck', 'onedrive sync', 'onedrive issue',
+      'onedrive problem',
+    ],
+    answer:
+      "**OneDrive not syncing**\n\n" +
+      "1. Click the OneDrive cloud icon in the taskbar (may be hidden under the `^` arrow) — it usually shows what's stuck or paused.\n" +
+      "2. Try **Pause syncing** for a minute, then resume — this kicks a lot of stuck syncs back into gear.\n" +
+      "3. If specific files show a red \"x\", the filename may have unsupported characters or be open in another program — close it and rename anything with symbols like `# % & * : < > ? / \\ { | }`.\n" +
+      "4. Still stuck: sign out of OneDrive (Settings gear → Account → Unlink this PC) and sign back in — this resets the sync state without deleting your files from the cloud.\n\n" +
+      "If you're not sure a step is safe with your files, [message us on WhatsApp](https://wa.me/6797466941) first.",
+  },
+  {
+    id: 'windows-old-cleanup',
+    keywords: [
+      'windows.old', 'reclaim space after update', 'old windows files', 'windows old folder',
+    ],
+    answer:
+      "**Reclaim space after a Windows upgrade (Windows.old)**\n\n" +
+      "After a major update or upgrade, Windows keeps a backup copy of your old install in a `Windows.old` folder — often 10-20GB+.\n\n" +
+      "1. Open **Disk Cleanup** (search for it in Start).\n" +
+      "2. Click **Clean up system files**.\n" +
+      "3. Tick **Previous Windows installation(s)** (and **Windows Update Cleanup**) → OK.\n\n" +
+      "Only do this once you're sure the update went fine — you lose the ability to roll back to the previous version afterward.",
+  },
+  {
+    id: 'explorer-frozen',
+    keywords: [
+      'start menu not opening', 'taskbar frozen', 'taskbar not working', 'explorer frozen',
+      'start button not working', 'taskbar not responding',
+    ],
+    answer:
+      "**Start menu or taskbar frozen/not responding**\n\n" +
+      "1. `Ctrl+Shift+Esc` to open Task Manager.\n" +
+      "2. Find **Windows Explorer** in the Processes list → right-click → **Restart**. This restarts the desktop/taskbar/Start menu without rebooting the whole PC, and fixes most freezes instantly.\n" +
+      "3. Still stuck? A full restart usually clears whatever got wedged.\n\n" +
+      "If it happens repeatedly, run the system file repair steps (ask me about \"repair corrupted system files\").",
+  },
+  {
+    id: 'driver-update',
+    keywords: [
+      'update driver', 'update drivers', 'outdated driver', 'driver issue', 'rollback driver',
+      'roll back driver', 'device manager',
+    ],
+    answer:
+      "**Updating (or rolling back) a driver**\n\n" +
+      "1. Press **Win + R**, type `devmgmt.msc`, hit Enter.\n" +
+      "2. Find the device (e.g. under **Display adapters** or **Network adapters**), right-click → **Update driver** → **Search automatically**.\n" +
+      "3. If a problem started right after a driver update, right-click the device instead → **Properties** → **Driver** tab → **Roll Back Driver** (only available if a previous version exists).\n\n" +
+      "For graphics drivers specifically, downloading the latest directly from the manufacturer's site (NVIDIA/AMD/Intel) is usually more current than what Windows Update offers.",
+  },
+  {
+    id: 'network-reset',
+    keywords: [
+      'network reset', 'reset network', 'winsock reset', 'internet keeps disconnecting',
+      'network adapter issues',
+    ],
+    answer:
+      "**Full network reset (when Wi-Fi reset alone doesn't fix it)**\n\n" +
+      "If the Wi-Fi hard reset didn't do it (ask me about \"wifi not working\"), this goes deeper — resets the entire network stack, not just the adapters:\n\n" +
+      "Open **Command Prompt as Administrator** and run each of these, then restart:\n```\nnetsh winsock reset\nnetsh int ip reset\nipconfig /release\nipconfig /renew\nipconfig /flushdns\n```\n" +
+      "This fixes stubborn cases where internet works on other devices but not this one, or where Wi-Fi connects but has no internet access.",
+  },
+  {
+    id: 'windows-update-stuck-advanced',
+    keywords: [
+      'clear update cache', 'softwaredistribution', 'update stuck downloading',
+      'reset windows update',
+    ],
+    answer:
+      "**Windows Update stuck downloading (advanced reset)**\n\n" +
+      "If the built-in Update Troubleshooter didn't help (ask me about \"windows update stuck\"), this clears the update cache that's often the real culprit:\n\n" +
+      "1. Open **Command Prompt as Administrator**.\n" +
+      "2. Run:\n```\nnet stop wuauserv\nnet stop bits\n```\n" +
+      "3. Open File Explorer, go to `C:\\Windows\\SoftwareDistribution`, delete everything inside the **Download** folder (leave the folder itself).\n" +
+      "4. Back in Command Prompt, run:\n```\nnet start wuauserv\nnet start bits\n```\n" +
+      "5. Try Windows Update again — it re-downloads cleanly.\n\n" +
+      "This is a genuinely technical fix — if any step errors out, stop and [message us on WhatsApp](https://wa.me/6797466941) rather than forcing it.",
+  },
+  {
+    id: 'screen-flicker',
+    keywords: ['screen flickering', 'screen flicker', 'display flickering', 'monitor flickering'],
+    answer:
+      "**Screen flickering**\n\n" +
+      "1. Update your graphics driver first (ask me about \"update driver\") — this is the #1 cause.\n" +
+      "2. Check Task Manager for an app misbehaving — if flickering stops when you close a specific app, that app's the culprit.\n" +
+      "3. Settings → **System** → **Display** → check your refresh rate is set correctly for your screen (under Advanced display settings).\n" +
+      "4. If an external monitor flickers but the laptop screen doesn't, try a different cable — HDMI/DisplayPort cables fail more than people expect.\n\n" +
+      "Flickering that persists after a driver update and reboot is often a hardware issue (cable, panel, or GPU) — [message us on WhatsApp](https://wa.me/6797466941) for a proper look.",
+  },
+  {
+    id: 'keyboard-issues',
+    keywords: [
+      'keyboard not working', 'keys not working', 'spilled liquid', 'spilled water on laptop',
+      'sticky keys problem', 'key stuck',
+    ],
+    answer:
+      "**Keyboard not working, or spilled liquid on your laptop**\n\n" +
+      "**If you just spilled liquid:** power off immediately (hold the power button, don't shut down normally), unplug the charger, remove the battery if removable, and **do not turn it back on**. Let it dry fully (24-48 hours) before attempting to power on. Powering on a wet laptop is the single biggest cause of permanent damage — turning it off fast is the most important thing you can do.\n\n" +
+      "**If keys aren't responding (no spill):**\n" +
+      "1. Check Settings → **Accessibility** → **Keyboard** — make sure Sticky Keys/Filter Keys aren't accidentally on and interfering.\n" +
+      "2. Try an external USB keyboard — if that works fine, it points to the built-in keyboard hardware or its driver.\n" +
+      "3. Update the keyboard driver (ask me about \"update driver\").\n\n" +
+      "For a spill or a genuinely dead keyboard, [message us on WhatsApp](https://wa.me/6797466941) — keyboard replacement is a common, usually affordable repair.",
+  },
+  {
+    id: 'touchpad-issues',
+    keywords: ['touchpad not working', 'trackpad not working', 'touchpad issue', 'touchpad erratic'],
+    answer:
+      "**Touchpad not working or erratic**\n\n" +
+      "1. Check it's not disabled — some laptops have a function key (often `Fn + F9` or similar, varies by brand) that toggles the touchpad off.\n" +
+      "2. Settings → **Bluetooth & devices** → **Touchpad** — make sure it's toggled on, and that it's not set to disable automatically when a mouse is connected (if you've ever plugged one in).\n" +
+      "3. Update the touchpad driver (ask me about \"update driver\").\n\n" +
+      "If it's physically unresponsive even after that, [message us on WhatsApp](https://wa.me/6797466941) — could be a hardware fault.",
+  },
+  {
+    id: 'external-display-usb',
+    keywords: [
+      'external monitor not detected', 'second monitor not working', 'usb device not recognized',
+      'external display not working', 'monitor not detected',
+    ],
+    answer:
+      "**External monitor or USB device not detected**\n\n" +
+      "**External monitor:**\n" +
+      "1. Press **Win + P** to check Windows sees it and pick a display mode (Extend/Duplicate).\n" +
+      "2. Try a different cable/port — especially with HDMI/DisplayPort adapters, which fail often.\n" +
+      "3. Update your graphics driver (ask me about \"update driver\").\n\n" +
+      "**USB device:**\n" +
+      "1. Try a different USB port — controllers can fail individually.\n" +
+      "2. Device Manager (`devmgmt.msc`) — look for a yellow warning triangle on the device, right-click → Update driver.\n" +
+      "3. Try the device on another PC to rule out the device itself being faulty.\n\n" +
+      "Still nothing? [Message us on WhatsApp](https://wa.me/6797466941) with what you're connecting.",
+  },
+  {
+    id: 'enter-bios',
+    keywords: ['enter bios', 'access bios', 'uefi settings', 'boot menu', 'bios settings'],
+    answer:
+      "**Entering BIOS/UEFI settings**\n\n" +
+      "Restart the PC and repeatedly tap the BIOS key during startup, before Windows loads — it varies by manufacturer:\n" +
+      "- **Dell:** F2 (or F12 for boot menu)\n" +
+      "- **HP:** F10 (or Esc for a startup menu)\n" +
+      "- **Lenovo:** F1 or F2 (Novo button on some models)\n" +
+      "- **ASUS:** F2 or Del\n" +
+      "- **Acer:** F2 or Del\n\n" +
+      "If you miss the window (common on fast-booting Windows 11 machines), go via Windows instead: Settings → **System** → **Recovery** → **Advanced startup** → **Restart now** → **Troubleshoot** → **Advanced options** → **UEFI Firmware Settings**.\n\n" +
+      "Not sure what to change once you're in there? [Message us on WhatsApp](https://wa.me/6797466941) before changing anything you're unsure about — some BIOS settings can stop a PC from booting if set wrong.",
+  },
+  {
+    id: 'hard-drive-clicking',
+    keywords: [
+      'clicking noise', 'hard drive clicking', 'drive making noise', 'grinding noise laptop',
+      'hard drive failing',
+    ],
+    answer:
+      "**Hard drive making clicking or grinding noises**\n\n" +
+      "⚠️ **Back up your important files right now, before doing anything else.** A clicking or grinding noise from a traditional hard drive (not SSD) is a classic sign of imminent mechanical failure — it can go from \"still works\" to \"completely dead\" with no warning.\n\n" +
+      "1. Copy anything irreplaceable (photos, documents) to a USB drive, external drive, or cloud storage immediately.\n" +
+      "2. Avoid moving the laptop around while it's running — physical shock accelerates failure on a dying drive.\n" +
+      "3. Once backed up, [message us on WhatsApp](https://wa.me/6797466941) about a drive replacement — and if the drive fails before you back up, don't keep power-cycling it; professional data recovery has a much better chance the less you've tried yourself.",
+  },
+  {
+    id: 'ram-ssd-upgrade',
+    keywords: [
+      'upgrade ram', 'add more ram', 'upgrade to ssd', 'ssd upgrade', 'more memory laptop',
+      'faster hard drive',
+    ],
+    answer:
+      "**Upgrading RAM or switching to an SSD**\n\n" +
+      "Two of the best value-for-money upgrades on an older laptop:\n" +
+      "- **More RAM:** helps if you have lots of browser tabs/apps open and things slow down or stutter with them all running.\n" +
+      "- **SSD instead of a spinning hard drive:** if your laptop still has a traditional HDD, this is usually the single biggest speed improvement possible — boot times and app launches go from minutes to seconds.\n\n" +
+      "Not every laptop can be upgraded (some modern ultra-thins have soldered RAM), so it's worth checking your exact model first. [Message us on WhatsApp](https://wa.me/6797466941) with your laptop model and we'll tell you honestly what's upgradeable and what it'd cost.",
   },
 ];
