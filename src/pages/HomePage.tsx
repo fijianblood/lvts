@@ -72,7 +72,14 @@ export default function HomePage({ onNav }: { onNav: (p: string) => void }) {
   return (
     <>
       {/* HERO */}
-      <section style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', padding: '100px 1.5rem 60px', background: 'linear-gradient(135deg, #f0f7ff 0%, #fafafe 50%, #f5f0ff 100%)' }}>
+      <section style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', padding: '100px 1.5rem 60px' }}>
+        <video
+          autoPlay muted loop playsInline preload="auto" aria-hidden="true"
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.65, zIndex: 0 }}
+        >
+          <source src={`${import.meta.env.BASE_URL}hero-bg.mp4`} type="video/mp4" />
+        </video>
+        <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(240,247,255,0.4) 0%, rgba(250,250,254,0.32) 50%, rgba(245,240,255,0.4) 100%)', zIndex: 0 }} />
         <div className="orb" style={{ width: 500, height: 500, background: 'rgba(37,99,235,0.08)', top: '-10%', left: '-8%' }} />
         <div className="orb" style={{ width: 350, height: 350, background: 'rgba(124,58,237,0.07)', bottom: '5%', right: '-5%', animationDelay: '3s' }} />
         <div className="orb" style={{ width: 200, height: 200, background: 'rgba(8,145,178,0.06)', top: '40%', right: '15%', animationDelay: '1.5s' }} />
@@ -147,31 +154,6 @@ export default function HomePage({ onNav }: { onNav: (p: string) => void }) {
               aria-label="View the interactive 3D small-office network diagram">
               🖧 See Network Setup
             </button>
-          </div>
-
-          {/* Live demo showcase */}
-          <div style={{ maxWidth: 640, margin: '3.5rem auto 0' }}>
-            <button onClick={() => onNav('threed')}
-              style={{ display: 'block', width: '100%', border: 'none', padding: 0, cursor: 'pointer', background: 'transparent', textAlign: 'left' }}
-              aria-label="Watch a 3D website I built in action — go to 3D Sites">
-              <div className="card-3d" style={{ borderRadius: 18, overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 20px 60px rgba(15,23,42,0.14)', background: '#0f172a' }}>
-                <div style={{ display: 'flex', gap: 6, padding: '10px 14px', background: '#1e293b' }}>
-                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444' }} />
-                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f59e0b' }} />
-                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#22c55e' }} />
-                </div>
-                <video
-                  autoPlay muted loop playsInline preload="auto"
-                  aria-label="A quick look at an interactive 3D website I built"
-                  style={{ width: '100%', display: 'block', maxHeight: 360, objectFit: 'cover' }}
-                >
-                  <source src={`${import.meta.env.BASE_URL}3d-demo-1.mp4`} type="video/mp4" />
-                </video>
-              </div>
-            </button>
-            <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#64748b', marginTop: '0.75rem' }}>
-              A 3D site I built, live in the browser — <span style={{ color: '#2563eb', fontWeight: 700 }}>see more 3D Sites →</span>
-            </p>
           </div>
 
           {/* Stat strip */}

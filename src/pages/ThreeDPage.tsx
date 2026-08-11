@@ -185,6 +185,29 @@ export default function ThreeDPage({ onNav }: { onNav: (p: string) => void }) {
         </div>
       </section>
 
+      {/* ── LIVE DEMO SHOWCASE ── */}
+      <section style={{ padding: '60px 1.5rem 0', background: 'linear-gradient(135deg,#eff6ff 0%,#f8fafc 50%,#faf5ff 100%)' }}>
+        <div style={{ maxWidth: 640, margin: '0 auto' }}>
+          <div className="card-3d" style={{ borderRadius: 18, overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 20px 60px rgba(15,23,42,0.14)', background: '#0f172a' }}>
+            <div style={{ display: 'flex', gap: 6, padding: '10px 14px', background: '#1e293b' }}>
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444' }} />
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f59e0b' }} />
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#22c55e' }} />
+            </div>
+            <video
+              autoPlay muted loop playsInline preload="auto"
+              aria-label="A quick look at an interactive 3D website I built"
+              style={{ width: '100%', display: 'block', maxHeight: 360, objectFit: 'cover' }}
+            >
+              <source src={`${import.meta.env.BASE_URL}3d-demo-1.mp4`} type="video/mp4" />
+            </video>
+          </div>
+          <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#64748b', marginTop: '0.75rem' }}>
+            A 3D site I built, live in the browser.
+          </p>
+        </div>
+      </section>
+
       {/* ── WHY 3D STATS ── */}
       <section style={{ background: '#fff', padding: '50px 1.5rem', borderTop: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9' }}>
         <div ref={whyRef} className="fade-in" style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: '1.5rem' }}>
