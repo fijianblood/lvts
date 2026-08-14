@@ -1,12 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
+import { X } from 'lucide-react';
 
 interface MediTrackPageProps {
   onNav: (page: string) => void;
 }
 
+// Stored reversed and split so it isn't a plain grep-able string in the bundle.
+const TREASURE_CODE_PARTS = ['02ERUSAERT', '-STVL'];
+function getTreasureCode() {
+  return TREASURE_CODE_PARTS.join('').split('').reverse().join('');
+}
+
 export default function MediTrackPage({ onNav }: MediTrackPageProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [height, setHeight] = useState(760);
+  const [showTreasure, setShowTreasure] = useState(false);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -85,9 +93,90 @@ export default function MediTrackPage({ onNav }: MediTrackPageProps) {
         </button>
 
         <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', marginTop: '1.25rem' }}>
-          Raiwai, Suva, Fiji · lomavatatechfiji@gmail.com · 7466941 / 8331088
+          Raiwai, Suva, Fiji{' '}
+          <button
+            onClick={() => setShowTreasure(true)}
+            tabIndex={-1}
+            style={{ background: 'none', border: 'none', padding: 0, margin: 0, color: 'inherit', font: 'inherit', cursor: 'text' }}
+          >
+            ·
+          </button>{' '}
+          lomavatatechfiji@gmail.com · 7466941 / 8331088
         </p>
       </div>
+
+      {showTreasure && <TreasureModal onClose={() => setShowTreasure(false)} />}
     </section>
+  );
+}
+
+function TreasureModal({ onClose }: { onClose: () => void }) {
+  const code = getTreasureCode();
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(10,15,25,0.75)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          position: 'relative', width: 'min(360px, 100%)', aspectRatio: '9 / 16',
+          borderRadius: 20, overflow: 'hidden', boxShadow: '0 30px 80px rgba(0,0,0,0.5)',
+        }}
+      >
+        <img
+          src={`${import.meta.env.BASE_URL}treasure-victory.png`}
+          alt=""
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(6,10,20,0.62)' }} />
+
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          style={{
+            position: 'absolute', top: 12, right: 12, width: 32, height: 32, borderRadius: '50%',
+            background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+          }}
+        >
+          <X size={18} />
+        </button>
+
+        <div style={{
+          position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '2rem 1.5rem',
+        }}>
+          <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>🎉</div>
+          <div style={{
+            fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: '1.5rem', color: '#fff',
+            lineHeight: 1.2, marginBottom: '1.5rem',
+          }}>
+            You found the<br />hidden treasure!
+          </div>
+          <div style={{
+            background: '#0891b2', color: '#fff', fontFamily: "'Syne',sans-serif", fontWeight: 800,
+            fontSize: 'clamp(0.85rem,4vw,1.1rem)', letterSpacing: '0.02em', padding: '0.75rem 1.25rem',
+            borderRadius: 999, marginBottom: '1.5rem', whiteSpace: 'nowrap',
+          }}>
+            {code}
+          </div>
+          <p style={{ color: 'rgba(255,255,255,0.92)', fontSize: '0.9rem', lineHeight: 1.7 }}>
+            Screenshot this and post it on our Facebook page to claim your <strong>$20 voucher</strong> — first to post wins!
+          </p>
+          <a
+            href="https://www.facebook.com/lvtsfiji"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ marginTop: '1rem', color: '#fff', fontWeight: 700, fontSize: '0.85rem', textDecoration: 'underline' }}
+          >
+            facebook.com/lvtsfiji →
+          </a>
+        </div>
+      </div>
+    </div>
   );
 }
