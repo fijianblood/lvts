@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useScrollFade } from '../hooks/useScrollFade';
-import { Phone, Mail, MapPin, Send, CheckCircle, AlertCircle, Loader2, Link2, ShoppingBag, Compass, Flag, Home, Music2 } from 'lucide-react';
+import { Phone, Mail, MapPin, Send, CheckCircle, AlertCircle, Loader2, Link2, ShoppingBag, Compass, Flag, Home, Music2, Globe, Code2, ExternalLink } from 'lucide-react';
 
 const SOCIALS = [
   { label: 'Linktree', handle: 'linktr.ee/sahibjoe', url: 'https://linktr.ee/sahibjoe', color: '#7c3aed', icon: Link2 },
@@ -15,6 +15,7 @@ type Status = 'idle' | 'sending' | 'success' | 'error';
 
 export default function ContactPage() {
   const heroRef = useScrollFade();
+  const aboutRef = useScrollFade();
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' });
   const [status, setStatus] = useState<Status>('idle');
   const [errMsg, setErrMsg] = useState('');
@@ -97,6 +98,54 @@ export default function ContactPage() {
               <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.9rem', wordBreak: 'break-word' }}>{c.value}</div>
             </a>
           ))}
+        </div>
+      </section>
+
+      {/* About Me */}
+      <section style={{ padding: '0 1.5rem 80px', background: '#f8fafc' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: '3rem', alignItems: 'center', paddingTop: '80px' }}>
+          <div ref={aboutRef} className="fade-in" style={{ position: 'relative' }}>
+            <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 8px 40px rgba(0,0,0,0.08)', position: 'relative' }}>
+              <video
+                autoPlay muted loop playsInline controls preload="auto"
+                aria-label="A quick video introduction to who I am and what I do"
+                style={{ width: '100%', display: 'block', objectFit: 'cover' }}
+              >
+                <source src={`${import.meta.env.BASE_URL}about-me-intro.mp4`} type="video/mp4" />
+              </video>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '1rem', background: 'linear-gradient(to bottom, rgba(15,23,42,0.55) 0%, transparent 70%)', pointerEvents: 'none' }}>
+                {['IT Consultant','Web Dev','Fiji 🏝'].map(t => (
+                  <span key={t} style={{ background: 'rgba(37,99,235,0.85)', borderRadius: 6, padding: '0.2rem 0.6rem', fontSize: '0.7rem', fontWeight: 600, color: '#fff', marginRight: '0.4rem', backdropFilter: 'blur(4px)' }}>{t}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#2563eb', marginBottom: '0.75rem' }}>About Me</div>
+            <h2 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(1.8rem,4vw,2.5rem)', color: '#0f172a', lineHeight: 1.15, marginBottom: '1.2rem' }}>
+              Living With <span className="grad-text">Technology</span>
+            </h2>
+            <p style={{ color: '#64748b', lineHeight: 1.8, marginBottom: '1rem', fontSize: '0.95rem' }}>
+              I've been an IT pre-sales consultant for over 8 years, helping government departments and SMEs with IT products from delivery to implementation. I manage small-to-medium business networks, software, and hardware across Fiji.
+            </p>
+            <p style={{ color: '#64748b', lineHeight: 1.8, marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+              Founder of <strong style={{ color: '#0891b2' }}>LomaVata Tech Services</strong>, Raiwai, Suva — advanced knowledge in computer operations from BIOS configuration to OS installation on any device.
+            </p>
+            <blockquote style={{ borderLeft: '3px solid #2563eb', paddingLeft: '1rem', color: '#94a3b8', fontStyle: 'italic', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+              In the Name of God, the most Merciful, the most Compassionate.
+            </blockquote>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <a href="https://www.vitikart.com.fj/marketplace/joesahib.html" target="_blank" rel="noopener noreferrer"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.2)', color: '#2563eb', padding: '0.55rem 1.1rem', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none' }}>
+                <Globe size={15} /> Vitikart Store <ExternalLink size={12} />
+              </a>
+              <a href="https://fijianblood.github.io/joesahib/" target="_blank" rel="noopener noreferrer"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.2)', color: '#7c3aed', padding: '0.55rem 1.1rem', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none' }}>
+                <Code2 size={15} /> Portfolio <ExternalLink size={12} />
+              </a>
+            </div>
+          </div>
         </div>
       </section>
 

@@ -1,32 +1,11 @@
 import { useRef } from 'react';
 import { motion } from 'framer-motion';
-import {
-  IconTool, IconWorld, IconCube, IconGift, IconTruck,
-  IconDeviceGamepad2, IconHammer, IconChalkboard, IconHeartbeat, IconSeo, IconMessageCircle, IconMail,
-  IconTopologyStar3,
-} from '@tabler/icons-react';
+import { SITE_PAGES as LINKS } from '../data/sitePages';
 
 interface NavBarProps {
   page: string;
   onNav: (p: string) => void;
 }
-
-const LINKS = [
-  { id: 'home', label: 'Home' },
-  { id: 'ask', label: 'Ask LvTS', icon: IconMessageCircle, color: '#6366f1' },
-  { id: 'services', label: 'Services', icon: IconTool, color: '#2563eb' },
-  { id: 'website', label: 'Website', icon: IconWorld, color: '#06b6d4' },
-  { id: 'threed', label: '3D Sites', icon: IconCube, color: '#7c3aed' },
-  { id: 'rewards', label: 'Rewards', icon: IconGift, color: '#f59e0b' },
-  { id: 'ranger', label: 'Ranger XL', icon: IconTruck, color: '#16a34a' },
-  { id: 'play', label: 'Play', icon: IconDeviceGamepad2, color: '#ec4899' },
-  { id: 'tools', label: 'Tools', icon: IconHammer, color: '#f97316' },
-  { id: 'whiteboard', label: 'Whiteboard', icon: IconChalkboard, color: '#0891b2' },
-  { id: 'meditrack', label: 'MediTrack', icon: IconHeartbeat, color: '#c1443b' },
-  { id: 'network', label: 'Network Setup', icon: IconTopologyStar3, color: '#f2a93c' },
-  { id: 'seo', label: 'SEO Tools', icon: IconSeo, color: '#2563eb' },
-  { id: 'contact', label: 'Contact', icon: IconMail, color: '#ef4444' },
-];
 
 const BASE_SIZE = 44;
 const MAX_SCALE = 1.5;

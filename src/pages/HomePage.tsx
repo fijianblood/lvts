@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useScrollFade } from '../hooks/useScrollFade';
-import { ExternalLink, Award, Code2, Cpu, Globe, Rocket, GraduationCap } from 'lucide-react';
+import { ExternalLink, Award, Code2, Cpu, Globe, Rocket, GraduationCap, Shield, Gauge, Users, Search, FileCheck } from 'lucide-react';
+import SitePagesFaq from '../components/SitePagesFaq';
 
 const TITLES = ['IT Sales Pro', 'Web Dev Enthusiast', 'PC & Laptop Repair', 'Fiji 🏝 Tech Builder', 'Laptops for sale', 'PC & Laptop Repair'];
 
@@ -168,50 +169,77 @@ export default function HomePage({ onNav }: { onNav: (p: string) => void }) {
         </div>
       </section>
 
-      {/* ABOUT */}
-      <section style={{ padding: '80px 1.5rem', background: '#f8fafc' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: '3rem', alignItems: 'center' }}>
-          <div ref={aboutRef} className="fade-in" style={{ position: 'relative' }}>
-            <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 8px 40px rgba(0,0,0,0.08)', position: 'relative' }}>
-              <video
-                autoPlay muted loop playsInline controls preload="auto"
-                aria-label="A quick video introduction to who I am and what I do"
-                style={{ width: '100%', display: 'block', objectFit: 'cover' }}
-              >
-                <source src={`${import.meta.env.BASE_URL}about-me-intro.mp4`} type="video/mp4" />
-              </video>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '1rem', background: 'linear-gradient(to bottom, rgba(15,23,42,0.55) 0%, transparent 70%)', pointerEvents: 'none' }}>
-                {['IT Consultant','Web Dev','Fiji 🏝'].map(t => (
-                  <span key={t} style={{ background: 'rgba(37,99,235,0.85)', borderRadius: 6, padding: '0.2rem 0.6rem', fontSize: '0.7rem', fontWeight: 600, color: '#fff', marginRight: '0.4rem', backdropFilter: 'blur(4px)' }}>{t}</span>
-                ))}
-              </div>
-            </div>
+      {/* ABOUT THIS PAGE */}
+      <section ref={aboutRef} className="fade-in" style={{ padding: '80px 1.5rem 40px', background: '#f8fafc' }}>
+        <div style={{ maxWidth: 760, margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#2563eb', marginBottom: '0.75rem' }}>About This Site</div>
+          <h2 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(1.8rem,4vw,2.5rem)', color: '#0f172a', lineHeight: 1.15, marginBottom: '1.2rem' }}>
+            One Home Base, <span className="grad-text">Everything LvTS</span>
+          </h2>
+          <p style={{ color: '#64748b', lineHeight: 1.8, fontSize: '0.95rem' }}>
+            This site is the front door to everything LomaVata Tech Services does — repairs, web builds, the Weave
+            Playground coding game, MediTrack, network setup help, and more. Use the directory below to jump straight
+            to any page, or check the FAQ if you're not sure where to start.
+          </p>
+        </div>
+      </section>
+
+      {/* EXPLORE + FAQ */}
+      <SitePagesFaq onNav={onNav} />
+
+      {/* WEBSITE AUDIT & CYBERSECURITY ASSESSMENT */}
+      <section style={{ padding: '80px 1.5rem', background: '#fff' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#2563eb', marginBottom: '0.75rem' }}>Capability Spotlight</div>
+            <h2 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(1.8rem,4vw,2.4rem)', color: '#0f172a', lineHeight: 1.15, marginBottom: '1.2rem' }}>
+              Website Audits & <span className="grad-text">Cybersecurity Assessments</span>
+            </h2>
+            <p style={{ color: '#64748b', lineHeight: 1.8, fontSize: '0.95rem', maxWidth: 760, margin: '0 auto' }}>
+              LomaVata Tech Services is a locally owned IT and digital services firm based in Raiwai, Suva, founded by
+              Josese Sahib. "Loma Vata" means togetherness — working alongside clients like family to solve real
+              problems with technology, across web development, IT support, networking, CCTV, and digital consulting.
+              What sets LvTS apart is a dual capability rare among Fiji-based web agencies: combining modern
+              frontend/backend development with hands-on cybersecurity and OSINT skills using professional tools like
+              Kali Linux — examining a site's infrastructure, security posture, and digital footprint the way a real
+              external threat actor would, not just a surface-level review.
+            </p>
           </div>
 
-          <div>
-            <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#2563eb', marginBottom: '0.75rem' }}>About Me</div>
-            <h2 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(1.8rem,4vw,2.5rem)', color: '#0f172a', lineHeight: 1.15, marginBottom: '1.2rem' }}>
-              Living With <span className="grad-text">Technology</span>
-            </h2>
-            <p style={{ color: '#64748b', lineHeight: 1.8, marginBottom: '1rem', fontSize: '0.95rem' }}>
-              I've been an IT pre-sales consultant for over 8 years, helping government departments and SMEs with IT products from delivery to implementation. I manage small-to-medium business networks, software, and hardware across Fiji.
-            </p>
-            <p style={{ color: '#64748b', lineHeight: 1.8, marginBottom: '1.5rem', fontSize: '0.95rem' }}>
-              Founder of <strong style={{ color: '#0891b2' }}>LomaVata Tech Services</strong>, Raiwai, Suva — advanced knowledge in computer operations from BIOS configuration to OS installation on any device.
-            </p>
-            <blockquote style={{ borderLeft: '3px solid #2563eb', paddingLeft: '1rem', color: '#94a3b8', fontStyle: 'italic', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-              In the Name of God, the most Merciful, the most Compassionate.
-            </blockquote>
-            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <a href="https://www.vitikart.com.fj/marketplace/joesahib.html" target="_blank" rel="noopener noreferrer"
-                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.2)', color: '#2563eb', padding: '0.55rem 1.1rem', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none' }}>
-                <Globe size={15} /> Vitikart Store <ExternalLink size={12} />
+          {/* What an audit covers */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: '1.25rem', marginBottom: '3rem' }}>
+            {[
+              { icon: <Shield size={20} />, title: 'Infrastructure & Security', desc: 'WHOIS, DNS, SSL, open ports, vulnerability scanning, OSINT digital footprint.' },
+              { icon: <Gauge size={20} />, title: 'Performance', desc: 'PageSpeed, Core Web Vitals, Lighthouse, load times, CDN assessment.' },
+              { icon: <Users size={20} />, title: 'UX & Accessibility', desc: 'Cross-device review, WCAG compliance, navigation and content structure.' },
+              { icon: <Search size={20} />, title: 'SEO & Content', desc: 'Meta tags, sitemap, keyword gaps, internal linking, analytics review.' },
+              { icon: <FileCheck size={20} />, title: 'Reporting & Roadmap', desc: 'Risk severity matrix, prioritised recommendations, executive summary.' },
+            ].map(c => (
+              <div key={c.title} className="card-3d" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                <div style={{ color: '#0891b2' }}>{c.icon}</div>
+                <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>{c.title}</div>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.5 }}>{c.desc}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Real delivered work */}
+          <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#64748b', marginBottom: '1rem', textAlign: 'center' }}>
+            Delivered For Real Fijian & Pacific Clients
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'center' }}>
+            {[
+              { label: 'Content Rental & Tours', url: 'https://contentrentaltours.com.fj' },
+              { label: 'VeloTech', url: 'https://velotech.com.fj' },
+              { label: 'Pacific Blue Shipping', url: 'https://pacificblueshippingpartnership.netlify.app' },
+              { label: 'Red Hill Real Estate', url: 'https://redhillrealestate.netlify.app' },
+              { label: 'One Nation Fiji', url: 'https://onenationfiji.netlify.app' },
+            ].map(w => (
+              <a key={w.label} href={w.url} target="_blank" rel="noopener noreferrer"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.2)', color: '#2563eb', padding: '0.5rem 1rem', borderRadius: 999, fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}>
+                {w.label} <ExternalLink size={11} />
               </a>
-              <a href="https://fijianblood.github.io/joesahib/" target="_blank" rel="noopener noreferrer"
-                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.2)', color: '#7c3aed', padding: '0.55rem 1.1rem', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none' }}>
-                <Code2 size={15} /> Portfolio <ExternalLink size={12} />
-              </a>
-            </div>
+            ))}
           </div>
         </div>
       </section>
