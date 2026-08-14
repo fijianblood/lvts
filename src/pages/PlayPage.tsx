@@ -3,18 +3,13 @@ import { Play, RotateCcw, CheckCircle2, Lock, Trophy, Lightbulb, Gamepad2, User,
 import { useScrollFade } from '../hooks/useScrollFade';
 import { runWeave } from '../lang/weave';
 import { WEAVE_CHALLENGES, SANDBOX_SAMPLE, CHEATSHEET } from '../data/weaveChallenges';
+import { PHASE1_LEVEL_COUNT, PHASE1_LAST_IDX, PHASE2_UNLOCK_DATE } from '../lib/weaveContest';
 
 const PROGRESS_KEY = 'weave_progress_v1';
 const SIGNUP_KEY = 'weave_signup_v1';
 const COMPLETION_KEY_PHASE1 = 'weave_completion_notified_phase1_v1';
 const COMPLETION_KEY_PHASE2 = 'weave_completion_notified_phase2_v1';
 const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xzdlvpyl';
-
-// Phase 1: levels 1-36, contest runs 12-30 Aug 2026, winner decided at level 36.
-// Phase 2: levels 37-50 stay locked until 10 Sep 2026, contest runs 10 Sep - 20 Oct 2026.
-const PHASE1_LEVEL_COUNT = 36;
-const PHASE1_LAST_IDX = PHASE1_LEVEL_COUNT - 1;
-const PHASE2_UNLOCK_DATE = new Date('2026-09-10T00:00:00+12:00');
 
 interface Player {
   name: string;

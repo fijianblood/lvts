@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import './index.css';
 import NavBar from './components/NavBar';
+import CompetitionBanner from './components/CompetitionBanner';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import ServicesPage from './pages/ServicesPage';
@@ -68,6 +69,7 @@ export default function App() {
 
   return (
     <>
+      <CompetitionBanner onNav={navigate} />
       <NavBar page={page} onNav={navigate} />
       <AnimatePresence mode="wait" onExitComplete={() => window.scrollTo(0, 0)}>
         <motion.div
