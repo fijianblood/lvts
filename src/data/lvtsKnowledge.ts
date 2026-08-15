@@ -123,7 +123,7 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
     answer:
       "**3D websites**\n\n" +
       "Interactive, animated 3D sections for your site — product viewers, virtual showrooms, animated heroes. Starting from around FJD $150 for a single animated section, or FJD $600 for a full multi-section 3D build.\n\n" +
-      "Prices can vary by scope, so check the **3D Sites** page or [message us on WhatsApp](https://wa.me/6797466941) to confirm for your project.",
+      "Prices can vary by scope, so check the **Website** page or [message us on WhatsApp](https://wa.me/6797466941) to confirm for your project.",
   },
   {
     id: 'lomavata-rewards',

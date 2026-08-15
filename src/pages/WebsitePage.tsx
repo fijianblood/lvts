@@ -3,7 +3,8 @@ import { useScrollFade } from '../hooks/useScrollFade';
 import {
   CheckCircle, ExternalLink, Globe, Code2,
   Zap, Shield, BarChart2, Palette, Mail, ShoppingCart,
-  Star, Clock, MessageCircle, Award
+  Star, Clock, MessageCircle, Award,
+  Box, Sparkles, MousePointer2, Smartphone, Layers, Rotate3d,
 } from 'lucide-react';
 
 // ── Tech stack data ──────────────────────────────────────────────────────────
@@ -123,6 +124,101 @@ const FEATURES = ['Payment','Social Media','Inventory','Analytics','Chat',
                   'Membership','Booking','Portfolio','Dashboard','Landing Page',
                   'API Integration','SEO','Responsive','E-commerce'];
 
+// ── 3D websites: features, packages, demos ────────────────────────────────────
+const FEATURES_3D = [
+  { icon: <Sparkles size={22}/>,     title: 'Interactive 3D Hero',    desc: 'A WebGL-powered animated scene as your homepage centerpiece — moves as visitors scroll or move their mouse.' },
+  { icon: <Rotate3d size={22}/>,     title: '3D Product Viewer',      desc: 'Let customers rotate, zoom, and inspect a product model right in the browser — no app required.' },
+  { icon: <Box size={22}/>,          title: 'Animated Logo Reveal',   desc: 'A short 3D logo intro that plays when your site loads, giving first-time visitors a strong first impression.' },
+  { icon: <Layers size={22}/>,       title: 'Virtual Showroom',       desc: 'Walkthrough-style 3D spaces for shops, resorts, and real estate — explore a place before visiting in person.' },
+  { icon: <MousePointer2 size={22}/>,title: 'Scroll & Mouse Effects', desc: 'Depth, parallax, and particle effects that respond to scrolling and cursor movement.' },
+  { icon: <Smartphone size={22}/>,   title: 'Mobile-Optimized 3D',    desc: 'Every 3D build is tuned to stay smooth on phones and tablets, not just desktop.' },
+];
+
+const PACKAGES_3D = [
+  {
+    name: 'Add-On',
+    price: 'From FJD $150',
+    label: '3D Hero Section',
+    delivery: '3–5 days',
+    color: '#2563eb',
+    popular: false,
+    desc: 'Add one 3D animated section — a hero banner, logo reveal, or product viewer — to an existing website.',
+    features: [
+      'One interactive 3D section',
+      'Works with your current site',
+      'Mobile-optimized',
+      'Fast load, no app needed',
+    ],
+  },
+  {
+    name: 'Full Build',
+    price: 'From FJD $600',
+    label: 'Complete 3D Website',
+    delivery: '10–15 days',
+    color: '#7c3aed',
+    popular: true,
+    desc: 'A full site designed around interactive 3D — multiple animated sections, product or space viewers, and standard pages.',
+    features: [
+      'Multiple 3D sections',
+      'Product or space viewer',
+      'Responsive design',
+      'Contact & booking forms',
+      'Speed-optimized 3D assets',
+      'Hosting setup',
+    ],
+  },
+];
+
+const DEMO_CLIPS = [
+  { src: '3d-demo-1.mp4', label: 'Demo Clip 1' },
+  { src: '3d-demo-2.mp4', label: 'Demo Clip 2' },
+  { src: '3d-demo-3.mp4', label: 'Demo Clip 3' },
+];
+
+// ── Rotating CSS 3D cube — live preview, no extra libraries needed ──────────
+function LiveCube() {
+  return (
+    <div className="cube3d-wrap">
+      <div className="cube3d-stage">
+        <div className="cube3d">
+          <div className="cube3d-face front" />
+          <div className="cube3d-face back" />
+          <div className="cube3d-face right" />
+          <div className="cube3d-face left" />
+          <div className="cube3d-face top" />
+          <div className="cube3d-face bottom" />
+        </div>
+      </div>
+      <style>{`
+        .cube3d-wrap { display:flex; align-items:center; justify-content:center; }
+        .cube3d-stage { width:170px; height:170px; perspective:900px; }
+        .cube3d {
+          position:relative; width:100%; height:100%;
+          transform-style:preserve-3d;
+          animation: cube3d-spin 9s linear infinite;
+        }
+        .cube3d-face {
+          position:absolute; width:170px; height:170px;
+          border:1px solid rgba(255,255,255,0.25);
+          background:linear-gradient(135deg, rgba(37,99,235,0.85), rgba(124,58,237,0.85));
+          box-shadow: inset 0 0 30px rgba(255,255,255,0.1);
+          border-radius: 8px;
+        }
+        .cube3d-face.front  { transform: translateZ(85px); }
+        .cube3d-face.back   { transform: translateZ(-85px) rotateY(180deg); }
+        .cube3d-face.right  { transform: rotateY(90deg) translateZ(85px); }
+        .cube3d-face.left   { transform: rotateY(-90deg) translateZ(85px); }
+        .cube3d-face.top    { transform: rotateX(90deg) translateZ(85px); background:linear-gradient(135deg, rgba(6,182,212,0.85), rgba(37,99,235,0.85)); }
+        .cube3d-face.bottom { transform: rotateX(-90deg) translateZ(85px); background:linear-gradient(135deg, rgba(124,58,237,0.85), rgba(6,182,212,0.85)); }
+        @keyframes cube3d-spin {
+          from { transform: rotateX(0deg) rotateY(0deg); }
+          to   { transform: rotateX(360deg) rotateY(360deg); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 // ── Tech Logo component ───────────────────────────────────────────────────────
 function TechBadge({ name, icon }: { name: string; color: string; icon: string }) {
   return (
@@ -151,6 +247,8 @@ export default function WebsitePage({ onNav }: { onNav: (p: string) => void }) {
   const gigRef     = useScrollFade();
   const pkgRef     = useScrollFade();
   const whyRef     = useScrollFade();
+  const feat3dRef  = useScrollFade();
+  const demoRef    = useScrollFade();
 
   const [activeTab, setActiveTab] = useState<'frontend'|'backend'|'database'>('frontend');
   const techMap = { frontend: FRONTEND, backend: BACKEND, database: DATABASES };
@@ -286,6 +384,73 @@ export default function WebsitePage({ onNav }: { onNav: (p: string) => void }) {
         </div>
       </section>
 
+      {/* ── ALSO AVAILABLE: 3D WEBSITES ── */}
+      <section style={{ padding: '80px 1.5rem', background: 'linear-gradient(135deg,#eff6ff 0%,#f8fafc 50%,#faf5ff 100%)' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: '3rem', alignItems: 'center', marginBottom: '3rem' }}>
+            <div ref={feat3dRef} className="fade-in">
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 9999, padding: '0.3rem 1rem', marginBottom: '1.2rem' }}>
+                <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981' }} />
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#7c3aed' }}>Also Available</span>
+              </div>
+              <h2 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(1.8rem,4vw,2.6rem)', color: '#0f172a', lineHeight: 1.15, marginBottom: '1rem' }}>
+                3D <span className="grad-text">Websites</span>
+              </h2>
+              <p style={{ fontSize: '0.95rem', color: '#475569', lineHeight: 1.8, marginBottom: '1.5rem' }}>
+                Want a site that moves? I also build interactive 3D web experiences — animated heroes, product viewers, and virtual showrooms — that run right in the browser, no app download needed.
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                {['WebGL','Interactive','Product Viewer','Animated Hero','Virtual Showroom','Mobile-Ready'].map(f => (
+                  <span key={f} style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 6, padding: '0.25rem 0.65rem', fontSize: '0.72rem', fontWeight: 600, color: '#475569' }}>{f}</span>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ position: 'relative' }}>
+              <div className="card-3d" style={{ borderRadius: 18, background: 'linear-gradient(135deg,#0f172a,#1e293b)', padding: '2rem', boxShadow: '0 20px 60px rgba(124,58,237,0.2)', border: '1px solid rgba(124,58,237,0.15)' }}>
+                <LiveCube />
+                <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.72rem', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: '0.5rem' }}>Live Preview — CSS 3D</div>
+              </div>
+              <div style={{ position: 'absolute', bottom: '-1rem', right: '-1rem', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '0.7rem 1rem', boxShadow: '0 8px 24px rgba(0,0,0,0.1)' }}>
+                <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: '1.1rem', color: '#0f172a' }}>From FJD $150</div>
+                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: 2 }}>3D sections built for Fiji</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 3D features grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: '1.2rem', marginBottom: '3rem' }}>
+            {FEATURES_3D.map((s, i) => (
+              <div key={s.title} className="card-3d"
+                style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '1.5rem', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', display: 'flex', gap: '1rem', alignItems: 'flex-start', transitionDelay: `${i * 0.04}s` }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(124,58,237,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed', flexShrink: 0 }}>{s.icon}</div>
+                <div>
+                  <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '0.3rem', fontSize: '0.95rem' }}>{s.title}</div>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', lineHeight: 1.6 }}>{s.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Demo reel */}
+          <div ref={demoRef} className="fade-in" style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#7c3aed', marginBottom: '0.5rem' }}>See It In Action</div>
+            <h3 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: '1.6rem', color: '#0f172a' }}>Demo Reel</h3>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: '1.5rem' }}>
+            {DEMO_CLIPS.map(clip => (
+              <div key={clip.src} className="card-3d" style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', background: '#0f172a' }}>
+                <video controls playsInline preload="metadata" style={{ width: '100%', display: 'block', maxHeight: 340, background: '#0f172a' }}>
+                  <source src={`${import.meta.env.BASE_URL}${clip.src}`} type="video/mp4" />
+                  Your browser doesn't support this video format.
+                </video>
+                <div style={{ padding: '0.6rem 0.9rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>{clip.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── GIG ABOUT ── */}
       <section style={{ padding: '80px 1.5rem', background: '#f8fafc' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: '3rem', alignItems: 'center' }}>
@@ -357,6 +522,43 @@ export default function WebsitePage({ onNav }: { onNav: (p: string) => void }) {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: '1.5rem', alignItems: 'start' }}>
             {PACKAGES.map(pkg => (
+              <div key={pkg.name} className="card-3d"
+                style={{ background: pkg.popular ? `linear-gradient(135deg,${pkg.color}08,${pkg.color}04)` : '#fff', border: `2px solid ${pkg.popular ? pkg.color : '#e2e8f0'}`, borderRadius: 18, padding: '2rem', position: 'relative', boxShadow: pkg.popular ? `0 12px 40px ${pkg.color}20` : '0 2px 12px rgba(0,0,0,0.04)' }}>
+                {pkg.popular && (
+                  <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: `linear-gradient(135deg,${pkg.color},#06b6d4)`, color: '#fff', borderRadius: 20, padding: '0.25rem 1rem', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Most Popular</div>
+                )}
+                <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: pkg.color, marginBottom: '0.5rem' }}>{pkg.name}</div>
+                <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 900, fontSize: '2rem', color: '#0f172a', marginBottom: '0.25rem' }}>{pkg.price}</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '0.5rem' }}>{pkg.label}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', color: '#64748b', marginBottom: '1rem' }}>
+                  <Clock size={13}/> {pkg.delivery} delivery
+                </div>
+                <p style={{ fontSize: '0.82rem', color: '#64748b', lineHeight: 1.6, marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid #f1f5f9' }}>{pkg.desc}</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '1.5rem' }}>
+                  {pkg.features.map(f => (
+                    <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.83rem', color: '#334155' }}>
+                      <CheckCircle size={14} color={pkg.color} style={{ flexShrink: 0 }} />
+                      {f}
+                    </div>
+                  ))}
+                </div>
+                <button onClick={() => onNav('contact')}
+                  style={{ width: '100%', background: pkg.popular ? `linear-gradient(135deg,${pkg.color},#06b6d4)` : '#f8fafc', border: pkg.popular ? 'none' : `1px solid ${pkg.color}`, color: pkg.popular ? '#fff' : pkg.color, padding: '0.8rem', borderRadius: 10, fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer', transition: 'opacity 0.2s' }}
+                  onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+                  onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
+                  Get Started →
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* 3D add-on packages */}
+          <div style={{ textAlign: 'center', margin: '3.5rem 0 2rem' }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#7c3aed', marginBottom: '0.5rem' }}>Compare</div>
+            <h3 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: '1.6rem', color: '#0f172a' }}>3D Add-Ons</h3>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: '1.5rem', alignItems: 'start' }}>
+            {PACKAGES_3D.map(pkg => (
               <div key={pkg.name} className="card-3d"
                 style={{ background: pkg.popular ? `linear-gradient(135deg,${pkg.color}08,${pkg.color}04)` : '#fff', border: `2px solid ${pkg.popular ? pkg.color : '#e2e8f0'}`, borderRadius: 18, padding: '2rem', position: 'relative', boxShadow: pkg.popular ? `0 12px 40px ${pkg.color}20` : '0 2px 12px rgba(0,0,0,0.04)' }}>
                 {pkg.popular && (

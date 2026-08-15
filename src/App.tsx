@@ -7,7 +7,6 @@ import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import ServicesPage from './pages/ServicesPage';
 import WebsitePage from './pages/WebsitePage';
-import ThreeDPage from './pages/ThreeDPage';
 import RewardsPage from './pages/RewardsPage';
 import RangerPage from './pages/RangerPage';
 import ContactPage from './pages/ContactPage';
@@ -20,7 +19,7 @@ import MediTrackPage from './pages/MediTrackPage';
 import SeoToolsPage from './pages/SeoToolsPage';
 import NetworkDiagramPage from './pages/NetworkDiagramPage';
 
-const VALID_PAGES = ['home', 'services', 'website', 'threed', 'rewards', 'ranger', 'play', 'tools', 'whiteboard', 'meditrack', 'seo', 'network', 'ask', 'contact'];
+const VALID_PAGES = ['home', 'services', 'website', 'rewards', 'ranger', 'play', 'tools', 'whiteboard', 'meditrack', 'seo', 'network', 'ask', 'contact'];
 
 function initialPage() {
   const hash = window.location.hash.replace('#', '');
@@ -32,7 +31,6 @@ function renderPage(page: string, onNav: (p: string) => void) {
     case 'home':     return <HomePage     onNav={onNav} />;
     case 'services': return <ServicesPage onNav={onNav} />;
     case 'website':  return <WebsitePage  onNav={onNav} />;
-    case 'threed':   return <ThreeDPage   onNav={onNav} />;
     case 'rewards':  return <RewardsPage  onNav={onNav} />;
     case 'ranger':   return <RangerPage />;
     case 'play':     return <PlayPage />;

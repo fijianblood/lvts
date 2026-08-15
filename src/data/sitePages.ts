@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 import {
-  IconTool, IconWorld, IconCube, IconGift, IconTruck,
+  IconTool, IconWorld, IconGift, IconTruck,
   IconDeviceGamepad2, IconHammer, IconChalkboard, IconHeartbeat, IconSeo, IconMessageCircle, IconMail,
   IconTopologyStar3,
 } from '@tabler/icons-react';
@@ -21,9 +21,7 @@ export const SITE_PAGES: SitePage[] = [
   { id: 'services', label: 'Services', icon: IconTool, color: '#2563eb',
     blurb: 'An overview of everything LomaVata Tech Services offers across Fiji — PC/laptop repair, gas oven servicing, networking/CCTV, antivirus, printers, email hosting, and the Vitikart store.' },
   { id: 'website', label: 'Website', icon: IconWorld, color: '#06b6d4',
-    blurb: 'Web development services — landing pages up to full e-commerce platforms, with tiered Basic/Standard/Premium pricing packages.' },
-  { id: 'threed', label: '3D Sites', icon: IconCube, color: '#7c3aed',
-    blurb: 'Interactive 3D web experiences — animated hero sections, product viewers, and virtual showrooms that run right in the browser.' },
+    blurb: 'Web development services — landing pages up to full e-commerce platforms, with tiered Basic/Standard/Premium pricing packages, plus interactive 3D websites (animated heroes, product viewers, virtual showrooms) as an add-on.' },
   { id: 'rewards', label: 'Rewards', icon: IconGift, color: '#f59e0b',
     blurb: 'LomaVata Rewards — a Fiji prize-draw loyalty program. Buy an entry or monthly membership via M-PAiSA/My Cash for weekly draws and a monthly Mega Draw.' },
   { id: 'ranger', label: 'Ranger XL', icon: IconTruck, color: '#16a34a',
