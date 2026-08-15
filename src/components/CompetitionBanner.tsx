@@ -8,11 +8,14 @@ interface CompetitionBannerProps {
 
 const TREASURE_TEASER = '💰 A hidden $20 redeemable voucher code is also hidden somewhere on the site — find it to win!';
 
+const PHASE1_DESC = 'Phase 1 — Levels 1–36: open 12 August 2026, 6:00 PM – 30 August 2026, 7:00 PM (Fiji time). First to finish level 36, screenshot the victory page, and post it in the comments wins $50 FJD.';
+const PHASE2_DESC = 'Phase 2 — Levels 37–50: stay locked until 10 September 2026, then run until 20 October 2026, 7:00 PM (Fiji time). First to finish level 50 during that window wins a second $50 FJD.';
+
 const MESSAGES: Record<ContestPhase, string> = {
-  phase1: '🏆 The Weave Playground contest is LIVE! Phase 1 — Levels 1–36: open 12 August 2026, 6:00 PM – 30 August 2026, 7:00 PM (Fiji time). First to finish level 36, screenshot the victory page, and post it in the comments wins $50 FJD. ' + TREASURE_TEASER,
-  'phase2-locked': '🎮 Phase 1 of the Weave Playground has wrapped. Phase 2 — Levels 37–50: stay locked until 10 September 2026, then run until 20 October 2026, 7:00 PM (Fiji time). First to finish level 50 during that window wins a second $50 FJD. ' + TREASURE_TEASER,
-  phase2: '🏆 Phase 2 of the Weave Playground is LIVE! Levels 37–50, running until 20 October 2026, 7:00 PM (Fiji time). First to finish level 50 wins a second $50 FJD! ' + TREASURE_TEASER,
-  ended: '🎮 Play the Weave Playground — my custom coding language and game, free to try right now. ' + TREASURE_TEASER,
+  phase1: `🏆 The Weave Playground contest is LIVE! ${PHASE1_DESC} ${PHASE2_DESC} ${TREASURE_TEASER}`,
+  'phase2-locked': `🎮 Phase 1 of the Weave Playground has wrapped. ${PHASE1_DESC} ${PHASE2_DESC} ${TREASURE_TEASER}`,
+  phase2: `🏆 Phase 2 of the Weave Playground is LIVE! ${PHASE1_DESC} ${PHASE2_DESC} ${TREASURE_TEASER}`,
+  ended: `🎮 Play the Weave Playground — my custom coding language and game, free to try right now. ${PHASE1_DESC} ${PHASE2_DESC} ${TREASURE_TEASER}`,
 };
 
 const FAST_SPEED = 9; // % of bar width per second — slow, easy to read
