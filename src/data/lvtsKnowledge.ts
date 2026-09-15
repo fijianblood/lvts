@@ -23,6 +23,19 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
       "Ask me about any of these, or [chat with us directly on WhatsApp](https://wa.me/6797466941) for anything specific.",
   },
   {
+    id: 'ccna-networking-cert',
+    keywords: [
+      'ccna', 'cisco', 'cisco certified', 'network certification', 'networking certification',
+      'certified network', 'network engineer', 'are you certified', 'network qualifications',
+      'qualified networking',
+    ],
+    answer:
+      "**CCNA Certified**\n\n" +
+      "Josese (Joe) holds a CCNA (Cisco Certified Network Associate) certification — covering IP networking fundamentals, routing & switching, network security basics, and troubleshooting.\n\n" +
+      "That backs our networking setup service: home/office Wi-Fi and LAN setup, router/switch configuration, and network troubleshooting done to a certified standard.\n\n" +
+      "[Message us on WhatsApp](https://wa.me/6797466941) if you need networking set up or fixed.",
+  },
+  {
     id: 'computer-laptop-repair',
     keywords: [
       'fix my laptop', 'fix my computer', 'laptop repair', 'computer repair', 'pc repair',
