@@ -27,12 +27,13 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
     keywords: [
       'ccna', 'cisco', 'cisco certified', 'network certification', 'networking certification',
       'certified network', 'network engineer', 'are you certified', 'network qualifications',
-      'qualified networking',
+      'qualified networking', 'ccna notes', 'ccna resources', 'study for ccna', 'learn networking',
     ],
     answer:
       "**CCNA Certified**\n\n" +
       "Josese (Joe) holds a CCNA (Cisco Certified Network Associate) certification — covering IP networking fundamentals, routing & switching, network security basics, and troubleshooting.\n\n" +
       "That backs our networking setup service: home/office Wi-Fi and LAN setup, router/switch configuration, and network troubleshooting done to a certified standard.\n\n" +
+      "Studying for CCNA yourself? Here's a solid set of community study notes: [CCNA_Course_Notes on GitHub](https://github.com/psaumur/CCNA_Course_Notes) (notes from Jeremy's IT Lab CCNA 200-301 course).\n\n" +
       "[Message us on WhatsApp](https://wa.me/6797466941) if you need networking set up or fixed.",
   },
   {
