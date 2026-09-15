@@ -8,7 +8,7 @@ interface CompetitionBannerProps {
 
 const TREASURE_TEASER = '💰 A hidden $20 redeemable voucher code is also hidden somewhere on the site — find it to win!';
 
-const CONTEST_DESC = 'One $50 FJD Contest — Levels 1–50: runs 12 August 2026, 6:00 PM – 20 October 2026, 7:00 PM (Fiji time). First to finish level 50, screenshot the victory page, and post it in the comments wins $50 FJD. Every day, 2 answers get posted from level 11 till level 50 on Facebook — follow @lvtsfiji.';
+const CONTEST_DESC = 'One $50 FJD Contest — Levels 1–50: first to finish level 50, screenshot the victory page, and post it in the comments wins $50 FJD. Every day, 2 answers get posted from level 11 till level 50 on Facebook — follow @lvtsfiji.';
 
 const MESSAGES: Record<ContestPhase, string> = {
   live: `🏆 The Weave Playground contest is LIVE! ${CONTEST_DESC} ${TREASURE_TEASER}`,
