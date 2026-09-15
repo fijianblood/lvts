@@ -18,8 +18,9 @@ import WhiteboardPage from './pages/WhiteboardPage';
 import MediTrackPage from './pages/MediTrackPage';
 import SeoToolsPage from './pages/SeoToolsPage';
 import NetworkDiagramPage from './pages/NetworkDiagramPage';
+import ActivationHelpPage from './pages/ActivationHelpPage';
 
-const VALID_PAGES = ['home', 'services', 'website', 'rewards', 'ranger', 'play', 'tools', 'whiteboard', 'meditrack', 'seo', 'network', 'ask', 'contact'];
+const VALID_PAGES = ['home', 'services', 'website', 'rewards', 'ranger', 'play', 'tools', 'whiteboard', 'meditrack', 'seo', 'network', 'ask', 'contact', 'activation'];
 
 function initialPage() {
   const hash = window.location.hash.replace('#', '');
@@ -41,6 +42,7 @@ function renderPage(page: string, onNav: (p: string) => void) {
     case 'network':  return <NetworkDiagramPage onNav={onNav} />;
     case 'ask':      return <AskLvtsPage />;
     case 'contact':  return <ContactPage />;
+    case 'activation': return <ActivationHelpPage />;
     default:         return null;
   }
 }
