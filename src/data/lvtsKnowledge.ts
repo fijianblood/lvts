@@ -110,7 +110,7 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
       "**The Weave Playground**\n\n" +
       "It's a tiny coding language Joe built from scratch — real interpreter, running live in your browser, with keywords mapped to web-dev concepts (`state`, `component`, `mount`, `route`). 50 levels, plus a free sandbox to freestyle in.\n\n" +
       "**One $50 FJD contest:**\n" +
-      "- **Levels 1–50:** runs 12 August 2026 – 20 October 2026 (Fiji time). First to finish level 50, screenshot the victory page, and post it in the comments wins $50 FJD.\n" +
+      "- **Levels 1–50:** first to finish level 50, screenshot the victory page, and post it in the comments wins $50 FJD.\n" +
       "- Every day, 2 answers get posted from level 11 till level 50 on our Facebook page — follow @lvtsfiji to catch them.\n\n" +
       "Sign up with your name, email, and phone on the **Play** page to start — that's how we contact the winner.",
   },
