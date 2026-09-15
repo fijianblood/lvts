@@ -3,12 +3,11 @@ import { Play, RotateCcw, CheckCircle2, Lock, Trophy, Lightbulb, Gamepad2, User,
 import { useScrollFade } from '../hooks/useScrollFade';
 import { runWeave } from '../lang/weave';
 import { WEAVE_CHALLENGES, SANDBOX_SAMPLE, CHEATSHEET } from '../data/weaveChallenges';
-import { PHASE1_LEVEL_COUNT, PHASE1_LAST_IDX, PHASE2_UNLOCK_DATE } from '../lib/weaveContest';
+import FijiStatusBar from '../components/FijiStatusBar';
 
 const PROGRESS_KEY = 'weave_progress_v1';
 const SIGNUP_KEY = 'weave_signup_v1';
-const COMPLETION_KEY_PHASE1 = 'weave_completion_notified_phase1_v1';
-const COMPLETION_KEY_PHASE2 = 'weave_completion_notified_phase2_v1';
+const COMPLETION_KEY = 'weave_completion_notified_v1';
 const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xzdlvpyl';
 
 interface Player {
@@ -148,30 +147,15 @@ export default function PlayPage() {
   }, [levelIdx, level.starter]);
 
   useEffect(() => {
-    if (!solved || levelIdx !== PHASE1_LAST_IDX || !player) return;
-    if (localStorage.getItem(COMPLETION_KEY_PHASE1)) return;
-    localStorage.setItem(COMPLETION_KEY_PHASE1, '1');
-    const data = new FormData();
-    data.append('name', player.name);
-    data.append('email', player.email);
-    data.append('phone', player.phone);
-    data.append('_subject', `Weave Playground — Phase 1 WINNER finished level ${PHASE1_LEVEL_COUNT}`);
-    data.append('message', `${player.name} (${player.email}, ${player.phone}) just completed level ${PHASE1_LEVEL_COUNT} (Phase 1) at ${new Date().toISOString()}.`);
-    fetch(FORMSPREE_ENDPOINT, { method: 'POST', body: data, headers: { Accept: 'application/json' } }).catch(() => {
-      // best-effort — the visible victory page + comment is the primary claim path
-    });
-  }, [solved, levelIdx, player]);
-
-  useEffect(() => {
     if (!solved || levelIdx !== WEAVE_CHALLENGES.length - 1 || !player) return;
-    if (localStorage.getItem(COMPLETION_KEY_PHASE2)) return;
-    localStorage.setItem(COMPLETION_KEY_PHASE2, '1');
+    if (localStorage.getItem(COMPLETION_KEY)) return;
+    localStorage.setItem(COMPLETION_KEY, '1');
     const data = new FormData();
     data.append('name', player.name);
     data.append('email', player.email);
     data.append('phone', player.phone);
-    data.append('_subject', 'Weave Playground — Phase 2 WINNER finished all 50 levels');
-    data.append('message', `${player.name} (${player.email}, ${player.phone}) just completed all ${WEAVE_CHALLENGES.length} levels (Phase 2) at ${new Date().toISOString()}.`);
+    data.append('_subject', 'Weave Playground — WINNER finished all 50 levels');
+    data.append('message', `${player.name} (${player.email}, ${player.phone}) just completed all ${WEAVE_CHALLENGES.length} levels at ${new Date().toISOString()}.`);
     fetch(FORMSPREE_ENDPOINT, { method: 'POST', body: data, headers: { Accept: 'application/json' } }).catch(() => {
       // best-effort — the visible victory page + comment is the primary claim path
     });
@@ -201,8 +185,7 @@ export default function PlayPage() {
     setSandboxHasRun(true);
   }
 
-  const isDateLocked = (idx: number) => idx > PHASE1_LAST_IDX && new Date() < PHASE2_UNLOCK_DATE;
-  const isUnlocked = (idx: number) => !isDateLocked(idx) && (idx === 0 || progress[WEAVE_CHALLENGES[idx - 1].id]);
+  const isUnlocked = (idx: number) => idx === 0 || progress[WEAVE_CHALLENGES[idx - 1].id];
 
   const consoleStyle: React.CSSProperties = {
     background: '#0a1120',
@@ -246,6 +229,16 @@ export default function PlayPage() {
           <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(2rem,5vw,3.2rem)', color: '#0f172a', lineHeight: 1.1, marginBottom: '1rem' }}>
             The <span className="grad-text">Weave</span> Playground
           </h1>
+
+          <FijiStatusBar />
+
+          <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(1.05rem,2.4vw,1.3rem)', lineHeight: 1.4, marginBottom: '1.25rem' }}>
+            📢 Every day, <span className="grad-text">2 answers</span> get posted from level 11 till level 50 on our Facebook page — follow{' '}
+            <a href="https://www.facebook.com/lvtsfiji" target="_blank" rel="noopener noreferrer" className="grad-text" style={{ textDecoration: 'underline' }}>
+              @lvtsfiji
+            </a>{' '}to catch them!
+          </div>
+
           <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: 1.75 }}>
             A tiny coding language I built where the keywords are web-dev concepts — <code style={{ color: '#0891b2' }}>state</code>, <code style={{ color: '#0891b2' }}>component</code>, <code style={{ color: '#0891b2' }}>mount</code>, <code style={{ color: '#0891b2' }}>route</code>. Real interpreter, running live in your browser. Play through the levels or freestyle in the sandbox.
           </p>
@@ -253,14 +246,11 @@ export default function PlayPage() {
           <div style={{ marginTop: '1.75rem', background: 'linear-gradient(135deg,#16a34a,#0891b2,#2563eb)', borderRadius: 14, padding: '1.2rem 1.5rem', textAlign: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
               <Trophy size={18} color="#fff" />
-              <span style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: '1rem', color: '#fff' }}>Two $50 FJD Contests</span>
+              <span style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: '1rem', color: '#fff' }}>One $50 FJD Contest</span>
             </div>
             <div style={{ color: 'rgba(255,255,255,0.92)', fontSize: '0.85rem', lineHeight: 1.7, textAlign: 'left', maxWidth: 560, margin: '0 auto' }}>
-              <strong>Phase 1 — Levels 1–{PHASE1_LEVEL_COUNT}:</strong> open 12 August 2026, 6:00 PM – 30 August 2026, 7:00 PM (Fiji time).
-              First to finish level {PHASE1_LEVEL_COUNT}, screenshot the victory page, and post it in the comments wins $50 FJD.
-              <br /><br />
-              <strong>Phase 2 — Levels {PHASE1_LEVEL_COUNT + 1}–{WEAVE_CHALLENGES.length}:</strong> stay locked until 10 September 2026, then run until 20 October 2026, 7:00 PM (Fiji time).
-              First to finish level {WEAVE_CHALLENGES.length} during that window wins a second $50 FJD.
+              <strong>Levels 1–{WEAVE_CHALLENGES.length}:</strong> runs 12 August 2026, 6:00 PM – 20 October 2026, 7:00 PM (Fiji time).
+              First to finish level {WEAVE_CHALLENGES.length}, screenshot the victory page, and post it in the comments wins $50 FJD.
             </div>
           </div>
         </div>
@@ -301,7 +291,6 @@ export default function PlayPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {WEAVE_CHALLENGES.map((c, idx) => {
                   const unlocked = isUnlocked(idx);
-                  const dateLocked = isDateLocked(idx);
                   const done = !!progress[c.id];
                   return (
                     <button key={c.id} disabled={!unlocked} onClick={() => setLevelIdx(idx)}
@@ -314,11 +303,6 @@ export default function PlayPage() {
                       }}>
                       {done ? <CheckCircle2 size={16} color="#16a34a" /> : unlocked ? <span style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid #94a3b8', display: 'inline-block' }} /> : <Lock size={14} color="#94a3b8" />}
                       <span style={{ fontSize: '0.82rem', fontWeight: 600, color: unlocked ? '#0f172a' : '#94a3b8', flex: 1 }}>{c.title}</span>
-                      {dateLocked && (
-                        <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 999, padding: '0.15rem 0.5rem', flexShrink: 0 }}>
-                          Opens Sep 10
-                        </span>
-                      )}
                     </button>
                   );
                 })}
@@ -354,37 +338,16 @@ export default function PlayPage() {
                   <pre style={{ marginTop: '0.8rem', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '0.75rem 1rem', fontSize: '0.78rem', color: '#92400e', fontFamily: "'JetBrains Mono',monospace", whiteSpace: 'pre-wrap' }}>{level.hint}</pre>
                 )}
 
-                {solved && levelIdx !== PHASE1_LAST_IDX && levelIdx !== WEAVE_CHALLENGES.length - 1 && (
+                {solved && levelIdx !== WEAVE_CHALLENGES.length - 1 && (
                   <div style={{ marginTop: '0.9rem', background: 'linear-gradient(135deg,rgba(22,163,74,0.1),rgba(8,145,178,0.06))', border: '1px solid rgba(22,163,74,0.3)', borderRadius: 10, padding: '0.9rem 1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <CheckCircle2 size={18} color="#16a34a" />
                       <span style={{ fontWeight: 700, color: '#166534', fontSize: '0.9rem' }}>Level solved! 🎉</span>
                     </div>
-                    {!isDateLocked(levelIdx + 1) && (
-                      <button onClick={() => setLevelIdx(i => i + 1)}
-                        style={{ background: 'linear-gradient(135deg,#16a34a,#0891b2)', border: 'none', color: '#fff', padding: '0.5rem 1.1rem', borderRadius: 8, fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>
-                        Next Level →
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {solved && levelIdx === PHASE1_LAST_IDX && (
-                  <div id="phase1-victory-page" style={{ marginTop: '0.9rem', background: 'linear-gradient(135deg,#16a34a,#0891b2,#2563eb)', borderRadius: 12, padding: '1.4rem 1.6rem', textAlign: 'center' }}>
-                    <Trophy size={26} color="#fff" style={{ marginBottom: '0.5rem' }} />
-                    <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: '1.15rem', color: '#fff', marginBottom: '0.4rem' }}>
-                      PHASE 1 COMPLETE — Level {PHASE1_LEVEL_COUNT} solved! 🏆
-                    </div>
-                    <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.85rem', marginBottom: '1rem', lineHeight: 1.7 }}>
-                      Screenshot this page and post it in the comments to claim your $50 FJD — first to comment wins.
-                      Phase 1 runs 12 August 2026 6:00 PM – 30 August 2026 7:00 PM.
-                      <br />
-                      Levels 37–50 open 10 September 2026 for a second $50 FJD prize — come back then!
-                    </div>
-                    <a href={`${import.meta.env.BASE_URL}#contact`}
-                      style={{ display: 'inline-block', background: '#fff', color: '#166534', padding: '0.6rem 1.4rem', borderRadius: 8, fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none' }}>
-                      Contact Me →
-                    </a>
+                    <button onClick={() => setLevelIdx(i => i + 1)}
+                      style={{ background: 'linear-gradient(135deg,#16a34a,#0891b2)', border: 'none', color: '#fff', padding: '0.5rem 1.1rem', borderRadius: 8, fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>
+                      Next Level →
+                    </button>
                   </div>
                 )}
 
@@ -392,11 +355,10 @@ export default function PlayPage() {
                   <div id="victory-page" style={{ marginTop: '0.9rem', background: 'linear-gradient(135deg,#16a34a,#0891b2,#2563eb)', borderRadius: 12, padding: '1.4rem 1.6rem', textAlign: 'center' }}>
                     <Trophy size={26} color="#fff" style={{ marginBottom: '0.5rem' }} />
                     <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: '1.15rem', color: '#fff', marginBottom: '0.4rem' }}>
-                      PHASE 2 COMPLETE — All {WEAVE_CHALLENGES.length} levels complete! 🏆
+                      CONTEST COMPLETE — All {WEAVE_CHALLENGES.length} levels solved! 🏆
                     </div>
                     <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.85rem', marginBottom: '1rem', lineHeight: 1.7 }}>
                       Screenshot this page and post it in the comments to claim your $50 FJD — first to comment wins.
-                      Phase 2 runs 10 September 2026 6:00 PM – 20 October 2026 7:00 PM.
                     </div>
                     <a href={`${import.meta.env.BASE_URL}#contact`}
                       style={{ display: 'inline-block', background: '#fff', color: '#166534', padding: '0.6rem 1.4rem', borderRadius: 8, fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none' }}>
