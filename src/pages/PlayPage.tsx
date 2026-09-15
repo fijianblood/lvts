@@ -249,8 +249,9 @@ export default function PlayPage() {
               <span style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: '1rem', color: '#fff' }}>One $50 FJD Contest</span>
             </div>
             <div style={{ color: 'rgba(255,255,255,0.92)', fontSize: '0.85rem', lineHeight: 1.7, textAlign: 'left', maxWidth: 560, margin: '0 auto' }}>
-              <strong>Levels 1–{WEAVE_CHALLENGES.length}:</strong> runs 12 August 2026, 6:00 PM – 20 October 2026, 7:00 PM (Fiji time).
-              First to finish level {WEAVE_CHALLENGES.length}, screenshot the victory page, and post it in the comments wins $50 FJD.
+              <strong>Levels 1–{WEAVE_CHALLENGES.length}:</strong> first to finish level {WEAVE_CHALLENGES.length}, screenshot the victory page, and post it in the comments wins $50 FJD.
+              <br /><br />
+              Every day, 2 answers get posted from level 11 till level {WEAVE_CHALLENGES.length} on our Facebook page — follow @lvtsfiji.
             </div>
           </div>
         </div>
