@@ -120,7 +120,7 @@ function SignupGate({ onSignedUp }: { onSignedUp: (p: Player) => void }) {
 
 export default function PlayPage() {
   const heroRef = useScrollFade();
-  const [player, setPlayer] = useState<Player | null>(() => loadPlayer());
+  const [player, setPlayer] = useState<Player | null>({ name: 'Guest', email: '', phone: '' });
   const [mode, setMode] = useState<'challenges' | 'sandbox'>('challenges');
   const [progress, setProgress] = useState<Record<string, boolean>>(() => loadProgress());
   const [levelIdx, setLevelIdx] = useState(0);
