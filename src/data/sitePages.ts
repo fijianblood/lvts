@@ -2,7 +2,7 @@ import type { ComponentType } from 'react';
 import {
   IconTool, IconWorld, IconGift, IconTruck,
   IconDeviceGamepad2, IconHammer, IconChalkboard, IconHeartbeat, IconSeo, IconMessageCircle, IconMail,
-  IconTopologyStar3,
+  IconTopologyStar3, IconKey,
 } from '@tabler/icons-react';
 
 export interface SitePage {
@@ -40,4 +40,7 @@ export const SITE_PAGES: SitePage[] = [
     blurb: 'A free embedded suite of SEO, keyword, and website-analysis tools, powered by SEOStudio Tools.' },
   { id: 'contact', label: 'Contact', icon: IconMail, color: '#ef4444',
     blurb: 'Get in touch — book a repair, request a quote, see contact details, and learn more about Joe and LomaVata Tech Services.' },
+  { id: 'activation', label: 'Activation', icon: IconKey, color: '#8b5cf6',
+    blurb: 'Help with Windows and software activation — keys, troubleshooting, and guides.' },
+
 ];
