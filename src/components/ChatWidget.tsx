@@ -26,7 +26,7 @@ export default function ChatWidget({ page }: { page: string }) {
       {isOpen && (
         <div
           style={{
-            position: 'fixed', bottom: 96, right: 16, zIndex: 61,
+            position: 'fixed', bottom: 160, right: 16, zIndex: 61,
             width: 360, maxWidth: 'calc(100vw - 32px)',
             height: 500, maxHeight: 'calc(100vh - 180px)',
             background: '#fff', border: '1px solid #e2e8f0', borderRadius: 18,
