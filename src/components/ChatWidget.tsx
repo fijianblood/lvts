@@ -25,10 +25,11 @@ export default function ChatWidget({ page }: { page: string }) {
     <>
       {isOpen && (
         <div
+          className="lvts-chat-window"
           style={{
-            position: 'fixed', bottom: 160, right: 16, zIndex: 61,
+            position: 'fixed', right: 16, zIndex: 61,
             width: 360, maxWidth: 'calc(100vw - 32px)',
-            height: 500, maxHeight: 'calc(100vh - 180px)',
+            height: 500, maxHeight: 'calc(100vh - 220px)',
             background: '#fff', border: '1px solid #e2e8f0', borderRadius: 18,
             boxShadow: '0 20px 60px rgba(15,23,42,0.25)', overflow: 'hidden',
             display: 'flex', flexDirection: 'column',
@@ -121,10 +122,11 @@ export default function ChatWidget({ page }: { page: string }) {
 
       {/* Bubble toggle */}
       <button
+        className="lvts-chat-bubble"
         onClick={() => setIsOpen(v => !v)}
         aria-label={isOpen ? 'Close chat' : 'Chat with Loma'}
         style={{
-          position: 'fixed', bottom: 20, right: 16, zIndex: 61,
+          position: 'fixed', right: 16, zIndex: 61,
           width: 56, height: 56, borderRadius: '50%', border: 'none', cursor: 'pointer',
           background: 'linear-gradient(135deg,#2563eb,#7c3aed)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -138,6 +140,16 @@ export default function ChatWidget({ page }: { page: string }) {
       </button>
 
       <style>{`
+        /* Desktop — original position */
+        .lvts-chat-bubble { bottom: 24px; }
+        .lvts-chat-window { bottom: 96px; }
+
+        /* Mobile — lift above the nav dock (dock is ~80px from bottom) */
+        @media (max-width: 768px) {
+          .lvts-chat-bubble { bottom: 96px !important; }
+          .lvts-chat-window { bottom: 164px !important; }
+        }
+
         @keyframes lvts-widget-bounce {
           0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
           30% { transform: translateY(-4px); opacity: 1; }
