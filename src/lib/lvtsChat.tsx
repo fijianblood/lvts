@@ -1,79 +1,176 @@
+import { useEffect, useRef, useState } from 'react';
+import { type ChatMessage, WELCOME, NO_MATCH, findAnswer, uid } from './lvtsChat';
 import { LVTS_KNOWLEDGE } from '../data/lvtsKnowledge';
 
-export interface ChatMessage {
-  id: string;
-  role: 'user' | 'bot';
-  text: string;
-  streaming?: boolean;
-}
+// ── Cloudflare Worker URL ─────────────────────────────────────────────────────
+const WORKER_URL = 'https://lvts-loma.rexneel.workers.dev';
 
-export const WHATSAPP_URL = 'https://wa.me/6797466941';
+// ── localStorage key for auto-saved Q&A pairs ────────────────────────────────
+const LEARNED_KEY = 'lvts_loma_learned_v1';
 
-export const WELCOME =
-  "Bula! I'm **Loma** 🌺 Welcome to LomaVata Tech Services. Whether you need IT support, a website, or just have a question — I'm here. What can I help you with?\n\n" +
-  "*Ni Bula vinaka mai Lomavata Tech Services. Ke o ni gadreva na veivuke ni IT, na i vola mata ni nomu kabani, se dua na vakatataro — keitou sa tiko qoi. Meu na vukei kemuni e na cava nikua?*";
-
-export const NO_MATCH =
-  "I don't have a canned answer for that one yet — [tap here to chat with us directly on WhatsApp](" + WHATSAPP_URL + "), or call LvTS on **833 1088 / 746 6941**.";
-
-export const SUGGESTED_PROMPTS = [
-  'My Wi-Fi is not connecting',
-  'How much for a laptop repair?',
-  'Do you build websites?',
-  'Where can I buy from your store?',
-  'My PC is really slow',
-];
-
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function hasWord(text: string, word: string): boolean {
-  return new RegExp(`\\b${escapeRegex(word)}\\b`).test(text);
-}
-
-function hasKeyword(text: string, keyword: string): boolean {
-  const words = keyword.split(' ');
-  // Single words need a word-boundary check — otherwise short keywords like
-  // "hi" would match inside "th_is_", "wh_i_te", "n_i_ght", etc.
-  if (words.length === 1) return hasWord(text, keyword);
-  // Multi-word phrases match if every word is present anywhere in the input
-  // (not necessarily adjacent) — natural phrasing constantly inserts filler
-  // words ("is", "my", "the") that would break an exact-phrase substring
-  // check, e.g. "start menu not opening" vs "my start menu is not opening".
-  return words.every(w => hasWord(text, w));
-}
-
-export function findAnswer(input: string): string {
-  const text = input.toLowerCase();
-  let best: { score: number; answer: string } | null = null;
-  for (const entry of LVTS_KNOWLEDGE) {
-    let score = 0;
-    for (const kw of entry.keywords) {
-      if (hasKeyword(text, kw)) score += kw.split(' ').length;
-    }
-    if (score > 0 && (!best || score > best.score)) best = { score, answer: entry.answer };
+function loadLearned(): Array<{ keywords: string[]; answer: string }> {
+  try {
+    return JSON.parse(localStorage.getItem(LEARNED_KEY) || '[]');
+  } catch {
+    return [];
   }
-  return best ? best.answer : NO_MATCH;
 }
 
-export function uid() {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+function saveLearnedEntry(question: string, answer: string) {
+  try {
+    const existing = loadLearned();
+    // Extract simple keywords from the question
+    const keywords = question
+      .toLowerCase()
+      .replace(/[^a-z0-9 ]/g, '')
+      .split(' ')
+      .filter(w => w.length > 3)
+      .slice(0, 6);
+    if (keywords.length === 0) return;
+    existing.push({ keywords, answer });
+    // Keep only the last 100 learned entries
+    const trimmed = existing.slice(-100);
+    localStorage.setItem(LEARNED_KEY, JSON.stringify(trimmed));
+  } catch {
+    // storage unavailable — silent fail
+  }
 }
 
-export const markdownComponents = {
-  p: (props: React.ComponentProps<'p'>) => <p style={{ margin: '0 0 0.5em' }} {...props} />,
-  ul: (props: React.ComponentProps<'ul'>) => <ul style={{ margin: '0 0 0.5em', paddingLeft: '1.2em' }} {...props} />,
-  ol: (props: React.ComponentProps<'ol'>) => <ol style={{ margin: '0 0 0.5em', paddingLeft: '1.2em' }} {...props} />,
-  li: (props: React.ComponentProps<'li'>) => <li style={{ margin: '0.15em 0' }} {...props} />,
-  a: (props: React.ComponentProps<'a'>) => (
-    <a {...props} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'underline' }} />
-  ),
-  strong: (props: React.ComponentProps<'strong'>) => <strong style={{ fontWeight: 700 }} {...props} />,
-  code: (props: React.ComponentProps<'code'>) => (
-    <code style={{ background: 'rgba(15,23,42,0.06)', borderRadius: 4, padding: '0.1em 0.35em', fontSize: '0.85em', fontFamily: 'monospace' }} {...props} />
-  ),
-  pre: (props: React.ComponentProps<'pre'>) => (
-    <pre style={{ background: '#0f172a', color: '#e2e8f0', borderRadius: 8, padding: '0.6em 0.8em', margin: '0.4em 0', overflowX: 'auto', fontSize: '0.82em' }} {...props} />
-  ),
-};
+// ── Build knowledge summary to send to Claude ────────────────────────────────
+function buildKnowledgeSummary(): string {
+  const lines: string[] = [];
+  for (const entry of LVTS_KNOWLEDGE.slice(0, 30)) {
+    lines.push(`Q: ${entry.keywords.join(', ')}\nA: ${entry.answer}`);
+  }
+  const learned = loadLearned().slice(-20);
+  for (const entry of learned) {
+    lines.push(`Q: ${entry.keywords.join(', ')}\nA: ${entry.answer}`);
+  }
+  return lines.join('\n\n');
+}
+
+// ── Call Claude via Cloudflare Worker ────────────────────────────────────────
+async function askClaude(
+  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>,
+  knowledge: string
+): Promise<string> {
+  const response = await fetch(WORKER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messages: conversationHistory,
+      knowledge,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Worker error: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  // Extract text from Claude's response
+  const content = data?.content;
+  if (Array.isArray(content)) {
+    const textBlock = content.find((b: { type: string }) => b.type === 'text');
+    if (textBlock?.text) return textBlock.text;
+  }
+
+  throw new Error('No text in response');
+}
+
+// ── Main hook ─────────────────────────────────────────────────────────────────
+export function useLvtsChat(autoWelcome: boolean) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const hasWelcomed = useRef(false);
+  const busy = isTyping || messages.some(m => m.streaming);
+
+  // Conversation history for Claude (user + assistant turns)
+  const historyRef = useRef<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
+
+  function streamMessage(fullText: string, initialDelay = 0) {
+    const id = uid();
+    let interval: ReturnType<typeof setInterval> | null = null;
+    const timeout = window.setTimeout(() => {
+      setIsTyping(false);
+      setMessages(prev => [...prev, { id, role: 'bot', text: '', streaming: true }]);
+      let i = 0;
+      interval = setInterval(() => {
+        i += Math.random() < 0.3 ? 2 : 1;
+        const chunk = fullText.slice(0, i);
+        setMessages(prev => prev.map(m => (m.id === id ? { ...m, text: chunk } : m)));
+        if (i >= fullText.length) {
+          if (interval) clearInterval(interval);
+          setMessages(prev =>
+            prev.map(m => (m.id === id ? { ...m, text: fullText, streaming: false } : m))
+          );
+        }
+      }, 18);
+    }, initialDelay);
+    return () => {
+      clearTimeout(timeout);
+      if (interval) clearInterval(interval);
+    };
+  }
+
+  useEffect(() => {
+    if (!autoWelcome) return;
+    if (hasWelcomed.current) return;
+    hasWelcomed.current = true;
+    return streamMessage(WELCOME, 400);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoWelcome]);
+
+  async function handleSend(text: string) {
+    const trimmed = text.trim();
+    if (!trimmed || busy) return;
+
+    // Add user message to UI
+    setMessages(prev => [...prev, { id: uid(), role: 'user', text: trimmed }]);
+    setInput('');
+    setIsTyping(true);
+
+    // Add to conversation history
+    historyRef.current.push({ role: 'user', content: trimmed });
+
+    // Keep history to last 10 turns to avoid token bloat
+    if (historyRef.current.length > 10) {
+      historyRef.current = historyRef.current.slice(-10);
+    }
+
+    try {
+      // Try Claude first
+      const knowledge = buildKnowledgeSummary();
+      const answer = await askClaude(historyRef.current, knowledge);
+
+      // Add Claude's answer to history
+      historyRef.current.push({ role: 'assistant', content: answer });
+
+      // Auto-save this Q&A to localStorage for future reference
+      saveLearnedEntry(trimmed, answer);
+
+      // Stream the answer
+      streamMessage(answer, 0);
+
+    } catch (err) {
+      console.warn('Claude unavailable, falling back to knowledge base:', err);
+
+      // Fallback to local knowledge base
+      const fallback = findAnswer(trimmed);
+      historyRef.current.push({ role: 'assistant', content: fallback });
+      streamMessage(fallback, 0);
+    }
+  }
+
+  function resetChat() {
+    setMessages([]);
+    setInput('');
+    setIsTyping(false);
+    historyRef.current = [];
+    streamMessage(WELCOME, 200);
+  }
+
+  return { messages, input, setInput, isTyping, busy, handleSend, resetChat, streamMessage, hasWelcomed };
+}
