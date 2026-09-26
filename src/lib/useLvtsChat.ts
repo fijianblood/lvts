@@ -6,7 +6,7 @@ const LEARNED_KEY = 'lvts_loma_learned_v1';
 
 // ── Supabase ──────────────────────────────────────────────────────────────────
 const SUPABASE_URL = 'https://qcphrnyufiiqifsaqjij.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_1SRaR52iGpRWNeEvfpSMoQ_5NYyi5V6';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFjcGhybnl1ZmlpcWlmc2FxamlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0MDUzMjEsImV4cCI6MjEwNTk4MTMyMX0.xGp8BKnEuv8QkFv98DfNAq7zRukGZomyfqv1RhwWaRY';
 
 async function saveToSupabase(question: string, answer: string, keywords: string[]) {
   try {
