@@ -4,6 +4,46 @@ import { type ChatMessage, WELCOME, findAnswer, uid, LVTS_KNOWLEDGE_SUMMARY } fr
 const WORKER_URL = 'https://lvts-loma.rexneel.workers.dev';
 const LEARNED_KEY = 'lvts_loma_learned_v1';
 
+// ── Supabase ──────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://qcphrnyufiiqifsaqjij.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_1SRaR52iGpRWNeEvfpSMoQ_5NYyi5V6';
+
+async function saveToSupabase(question: string, answer: string, keywords: string[]) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/loma_conversations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({ question, answer, keywords }),
+    });
+  } catch {
+    // silent fail
+  }
+}
+
+async function loadFromSupabase(): Promise<Array<{ question: string; answer: string }>> {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/loma_conversations?select=question,answer&order=helpful_count.desc&limit=20`,
+      {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+        },
+      }
+    );
+    if (!res.ok) return [];
+    return await res.json();
+  } catch {
+    return [];
+  }
+}
+
+// ── localStorage ──────────────────────────────────────────────────────────────
 function loadLearned(): Array<{ keywords: string[]; answer: string }> {
   try {
     return JSON.parse(localStorage.getItem(LEARNED_KEY) || '[]');
@@ -12,7 +52,7 @@ function loadLearned(): Array<{ keywords: string[]; answer: string }> {
   }
 }
 
-function saveLearnedEntry(question: string, answer: string) {
+function saveLearnedEntry(question: string, answer: string): string[] {
   try {
     const existing = loadLearned();
     const keywords = question
@@ -21,20 +61,33 @@ function saveLearnedEntry(question: string, answer: string) {
       .split(' ')
       .filter(w => w.length > 3)
       .slice(0, 6);
-    if (keywords.length === 0) return;
+    if (keywords.length === 0) return [];
     existing.push({ keywords, answer });
     localStorage.setItem(LEARNED_KEY, JSON.stringify(existing.slice(-100)));
-  } catch {}
+    return keywords;
+  } catch {
+    return [];
+  }
 }
 
-function buildKnowledgeSummary(): string {
-  const learned = loadLearned().slice(-20);
-  const learnedText = learned
+// ── Knowledge summary ─────────────────────────────────────────────────────────
+async function buildKnowledgeSummary(): Promise<string> {
+  const local = loadLearned().slice(-10);
+  const localText = local
     .map(e => `Q: ${e.keywords.join(', ')}\nA: ${e.answer}`)
     .join('\n\n');
-  return LVTS_KNOWLEDGE_SUMMARY + (learnedText ? '\n\n' + learnedText : '');
+
+  const shared = await loadFromSupabase();
+  const sharedText = shared
+    .map(e => `Q: ${e.question}\nA: ${e.answer}`)
+    .join('\n\n');
+
+  return LVTS_KNOWLEDGE_SUMMARY +
+    (sharedText ? '\n\n--- Shared conversations ---\n\n' + sharedText : '') +
+    (localText ? '\n\n--- Local context ---\n\n' + localText : '');
 }
 
+// ── Claude via Worker ─────────────────────────────────────────────────────────
 async function askClaude(
   conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>,
   knowledge: string
@@ -54,6 +107,7 @@ async function askClaude(
   throw new Error('No text in response');
 }
 
+// ── Main hook ─────────────────────────────────────────────────────────────────
 export function useLvtsChat(autoWelcome: boolean) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -106,10 +160,11 @@ export function useLvtsChat(autoWelcome: boolean) {
       historyRef.current = historyRef.current.slice(-10);
     }
     try {
-      const knowledge = buildKnowledgeSummary();
+      const knowledge = await buildKnowledgeSummary();
       const answer = await askClaude(historyRef.current, knowledge);
       historyRef.current.push({ role: 'assistant', content: answer });
-      saveLearnedEntry(trimmed, answer);
+      const keywords = saveLearnedEntry(trimmed, answer);
+      await saveToSupabase(trimmed, answer, keywords);
       streamMessage(answer, 0);
     } catch (err) {
       console.warn('Claude unavailable, falling back:', err);
