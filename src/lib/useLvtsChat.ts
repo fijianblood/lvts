@@ -25,10 +25,34 @@ async function saveToSupabase(question: string, answer: string, keywords: string
   }
 }
 
-async function loadFromSupabase(): Promise<Array<{ question: string; answer: string }>> {
+async function loadFromSupabase(currentQuestion: string): Promise<Array<{ question: string; answer: string }>> {
   try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/loma_conversations?select=question,answer&order=helpful_count.desc&limit=20`,
+    // Extract keywords from the current question
+    const keywords = currentQuestion
+      .toLowerCase()
+      .replace(/[^a-z0-9 ]/g, '')
+      .split(' ')
+      .filter(w => w.length > 3);
+
+    // Search for relevant rows matching keywords
+    let relevantRows: Array<{ question: string; answer: string }> = [];
+    if (keywords.length > 0) {
+      const keywordFilter = keywords.map(k => `keywords.cs.{"${k}"}`).join(',');
+      const relevantRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/loma_conversations?select=question,answer&or=(${keywordFilter})&order=helpful_count.desc&limit=15`,
+        {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+          },
+        }
+      );
+      if (relevantRes.ok) relevantRows = await relevantRes.json();
+    }
+
+    // Always load top 10 most helpful rows as general context
+    const topRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/loma_conversations?select=question,answer&order=helpful_count.desc&limit=10`,
       {
         headers: {
           'apikey': SUPABASE_KEY,
@@ -36,8 +60,18 @@ async function loadFromSupabase(): Promise<Array<{ question: string; answer: str
         },
       }
     );
-    if (!res.ok) return [];
-    return await res.json();
+    const topRows = topRes.ok ? await topRes.json() : [];
+
+    // Merge — relevant rows first, then top rows, deduplicated
+    const seen = new Set<string>();
+    const merged: Array<{ question: string; answer: string }> = [];
+    for (const row of [...relevantRows, ...topRows]) {
+      if (!seen.has(row.question)) {
+        seen.add(row.question);
+        merged.push(row);
+      }
+    }
+    return merged;
   } catch {
     return [];
   }
@@ -71,13 +105,13 @@ function saveLearnedEntry(question: string, answer: string): string[] {
 }
 
 // ── Knowledge summary ─────────────────────────────────────────────────────────
-async function buildKnowledgeSummary(): Promise<string> {
+async function buildKnowledgeSummary(currentQuestion: string = ''): Promise<string> {
   const local = loadLearned().slice(-10);
   const localText = local
     .map(e => `Q: ${e.keywords.join(', ')}\nA: ${e.answer}`)
     .join('\n\n');
 
-  const shared = await loadFromSupabase();
+  const shared = await loadFromSupabase(currentQuestion);
   const sharedText = shared
     .map(e => `Q: ${e.question}\nA: ${e.answer}`)
     .join('\n\n');
@@ -160,7 +194,7 @@ export function useLvtsChat(autoWelcome: boolean) {
       historyRef.current = historyRef.current.slice(-10);
     }
     try {
-      const knowledge = await buildKnowledgeSummary();
+      const knowledge = await buildKnowledgeSummary(trimmed);
       const answer = await askClaude(historyRef.current, knowledge);
       historyRef.current.push({ role: 'assistant', content: answer });
       const keywords = saveLearnedEntry(trimmed, answer);
