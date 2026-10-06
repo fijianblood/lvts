@@ -19,6 +19,16 @@ export default function ChatWidget({ page }: { page: string }) {
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   }, [messages, isTyping]);
 
+  // Lock body scroll when chat is open on mobile
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
+
   if (page === 'ask') return null;
 
   return (
@@ -36,37 +46,37 @@ export default function ChatWidget({ page }: { page: string }) {
           }}
         >
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.85rem 1rem', borderBottom: '1px solid #f1f5f9', flexShrink: 0 }}>
-            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg,#2563eb,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.85rem 1rem', borderBottom: '1px solid #f1f5f9', flexShrink: 0, background: 'linear-gradient(135deg,#2563eb,#7c3aed)' }}>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Sparkles size={15} color="#fff" />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.85rem' }}>Loma</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.68rem', color: '#94a3b8' }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
-                Online
+              <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.9rem' }}>Loma</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.68rem', color: 'rgba(255,255,255,0.75)' }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#86efac', display: 'inline-block' }} />
+                Online · LomaVata Tech Services
               </div>
             </div>
             {messages.length > 0 && (
               <button
                 onClick={() => { resetChat(); inputRef.current?.focus(); }}
                 aria-label="Ask another question"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, background: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer', flexShrink: 0 }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', cursor: 'pointer', flexShrink: 0 }}
               >
-                <RotateCcw size={13} color="#334155" />
+                <RotateCcw size={13} color="#fff" />
               </button>
             )}
             <button
               onClick={() => setIsOpen(false)}
               aria-label="Close chat"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, background: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer', flexShrink: 0 }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', cursor: 'pointer', flexShrink: 0 }}
             >
-              <X size={14} color="#334155" />
+              <X size={14} color="#fff" />
             </button>
           </div>
 
           {/* Messages */}
-          <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+          <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.65rem', background: '#f8fafc' }}>
             {messages.map(m => <Bubble key={m.id} message={m} />)}
             {isTyping && <TypingDots />}
 
@@ -74,9 +84,9 @@ export default function ChatWidget({ page }: { page: string }) {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.4rem' }}>
                 {SUGGESTED_PROMPTS.map(p => (
                   <button key={p} onClick={() => handleSend(p)}
-                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 999, padding: '0.4rem 0.7rem', fontSize: '0.72rem', color: '#334155', cursor: 'pointer', fontFamily: "'Space Grotesk',sans-serif", transition: 'border-color 0.15s, background 0.15s' }}
+                    style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 999, padding: '0.4rem 0.7rem', fontSize: '0.72rem', color: '#334155', cursor: 'pointer', fontFamily: "'Space Grotesk',sans-serif", transition: 'border-color 0.15s, background 0.15s' }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = '#7c3aed'; e.currentTarget.style.background = '#faf5ff'; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = '#f8fafc'; }}>
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = '#fff'; }}>
                     {p}
                   </button>
                 ))}
@@ -126,7 +136,7 @@ export default function ChatWidget({ page }: { page: string }) {
         onClick={() => setIsOpen(v => !v)}
         aria-label={isOpen ? 'Close chat' : 'Chat with Loma'}
         style={{
-          position: 'fixed', right: 16, zIndex: 61,
+          position: 'fixed', right: 16, zIndex: 62,
           width: 56, height: 56, borderRadius: '50%', border: 'none', cursor: 'pointer',
           background: 'linear-gradient(135deg,#2563eb,#7c3aed)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -140,14 +150,29 @@ export default function ChatWidget({ page }: { page: string }) {
       </button>
 
       <style>{`
-        /* Desktop — original position */
+        /* Desktop */
         .lvts-chat-bubble { bottom: 24px; }
         .lvts-chat-window { bottom: 96px; }
 
-        /* Mobile — lift above the nav dock (dock is ~80px from bottom) */
+        /* Mobile — full screen like WhatsApp */
         @media (max-width: 768px) {
           .lvts-chat-bubble { bottom: 96px !important; }
-          .lvts-chat-window { bottom: 164px !important; }
+          .lvts-chat-window {
+            bottom: 0 !important;
+            right: 0 !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            border-radius: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+          }
+          .lvts-chat-bubble {
+            bottom: 20px !important;
+          }
         }
 
         @keyframes lvts-widget-bounce {
@@ -177,9 +202,10 @@ function Bubble({ message }: { message: ChatMessage }) {
         className={message.streaming ? 'lvts-widget-cursor' : undefined}
         style={{
           maxWidth: '85%', padding: '0.55rem 0.8rem', borderRadius: isUser ? '13px 13px 3px 13px' : '13px 13px 13px 3px',
-          background: isUser ? 'linear-gradient(135deg,#2563eb,#7c3aed)' : '#f1f5f9',
+          background: isUser ? 'linear-gradient(135deg,#2563eb,#7c3aed)' : '#fff',
           color: isUser ? '#fff' : '#0f172a', fontSize: '0.8rem', lineHeight: 1.55,
           whiteSpace: useMarkdown ? 'normal' : 'pre-wrap', wordBreak: 'break-word',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
         }}
       >
         {useMarkdown ? (
@@ -195,7 +221,7 @@ function Bubble({ message }: { message: ChatMessage }) {
 function TypingDots() {
   return (
     <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#f1f5f9', borderRadius: '13px 13px 13px 3px', padding: '0.65rem 0.9rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#fff', borderRadius: '13px 13px 13px 3px', padding: '0.65rem 0.9rem', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
         {[0, 1, 2].map(i => (
           <span key={i} style={{
             width: 5, height: 5, borderRadius: '50%', background: '#94a3b8',
