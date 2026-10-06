@@ -11,7 +11,9 @@ export default function ChatWidget({ page }: { page: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isOpen) inputRef.current?.focus();
+    if (isOpen) {
+      setTimeout(() => inputRef.current?.focus(), 300);
+    }
   }, [isOpen]);
 
   useEffect(() => {
@@ -19,14 +21,24 @@ export default function ChatWidget({ page }: { page: string }) {
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  // Lock body scroll when chat is open on mobile
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.classList.add('lvts-chat-open');
     } else {
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.classList.remove('lvts-chat-open');
     }
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.classList.remove('lvts-chat-open');
+    };
   }, [isOpen]);
 
   if (page === 'ask') return null;
@@ -37,46 +49,69 @@ export default function ChatWidget({ page }: { page: string }) {
         <div
           className="lvts-chat-window"
           style={{
-            position: 'fixed', right: 16, zIndex: 61,
-            width: 360, maxWidth: 'calc(100vw - 32px)',
-            height: 500, maxHeight: 'calc(100vh - 220px)',
-            background: '#fff', border: '1px solid #e2e8f0', borderRadius: 18,
-            boxShadow: '0 20px 60px rgba(15,23,42,0.25)', overflow: 'hidden',
-            display: 'flex', flexDirection: 'column',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 9999,
+            background: '#fff',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
           }}
         >
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.85rem 1rem', borderBottom: '1px solid #f1f5f9', flexShrink: 0, background: 'linear-gradient(135deg,#2563eb,#7c3aed)' }}>
-            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Sparkles size={15} color="#fff" />
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '0.6rem',
+            padding: '0.85rem 1rem',
+            borderBottom: '1px solid rgba(255,255,255,0.15)',
+            flexShrink: 0,
+            background: 'linear-gradient(135deg,#2563eb,#7c3aed)',
+            paddingTop: 'max(0.85rem, env(safe-area-inset-top))',
+          }}>
+            <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Sparkles size={16} color="#fff" />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.9rem' }}>Loma</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.68rem', color: 'rgba(255,255,255,0.75)' }}>
+              <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.95rem' }}>Loma</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.7rem', color: 'rgba(255,255,255,0.8)' }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#86efac', display: 'inline-block' }} />
                 Online · LomaVata Tech Services
               </div>
             </div>
             {messages.length > 0 && (
               <button
-                onClick={() => { resetChat(); inputRef.current?.focus(); }}
-                aria-label="Ask another question"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', cursor: 'pointer', flexShrink: 0 }}
+                onClick={() => { resetChat(); }}
+                aria-label="New chat"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', cursor: 'pointer', flexShrink: 0 }}
               >
-                <RotateCcw size={13} color="#fff" />
+                <RotateCcw size={14} color="#fff" />
               </button>
             )}
             <button
               onClick={() => setIsOpen(false)}
               aria-label="Close chat"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', cursor: 'pointer', flexShrink: 0 }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', cursor: 'pointer', flexShrink: 0 }}
             >
-              <X size={14} color="#fff" />
+              <X size={16} color="#fff" />
             </button>
           </div>
 
           {/* Messages */}
-          <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.65rem', background: '#f8fafc' }}>
+          <div
+            ref={scrollRef}
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              WebkitOverflowScrolling: 'touch' as never,
+              padding: '1rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.65rem',
+              background: '#f8fafc',
+            }}
+          >
             {messages.map(m => <Bubble key={m.id} message={m} />)}
             {isTyping && <TypingDots />}
 
@@ -84,9 +119,7 @@ export default function ChatWidget({ page }: { page: string }) {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.4rem' }}>
                 {SUGGESTED_PROMPTS.map(p => (
                   <button key={p} onClick={() => handleSend(p)}
-                    style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 999, padding: '0.4rem 0.7rem', fontSize: '0.72rem', color: '#334155', cursor: 'pointer', fontFamily: "'Space Grotesk',sans-serif", transition: 'border-color 0.15s, background 0.15s' }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#7c3aed'; e.currentTarget.style.background = '#faf5ff'; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = '#fff'; }}>
+                    style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 999, padding: '0.5rem 0.9rem', fontSize: '0.8rem', color: '#334155', cursor: 'pointer', fontFamily: "'Space Grotesk',sans-serif" }}>
                     {p}
                   </button>
                 ))}
@@ -95,42 +128,57 @@ export default function ChatWidget({ page }: { page: string }) {
           </div>
 
           {/* Input */}
-          <form
-            onSubmit={e => { e.preventDefault(); handleSend(input); }}
-            style={{ display: 'flex', gap: '0.5rem', padding: '0.7rem 0.8rem', borderTop: '1px solid #f1f5f9', flexShrink: 0, background: '#fff' }}
-          >
-            <input
-              ref={inputRef}
-              type="text"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              placeholder="Type a message…"
-              disabled={busy}
-              style={{
-                flex: 1, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10,
-                padding: '0.55rem 0.8rem', fontSize: '0.82rem', color: '#0f172a', outline: 'none',
-                fontFamily: "'Space Grotesk',sans-serif", transition: 'border-color 0.2s, box-shadow 0.2s',
-              }}
-              onFocus={e => { e.currentTarget.style.borderColor = '#7c3aed'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.15)'; }}
-              onBlur={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.boxShadow = 'none'; }}
-            />
-            <button
-              type="submit"
-              disabled={busy || !input.trim()}
-              aria-label="Send"
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-                background: input.trim() && !busy ? 'linear-gradient(135deg,#2563eb,#7c3aed)' : '#e2e8f0',
-                border: 'none', cursor: input.trim() && !busy ? 'pointer' : 'default', transition: 'opacity 0.2s',
-              }}
+          <div style={{
+            flexShrink: 0,
+            background: '#fff',
+            borderTop: '1px solid #f1f5f9',
+            paddingBottom: 'max(0.7rem, env(safe-area-inset-bottom))',
+          }}>
+            <form
+              onSubmit={e => { e.preventDefault(); handleSend(input); }}
+              style={{ display: 'flex', gap: '0.5rem', padding: '0.7rem 0.8rem 0' }}
             >
-              <Send size={15} color={input.trim() && !busy ? '#fff' : '#94a3b8'} />
-            </button>
-          </form>
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                placeholder="Type a message…"
+                disabled={busy}
+                style={{
+                  flex: 1,
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 10,
+                  padding: '0.65rem 0.9rem',
+                  fontSize: '16px',
+                  color: '#0f172a',
+                  outline: 'none',
+                  fontFamily: "'Space Grotesk',sans-serif",
+                  WebkitAppearance: 'none' as never,
+                }}
+                onFocus={e => { e.currentTarget.style.borderColor = '#7c3aed'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.15)'; }}
+                onBlur={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.boxShadow = 'none'; }}
+              />
+              <button
+                type="submit"
+                disabled={busy || !input.trim()}
+                aria-label="Send"
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 42, height: 42, borderRadius: 10, flexShrink: 0,
+                  background: input.trim() && !busy ? 'linear-gradient(135deg,#2563eb,#7c3aed)' : '#e2e8f0',
+                  border: 'none', cursor: input.trim() && !busy ? 'pointer' : 'default',
+                }}
+              >
+                <Send size={16} color={input.trim() && !busy ? '#fff' : '#94a3b8'} />
+              </button>
+            </form>
+          </div>
         </div>
       )}
 
-      {/* Bubble toggle */}
+      {/* Bubble toggle — hidden when chat is open on mobile */}
       <button
         className="lvts-chat-bubble"
         onClick={() => setIsOpen(v => !v)}
@@ -152,26 +200,14 @@ export default function ChatWidget({ page }: { page: string }) {
       <style>{`
         /* Desktop */
         .lvts-chat-bubble { bottom: 24px; }
-        .lvts-chat-window { bottom: 96px; }
 
-        /* Mobile — full screen like WhatsApp */
+        /* Mobile */
         @media (max-width: 768px) {
           .lvts-chat-bubble { bottom: 96px !important; }
-          .lvts-chat-window {
-            bottom: 0 !important;
-            right: 0 !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            max-width: 100vw !important;
-            max-height: 100vh !important;
-            border-radius: 0 !important;
-            border: none !important;
-            box-shadow: none !important;
-          }
-          .lvts-chat-bubble {
-            bottom: 20px !important;
+
+          /* Hide bubble when chat is open */
+          .lvts-chat-open .lvts-chat-bubble {
+            display: none !important;
           }
         }
 
@@ -201,11 +237,12 @@ function Bubble({ message }: { message: ChatMessage }) {
       <div
         className={message.streaming ? 'lvts-widget-cursor' : undefined}
         style={{
-          maxWidth: '85%', padding: '0.55rem 0.8rem', borderRadius: isUser ? '13px 13px 3px 13px' : '13px 13px 13px 3px',
+          maxWidth: '85%', padding: '0.6rem 0.9rem',
+          borderRadius: isUser ? '14px 14px 3px 14px' : '14px 14px 14px 3px',
           background: isUser ? 'linear-gradient(135deg,#2563eb,#7c3aed)' : '#fff',
-          color: isUser ? '#fff' : '#0f172a', fontSize: '0.8rem', lineHeight: 1.55,
+          color: isUser ? '#fff' : '#0f172a', fontSize: '0.875rem', lineHeight: 1.6,
           whiteSpace: useMarkdown ? 'normal' : 'pre-wrap', wordBreak: 'break-word',
-          boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
         }}
       >
         {useMarkdown ? (
@@ -221,7 +258,7 @@ function Bubble({ message }: { message: ChatMessage }) {
 function TypingDots() {
   return (
     <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#fff', borderRadius: '13px 13px 13px 3px', padding: '0.65rem 0.9rem', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#fff', borderRadius: '14px 14px 14px 3px', padding: '0.7rem 1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
         {[0, 1, 2].map(i => (
           <span key={i} style={{
             width: 5, height: 5, borderRadius: '50%', background: '#94a3b8',
