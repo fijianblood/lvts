@@ -21,9 +21,6 @@ type Stmt =
   | { kind: 'route'; cond: Expr; thenBody: Stmt[]; elseBody?: Stmt[] }
   | { kind: 'forEach'; varName: string; listExpr: Expr; body: Stmt[] }
   | { kind: 'assign'; name: string; expr: Expr };
-
-const KEYWORDS = ['state', 'hook', 'component', 'mount', 'route', 'else', 'for', 'each', 'in', 'return', 'fetch'];
-
 function tokenize(src: string): Token[] {
   const tokens: Token[] = [];
   let i = 0;
@@ -385,5 +382,3 @@ export function runWeave(source: string): { output: string[]; error?: string } {
     return { output: [], error: err instanceof Error ? err.message : String(err) };
   }
 }
-
-export { KEYWORDS };
