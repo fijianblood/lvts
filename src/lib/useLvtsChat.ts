@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { type ChatMessage, WELCOME, findAnswer, uid, LVTS_KNOWLEDGE_SUMMARY } from './lvtsChat';
 
-const WORKER_URL = 'https://lvts-loma.rexneel.workers.dev';
+const WORKER_URL = 'https://lvts-loma.lomavatatechfiji.workers.dev/';
 const LEARNED_KEY = 'lvts_loma_learned_v1';
 
 // ── Supabase ──────────────────────────────────────────────────────────────────
