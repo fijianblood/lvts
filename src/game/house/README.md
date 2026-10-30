@@ -65,12 +65,34 @@ up, and the cousins' heights are guesses: change them in `characters.ts`.
 | Sarah | Cousin | Sharp eyes (7.5 m) |
 
 Everyone you are not playing is somewhere in the house or yard (common areas
-only: veranda, lounge, kitchen, dining table, carport, yards) and says
-something when you press E next to them: until you have the Golden Chip, each
-of them hints at the room it is in. Their spots are `NPC_SPOTS` in `layout.ts`;
-anyone standing blocks your way, and a test checks that nobody blocks a part,
-a Golden Chip spot or the exit. V switches to a third-person view. The pick is
-remembered in `localStorage`.
+only: veranda, lounge, kitchen, dining table, carport, yards). Their spots are
+`NPC_SPOTS` in `layout.ts`; anyone standing blocks your way, and a test checks
+that nobody blocks a part, a Golden Chip spot or the exit. V switches to a
+third-person view. The pick is remembered in `localStorage`.
+
+## Conversations
+
+Anyone can talk to anyone. Press E next to someone and a conversation opens
+(`talk.ts`, shown by `HouseGame.tsx`):
+
+- **Salaam both ways**: the younger one greets the elder with respect and
+  thanks, and the elder answers with a blessing, or the other way round.
+  Grown-ups of the same generation and the cousins greet each other as
+  friends. Everyone is called the right thing (Dad, Mum, Grandpa,
+  Aunty Nancy, Uncle Ravi…); see `address()`.
+- **Your questions** (keys 1–7, or tap): how are you; have you seen the Golden
+  Chip (the hint); what do you love about nature; how did Allah create us; what
+  is our family's declaration; and one that fits the two of you.
+- **Their question back** after your second one, with answers to pick.
+- **Say goodbye**, E again, ✕, or walking away ends it.
+
+The family's declaration is used word for word: "I bear witness that there is
+no god but God, and I bear witness that Muhammad is the Messenger of God."
+The Qur'an and hadith lines are short paraphrases of the meaning with the
+reference (e.g. Qur'an 3:190, 95:4, 49:13), not quotations from one
+translation. Please have them read over by someone you trust before you rely
+on them. Baby Aisha babbles, coos and reaches for cuddles instead of talking.
+`tests/house/talk.test.ts` checks every one of the 552 pairings.
 
 ## Running a prize round
 
@@ -127,6 +149,7 @@ then `npm run dev` and open `http://localhost:5173/lvts/#house`.
 | `collision.ts` | Player-vs-wall/furniture/door collision (circle vs boxes), with sliding; a crawling version for Aisha and a walls-only version for the third-person camera. |
 | `engine.ts` | three.js scene, controls, doors and windows, pickups, the family, third-person camera, timer, win. |
 | `characters.ts` | The 24 playable family members. |
+| `talk.ts` | What they say to each other: greetings, questions and answers, the declaration. |
 | `figures.ts` | The low-poly people (poses, walk and crawl cycles) and the cat. Everyone you aren't playing is baked into two meshes (body, and head on its own pivot) so a full house stays cheap to draw. |
 | `minimap.ts` | Fog-of-war minimap revealed by line of sight, with a breadcrumb trail. |
 | `HouseGame.tsx` | HUD, start/pause/win cards, touch controls, fullscreen. |

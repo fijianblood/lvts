@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { HouseEngine, type RunResult, type PerkPill } from './engine.ts';
+import { HouseEngine, type RunResult, type PerkPill, type TalkStart } from './engine.ts';
+import { opening, questions, quiz, farewell, type Say, type Question, type Quiz } from './talk.ts';
 import { CONTEST, prizeState, claimSteps } from './contest.ts';
 import { COLLECTIBLES } from './layout.ts';
 import { CHARACTERS, GROUPS, characterById, firstName, type CharacterGroup, type Look } from './characters.ts';
@@ -41,6 +42,26 @@ function Portrait({ look, size = 52 }: { look: Look; size?: number }) {
   );
 }
 const BASE = import.meta.env.BASE_URL;
+
+/** One line of conversation: the speaker in bold, a Qur'an or hadith reference in small grey. */
+function Line({ say }: { say: Say }) {
+  return <p className="hh-say"><b>{say.who}:</b> {say.text}{say.ref && <span className="hh-ref"> ({say.ref})</span>}</p>;
+}
+
+interface Talk {
+  start: TalkStart;
+  /** What's on screen now: the last exchange. */
+  lines: Say[];
+  qs: Question[];
+  asked: string[];
+  quiz: Quiz | null;
+  /** 'ask': your questions; 'answer': their question to you; 'bye': saying goodbye. */
+  mode: 'ask' | 'answer' | 'bye';
+}
+
+function startTalk(t: TalkStart): Talk {
+  return { start: t, lines: opening(t.player, t.npc, t.turn), qs: questions(t.player, t.npc, t.room, t.turn), asked: [], quiz: quiz(t.player, t.npc, t.room, t.turn), mode: 'ask' };
+}
 /** Ronlyn's warmer/colder readout, coldest first. */
 
 function fmt(ms: number) {
@@ -135,7 +156,8 @@ export default function HouseGame() {
   const [count, setCount] = useState(0);
   const [golden, setGolden] = useState(false);
   const [rooms, setRooms] = useState<[number, number]>([0, 9]);
-  const [toast, setToast] = useState<{ text: string; kind: 'part' | 'gold' | 'talk' } | null>(null);
+  const [toast, setToast] = useState<{ text: string; kind: 'part' | 'gold' } | { lines: Say[]; kind: 'talk' } | null>(null);
+  const [talk, setTalk] = useState<Talk | null>(null);
   const [charId, setCharId] = useState(readChar);
   const [tab, setTab] = useState<CharacterGroup>(() => characterById(readChar()).group);
   const [third, setThird] = useState(false);
@@ -150,10 +172,15 @@ export default function HouseGame() {
   const [copied, setCopied] = useState(false);
   const prize = prizeState();   // cheap: re-read on every render so a round that starts mid-visit shows up
 
-  const showToast = useCallback((text: string, kind: 'part' | 'gold' | 'talk') => {
+  const showToast = useCallback((text: string, kind: 'part' | 'gold') => {
     setToast({ text, kind });
     window.clearTimeout(toastTimer.current);
-    toastTimer.current = window.setTimeout(() => setToast(null), kind === 'part' ? 1900 : kind === 'gold' ? 4200 : 4800);
+    toastTimer.current = window.setTimeout(() => setToast(null), kind === 'part' ? 1900 : 4200);
+  }, []);
+  const showSay = useCallback((lines: Say[]) => {
+    setToast({ lines, kind: 'talk' });
+    window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast(null), 4200);
   }, []);
 
   useEffect(() => {
@@ -182,7 +209,8 @@ export default function HouseGame() {
           onPause: (why) => { setReason(why); setPhase('paused'); },
           onRooms: (v, t) => setRooms([v, t]),
           onMap: (big) => setMapBig(big),
-          onTalk: (who, line) => showToast(`${who}: “${line}”`, 'talk'),
+          onTalk: (t) => setTalk(t ? startTalk(t) : null),
+          onSay: (lines) => showSay(lines),
           onView: (t) => setThird(t),
           onPerk: (p) => setPerk(p),
         },
@@ -199,7 +227,7 @@ export default function HouseGame() {
     return () => { engine.dispose(); engineRef.current = null; };
     // the engine is created once; `muted` is applied through its own effect below
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [touch, showToast]);
+  }, [touch, showToast, showSay]);
 
   useEffect(() => {
     engineRef.current?.setMuted(muted);
@@ -272,6 +300,41 @@ export default function HouseGame() {
   };
   const toggleMap = () => { const big = engineRef.current?.toggleMap(); setMapBig(!!big); };
   const toggleView = () => { const t = engineRef.current?.toggleView(); setThird(!!t); };
+  /** Pick menu item `i` in the conversation: one of your questions, an answer to theirs, or goodbye. */
+  const choose = useCallback((i: number) => {
+    const t = talk;
+    if (!t || t.mode === 'bye') return;
+    const { player, npc } = t.start;
+    if (t.mode === 'answer' && t.quiz) {
+      const c = t.quiz.choices[i];
+      if (c) setTalk({ ...t, lines: c.lines, mode: 'ask', quiz: null });
+      return;
+    }
+    const left = t.qs.filter((q) => !t.asked.includes(q.id));
+    if (i === left.length) {
+      setTalk({ ...t, lines: farewell(player, npc), mode: 'bye' });
+      window.setTimeout(() => engineRef.current?.endTalk(npc.id), 2200);
+      return;
+    }
+    const q = left[i];
+    if (!q) return;
+    const asked = [...t.asked, q.id];
+    // after your second question they ask you one back
+    if (asked.length === 2 && t.quiz) setTalk({ ...t, asked, lines: [...q.lines, t.quiz.ask], mode: 'answer' });
+    else setTalk({ ...t, asked, lines: q.lines });
+  }, [talk]);
+  // number keys pick from the menu (they work while the mouse is captured, unlike clicks)
+  useEffect(() => {
+    if (!talk || phase !== 'playing') return;
+    const onKey = (e: KeyboardEvent) => {
+      const m = /^(?:Digit|Numpad)([1-9])$/.exec(e.code);
+      if (!m || e.repeat) return;
+      e.preventDefault();
+      choose(Number(m[1]) - 1);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [talk, phase, choose]);
   /** Back to the start card to pick someone else. */
   const changeCharacter = () => {
     const e = engineRef.current;
@@ -333,7 +396,8 @@ export default function HouseGame() {
         </div>
         <div className="hh-cross" />
         <div ref={promptRef} className="hh-prompt" style={{ opacity: 0 }} />
-        {toast && <div className={`hh-toast${toast.kind === 'gold' ? ' hh-toast-gold' : toast.kind === 'talk' ? ' hh-toast-talk' : ''}`}>{toast.text}</div>}
+        {toast && toast.kind === 'talk' && !talk && <div className="hh-toast hh-toast-talk">{toast.lines.map((l, i) => <Line key={i} say={l} />)}</div>}
+        {toast && toast.kind !== 'talk' && <div className={`hh-toast${toast.kind === 'gold' ? ' hh-toast-gold' : ''}`}>{toast.text}</div>}
         <div className="hh-corner">
           {phase === 'playing' && <button type="button" className="hh-icon hh-quit" onClick={askQuit} aria-label="Quit the game" title="Quit the game">✕</button>}
           <button type="button" className="hh-icon" onClick={toggleView} aria-label={third ? 'First-person view' : 'Third-person view'} title="Switch view (V)">{third ? '👁' : '🎥'}</button>
@@ -341,6 +405,36 @@ export default function HouseGame() {
           <button type="button" className="hh-icon" onClick={() => (full ? exitFull() : enterFull())} aria-label={full ? 'Exit full screen' : 'Full screen'}>{full ? '🗗' : '⛶'}</button>
         </div>
       </div>
+
+      {/* Conversation: what was just said, then the questions you can ask (or answers to theirs) */}
+      {phase === 'playing' && talk && (() => {
+        const left = talk.qs.filter((q) => !talk.asked.includes(q.id));
+        const menu = talk.mode === 'answer' && talk.quiz ? talk.quiz.choices.map((c) => c.label) : talk.mode === 'ask' ? [...left.map((q) => q.label), 'Say goodbye'] : [];
+        return (
+          <div className="hh-talk" role="dialog" aria-label={`Talking with ${firstName(talk.start.npc)}`}>
+            <div className="hh-talk-head">
+              <Portrait look={talk.start.npc.look} size={26} />
+              <b>{talk.start.npc.name}</b> <span className="hh-talk-role">{talk.start.npc.role}</span>
+              <button type="button" className="hh-talk-x" onPointerDown={(e) => { e.stopPropagation(); engineRef.current?.endTalk(); }} aria-label="Stop talking">✕</button>
+            </div>
+            <div className="hh-talk-log" aria-live="polite">{talk.lines.map((l, i) => <Line key={`${talk.asked.length}-${i}`} say={l} />)}</div>
+            {menu.length > 0 && (
+              <>
+                {talk.mode === 'answer' && <div className="hh-talk-tip">Your answer:</div>}
+                <ol className="hh-talk-menu">
+                  {menu.map((label, i) => (
+                    <li key={label}>
+                      <button type="button" onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); choose(i); }}>
+                        <kbd>{i + 1}</kbd> {label}
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              </>
+            )}
+          </div>
+        );
+      })()}
 
       {phase === 'playing' && touch && engineRef.current && (
         <TouchControls engine={engineRef.current} onPause={() => engineRef.current?.pause('manual')} onMap={toggleMap} onView={toggleView} />
@@ -526,6 +620,21 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
 .hh-toast { position: absolute; top: 58px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg,#2563eb,#7c3aed); color: #fff; padding: 9px 16px; border-radius: 12px; font-weight: 700; font-size: 0.9rem; box-shadow: 0 10px 30px rgba(37,99,235,0.35); animation: hh-pop .35s cubic-bezier(.34,1.56,.64,1); white-space: nowrap; max-width: 92%; overflow: hidden; text-overflow: ellipsis; }
 .hh-toast-gold { background: linear-gradient(135deg,#f59e0b,#fbbf24); color: #422006; white-space: normal; text-align: center; }
 .hh-toast-talk { background: #fff; color: #0f172a; border: 2px solid #c7d2fe; white-space: normal; text-align: left; max-width: min(460px, 92%); font-weight: 600; }
+.hh-say { margin: 0 0 5px; line-height: 1.42; font-weight: 500; }
+.hh-say b { color: #1d4ed8; font-weight: 700; }
+.hh-ref { color: #64748b; font-weight: 500; font-size: 0.8em; white-space: nowrap; }
+.hh-talk { position: absolute; left: 50%; bottom: 64px; transform: translateX(-50%); width: min(580px, 92%); max-height: 64%; overflow-y: auto; background: #fff; color: #0f172a; border: 2px solid #c7d2fe; border-radius: 16px; padding: 10px 12px; box-shadow: 0 16px 40px rgba(15,23,42,0.35); z-index: 4; pointer-events: auto; font-size: 0.88rem; animation: hh-pop .3s cubic-bezier(.34,1.56,.64,1); }
+.hh-is-touch .hh-talk { left: 12px; right: 12px; bottom: 12px; width: auto; transform: none; max-height: 60%; font-size: 0.84rem; }
+.hh-talk-head { display: flex; align-items: center; gap: 7px; font-size: 0.8rem; margin-bottom: 7px; }
+.hh-talk-head svg { border-radius: 7px; }
+.hh-talk-role { color: #94a3b8; font-weight: 600; }
+.hh-talk-x { margin-left: auto; border: none; background: #f1f5f9; border-radius: 8px; width: 30px; height: 30px; cursor: pointer; font-weight: 700; color: #475569; }
+.hh-talk-tip { font-size: 0.72rem; font-weight: 700; color: #7c3aed; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 6px; }
+.hh-talk-menu { list-style: none; margin: 8px 0 0; padding: 8px 0 0; border-top: 1px solid #e2e8f0; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.hh-talk-menu button { width: 100%; height: 100%; text-align: left; display: flex; gap: 7px; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 6px 8px; font: 600 0.8rem 'Space Grotesk', sans-serif; color: #0f172a; cursor: pointer; touch-action: manipulation; }
+.hh-talk-menu button:hover { border-color: #93c5fd; background: #eff6ff; }
+.hh-talk-menu kbd { flex: none; min-width: 20px; height: 20px; border-radius: 6px; background: #1d4ed8; color: #fff; font: 700 0.72rem 'JetBrains Mono', monospace; display: inline-flex; align-items: center; justify-content: center; }
+.hh-is-touch .hh-talk-menu kbd { display: none; }
 .hh-who { display: inline-flex; align-items: center; gap: 6px; padding-left: 4px; }
 .hh-who svg { border-radius: 6px; }
 .hh-pick-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; margin-bottom: 0.45rem; }
@@ -604,6 +713,7 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
   .hh-pick-role { font-size: 0.56rem; }
   .hh-tab { padding: 5px 8px; font-size: 0.7rem; }
   .hh-who-name { display: none; }
+  .hh-talk-menu { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { .hh-toast { animation: none; } .hh-map { transition: none; } .hh-perk-sense-3 { animation: none; } }
 `;

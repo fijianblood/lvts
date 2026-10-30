@@ -13,6 +13,7 @@ import {
 import { buildStaticWorld, buildCameraWorld, doorOBB, bodyOBB, moveAndSlide, circleHitsOBB, blocked, type OBB, type StaticWorld } from './collision.ts';
 import { CHARACTERS, characterById, firstName, type Character, type CharacterId } from './characters.ts';
 import { buildFigure, animate, bakeStatic, cat, type Rig } from './figures.ts';
+import type { Say } from './talk.ts';
 import { Minimap } from './minimap.ts';
 import { Sfx } from './audio.ts';
 import * as T from './textures.ts';
@@ -30,6 +31,7 @@ export interface RunResult {
 }
 
 export interface PerkPill { text: string; tone: string; title: string }
+export interface TalkStart { player: Character; npc: Character; room: string | null; turn: number }
 const SENSE = ['🧊 Cold', '🌤️ Warm', '🔥 Hot', '🔥 Very hot!'];
 
 export interface EngineHud {
@@ -45,7 +47,10 @@ export interface EngineCallbacks {
   onRooms?: (visited: number, total: number) => void;
   onMap?: (expanded: boolean) => void;
   /** Someone in the family (or the cat) said something. */
-  onTalk?: (who: string, line: string) => void;
+  /** A conversation starts (you, them, the Golden Chip's room or null, a number to vary the lines) or ends (null). */
+  onTalk?: (talk: TalkStart | null) => void;
+  /** Something said in passing (the cat). */
+  onSay?: (lines: Say[]) => void;
   onView?: (third: boolean) => void;
   /** A perk's live readout for the HUD (warmer/colder, the Golden Chip's room), or null. */
   onPerk?: (pill: PerkPill | null) => void;
@@ -256,6 +261,9 @@ export class HouseEngine {
   private visited = new Set<string>();
   private goldenIndex = 0;
   private perkKey: string | undefined = undefined;
+  /** Index into `npcs` of who you're talking to. */
+  private talkingTo: number | null = null;
+  private talkTurn = Math.floor(Math.random() * 12);
 
   private raf = 0;
   private last = 0;
@@ -958,6 +966,7 @@ export class HouseEngine {
 
   // ── run lifecycle ────────────────────────────────────────────────────────
   reset() {
+    this.endTalk();
     this.pos = [SPAWN.pos[0], SPAWN.pos[2]];
     this.floorY = heightAt(this.pos[0], this.pos[1]);
     this.vel = [0, 0];
@@ -1013,6 +1022,7 @@ export class HouseEngine {
   pause(reason: 'lock-lost' | 'poster' | 'manual' = 'manual') {
     if (this.state !== 'playing') return;
     this.state = 'paused';
+    this.endTalk();
     this.keys.clear();
     this.touchMove = [0, 0];
     if (document.pointerLockElement === this.renderer.domElement) document.exitPointerLock();
@@ -1064,13 +1074,15 @@ export class HouseEngine {
       if (d.target === 1) this.swingAway(other ? [d, other] : [d]);
       this.sfx.door(d.target > 0.5);
     } else if (f.kind === 'npc') {
+      // E next to someone starts a conversation; E again (or walking away) ends it
       const n = this.npcs[f.index];
-      const who = characterById(n.id);
+      if (this.talkingTo === f.index) { this.endTalk(); return; }
       const room = this.golden ? null : (ROOMS.find((r) => r.id === GOLDEN_SPOTS[this.goldenIndex].room)?.name ?? 'house').toLowerCase();
-      this.cb.onTalk?.(firstName(who), who.line(room));
+      this.talkingTo = f.index;
+      this.cb.onTalk?.({ player: this.char, npc: characterById(n.id), room, turn: this.talkTurn++ });
       this.sfx.pickup();
     } else if (f.kind === 'cat') {
-      this.cb.onTalk?.('The cat', 'Purrr… (it flicks its tail and goes back to sleep)');
+      this.cb.onSay?.([{ who: 'The cat', text: 'Purrr… (it flicks its tail and goes back to sleep)' }]);
     } else if (f.kind === 'window') {
       const w = this.windows[f.index];
       w.target = w.target > 0.5 ? 0 : 1;
@@ -1133,6 +1145,14 @@ export class HouseEngine {
     if (hits(1) && !hits(-1)) for (const g of gates) g.door.swing = -g.door.swing;
   }
 
+  /** Close the conversation (you said goodbye, walked off, or the run stopped). */
+  endTalk(onlyWith?: string) {
+    if (this.talkingTo === null) return;
+    if (onlyWith && this.npcs[this.talkingTo].id !== onlyWith) return;
+    this.talkingTo = null;
+    this.cb.onTalk?.(null);
+  }
+
   private applyDoors() {
     for (const d of this.doors) {
       if (d.door.kind === 'slide') {
@@ -1154,6 +1174,11 @@ export class HouseEngine {
   }
 
   private step(dt: number) {
+    // walk off mid-conversation and it ends
+    if (this.talkingTo !== null) {
+      const s = this.npcs[this.talkingTo].spot.pos;
+      if (Math.hypot(s[0] - this.pos[0], s[2] - this.pos[1]) > 2.8) this.endTalk();
+    }
     this.time += dt;
     // doors and windows ease toward their targets; a door that would swing into you waits
     const me: [number, number] = this.pos;
@@ -1323,7 +1348,7 @@ export class HouseEngine {
     if (b?.kind === 'door') { const d = this.doors[b.index]; text = `${key} · ${d.target > 0.5 ? 'Close' : 'Open'} the ${d.door.label}`; }
     if (b?.kind === 'window') { const w = this.windows[b.index]; text = `${key} · ${w.target > 0.5 ? 'Close' : 'Open'} the window`; }
     if (b?.kind === 'poster') text = `${key} · Read the poster: how a database index works`;
-    if (b?.kind === 'npc') text = `${key} · Talk to ${firstName(characterById(this.npcs[b.index].id))}`;
+    if (b?.kind === 'npc') text = this.talkingTo === b.index ? `${key} · Say goodbye` : `${key} · Talk to ${firstName(characterById(this.npcs[b.index].id))}`;
     if (b?.kind === 'cat') text = `${key} · Pet the cat`;
     this.setPrompt(text);
   }
