@@ -95,6 +95,47 @@ translation. Please have them read over by someone you trust before you rely
 on them. Baby Aisha babbles, coos and reaches for cuddles instead of talking.
 `tests/house/talk.test.ts` checks every one of the 600 pairings.
 
+## Chores, stars and new places
+
+Chores are optional and never touch the hunt or the prize. The mess comes back
+every game; finishing a chore earns ⭐ stars, which are kept on the player's
+device (`localStorage`, key `house-hunt-stars-v1`) and add up across games.
+Press C (or 📋) for the list. Stand next to the green sparkle and press E; the
+bar fills while you work, and walking away stops it.
+
+| Chore | Where | ⭐ |
+|---|---|---|
+| Wash the dishes | kitchen sink | 2 |
+| Do the laundry | kids' room basket → washing machine → washing line | 3 |
+| Sweep the floors (broom) | hallway, lounge, veranda | 2 |
+| Mop the floors (mop) | kitchen, bathroom | 2 |
+| Dusting (cloth) | TV unit, side table, back-room shelves | 2 |
+| Wipe the windows (cloth) | lounge, dining room | 2 |
+| Babysit Aisha | lounge, by the bassinet | 2 |
+| Take out the rubbish | kitchen bin → wheelie bin | 1 |
+| Water the plants (watering can) | veranda, lounge, side path | 2 |
+| Feed the cat | pantry → cat bowl | 1 |
+| Tidy the shoes | veranda | 1 |
+| Water the vegetables (watering can) | vegetable garden, once it's open | 2 |
+
+Finishing every chore you can do in one game adds a 3 ⭐ bonus. The broom,
+mop and cloth hang on a rack in the back room; the watering can is by the
+laundry tubs. You carry one thing at a time. Baby Aisha has no chores (she's
+the one being babysat).
+
+Stars unlock three places for good:
+
+| Place | ⭐ | What's there |
+|---|---|---|
+| Vegetable garden | 6 | Dalo, cassava and bele behind the storeroom, and a new chore |
+| Family bure | 15 | A thatched hut with mats and cushions, past the back steps |
+| Treehouse | 30 | A lookout by the breadfruit tree: climbing it reveals the whole map |
+
+Until then each has one gate with a padlock and a sign. A test checks that
+every part, Golden Chip spot and the exit can be reached with all three
+locked, so the contest is the same for everyone. Chores and places are data in
+`chores.ts`; `choreSystem.ts` draws them and runs the timing.
+
 ## Running a prize round
 
 The repo is public, so **prize codes are never committed**. They come from a
@@ -151,6 +192,7 @@ then `npm run dev` and open `http://localhost:5173/lvts/#house`.
 | `engine.ts` | three.js scene, controls, doors and windows, pickups, the family, third-person camera, timer, win. |
 | `characters.ts` | The 25 playable family members. |
 | `talk.ts` | What they say to each other: greetings, questions and answers, the declaration. |
+| `chores.ts`, `choreSystem.ts` | Chores, stars, the places they unlock, and the 3D side of them. |
 | `figures.ts` | The low-poly people (poses, walk and crawl cycles) and the cat. Everyone you aren't playing is baked into two meshes (body, and head on its own pivot) so a full house stays cheap to draw. |
 | `minimap.ts` | Fog-of-war minimap revealed by line of sight, with a breadcrumb trail. |
 | `HouseGame.tsx` | HUD, start/pause/win cards, touch controls, fullscreen. |

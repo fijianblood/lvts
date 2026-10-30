@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildStaticWorld, doorOBB, bodyOBB, moveAndSlide, blocked, resolve, PLAYER_R, type OBB } from '../../src/game/house/collision.ts';
-import { DOORS, COLLECTIBLES, GOLDEN_SPOTS, SPAWN, EXIT_ZONE, PROPS, NPC_SPOTS, heightAt, type XZ } from '../../src/game/house/layout.ts';
+import { DOORS, COLLECTIBLES, GOLDEN_SPOTS, SPAWN, EXIT_ZONE, PROPS, NPC_SPOTS, RAMPS, heightAt, type XZ } from '../../src/game/house/layout.ts';
 import { CHARACTERS } from '../../src/game/house/characters.ts';
 
 const world = buildStaticWorld();
@@ -90,7 +90,10 @@ function reachable(doors: OBB[], w = world, r = PLAYER_R) {
       const x = x0 + i * step, z = z0 + j * step, h = heightAt(x, z);
       for (const [a, b] of [[i + 1, j], [i, j + 1]]) {
         if (!seen[key(a, b)]) continue;
-        const d = Math.abs(heightAt(x0 + a * step, z0 + b * step) - h);
+        // climbing within one flight of stairs (or the treehouse ladder) is how you change height, not a ledge
+        const xa = x0 + a * step, za = z0 + b * step;
+        if (RAMPS.some((r) => [[x, z], [xa, za]].every(([px, pz]) => px >= r.x0 && px <= r.x1 && pz >= r.z0 && pz <= r.z1))) continue;
+        const d = Math.abs(heightAt(xa, za) - h);
         if (d > limit) out.push(`(${x.toFixed(1)}, ${z.toFixed(1)}) drops ${d.toFixed(2)} m`);
       }
     }

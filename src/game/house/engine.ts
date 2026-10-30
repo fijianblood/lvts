@@ -14,6 +14,8 @@ import { buildStaticWorld, buildCameraWorld, doorOBB, bodyOBB, moveAndSlide, cir
 import { CHARACTERS, characterById, firstName, type Character, type CharacterId } from './characters.ts';
 import { buildFigure, animate, bakeStatic, cat, type Rig } from './figures.ts';
 import type { Say } from './talk.ts';
+import { ChoreSystem, type ChoreCallbacks, type ChoreFocus } from './choreSystem.ts';
+import { PLACES } from './chores.ts';
 import { Minimap } from './minimap.ts';
 import { Sfx } from './audio.ts';
 import * as T from './textures.ts';
@@ -28,6 +30,8 @@ export interface RunResult {
   golden: boolean;
   rooms: number;
   totalRooms: number;
+  /** Stars earned from chores this game. */
+  stars: number;
 }
 
 export interface PerkPill { text: string; tone: string; title: string }
@@ -40,7 +44,7 @@ export interface EngineHud {
   minimap: HTMLCanvasElement;
 }
 
-export interface EngineCallbacks {
+export interface EngineCallbacks extends ChoreCallbacks {
   onPickup: (info: { name: string; count: number; total: number; golden: boolean }) => void;
   onWin: (result: RunResult) => void;
   onPause: (reason: 'lock-lost' | 'poster' | 'manual') => void;
@@ -213,7 +217,7 @@ interface Item {
   golden: boolean; taken: boolean; seen: boolean; phase: number; base: number;
 }
 interface Burst { mesh: THREE.InstancedMesh; vel: THREE.Vector3[]; t: number }
-type FocusKind = 'door' | 'window' | 'poster' | 'npc' | 'cat';
+type FocusKind = 'door' | 'window' | 'poster' | 'npc' | 'cat' | ChoreFocus;
 
 export class HouseEngine {
   state: GameState = 'intro';
@@ -263,6 +267,9 @@ export class HouseEngine {
   private perkKey: string | undefined = undefined;
   /** Index into `npcs` of who you're talking to. */
   private talkingTo: number | null = null;
+  private chores!: ChoreSystem;
+  /** Climbed the treehouse this game (the map's been revealed). */
+  private lookedOut = false;
   private talkTurn = Math.floor(Math.random() * 12);
 
   private raf = 0;
@@ -307,6 +314,13 @@ export class HouseEngine {
     this.buildHouse();
     this.buildCompound();
     this.buildItems();
+    this.chores = new ChoreSystem(this.scene, {
+      onChores: (s) => this.cb.onChores?.(s),
+      onWork: (w) => this.cb.onWork?.(w),
+      onChoreDone: (d) => { this.sfx.pickup(); this.cb.onChoreDone?.(d); },
+      onUnlock: (p) => { this.sfx.golden(); this.cb.onUnlock?.(p); this.cb.onRooms?.(this.visited.size, this.areaTotal); },
+      onHint: (t) => this.cb.onHint?.(t),
+    });
     this.minimap = new Minimap(hud.minimap);   // before the family: picking a character sets up the map
     this.buildFamily();
     this.reset();
@@ -345,7 +359,7 @@ export class HouseEngine {
       const kind = floorTex[room.floor];
       const list = floors.get(room.floor) ?? [];
       if (room.ground) list.push(...groundStrip(room.x0, room.z0, room.x1, room.z1, room.floor === 'road' ? 0.004 : 0.012, kind.tile));
-      else list.push(worldPlane(room.x0, room.z0, room.x1, room.z1, 0.002, kind.tile));
+      else list.push(worldPlane(room.x0, room.z0, room.x1, room.z1, (room.y ?? 0) + 0.002, kind.tile));
       floors.set(room.floor, list);
       if (room.ceiling) ceilings.push(worldPlane(room.x0, room.z0, room.x1, room.z1, CEIL_H, 1.2, true));
     }
@@ -718,7 +732,7 @@ export class HouseEngine {
         const za = r.z0 + ((r.z1 - r.z0) * k) / n, zb = r.z0 + ((r.z1 - r.z0) * (k + 1)) / n;
         const z0 = Math.min(za, zb), z1 = Math.max(za, zb);
         const top = r.y0 + ((r.y1 - r.y0) * (k + 0.5)) / n;
-        push(out, r.style === 'tile' ? C.stepTile : C.concrete, boxGeo(r.x0, Math.min(deep(z0, z1), top - 0.4), z0, r.x1, top, z1));
+        push(out, r.style === 'tile' ? C.stepTile : r.style === 'wood' ? '#8b5e34' : C.concrete, boxGeo(r.x0, Math.min(deep(z0, z1), top - (r.style === 'wood' ? 0.12 : 0.4)), z0, r.x1, top, z1));
         if (r.style === 'tile') {
           const nose = r.y1 > r.y0 ? z0 : z1;
           push(out, '#3b2a22', boxGeo(r.x0, top - 0.025, nose - 0.025, r.x1, top + 0.004, nose + 0.025));
@@ -801,6 +815,26 @@ export class HouseEngine {
     }
     const sloped = Math.abs(high(0) - high(1)) > 0.05 || Math.abs(low(0) - low(1)) > 0.05;
     const n = Math.max(1, Math.ceil(len / (sloped ? 1.0 : 2.5)));
+    if (b.kind === 'woven') {
+      // the bure's walls: woven panels between timber posts
+      push(out, '#b08850', box3(0, 1, low(0.5) - 0.05, high(0.5) + b.h, b.t ?? 0.12));
+      for (let i = 0; i <= Math.max(1, Math.round(len / 1.1)); i++) {
+        const t = i / Math.max(1, Math.round(len / 1.1));
+        push(out, '#5b3a22', box3(Math.max(0, t - 0.06 / len), Math.min(1, t + 0.06 / len), low(t) - 0.05, high(t) + b.h + 0.05, (b.t ?? 0.12) + 0.06));
+      }
+      for (const y of [0.4, 0.8, 1.2]) push(out, '#8f6a3c', box3(0, 1, high(0.5) + y, high(0.5) + y + 0.04, (b.t ?? 0.12) + 0.02));
+      return;
+    }
+    if (b.kind === 'picket') {
+      // a white picket fence round the vegetable garden
+      const count = Math.max(2, Math.round(len / 0.14));
+      for (let i = 0; i <= count; i++) {
+        const t = i / count, g = high(t);
+        push(out, '#f4f1ea', box3(Math.max(0, t - 0.03 / len), Math.min(1, t + 0.03 / len), g - 0.05, g + b.h - (i % 2 ? 0.06 : 0), 0.025));
+      }
+      for (const y of [0.25, 0.65]) push(out, '#e7e2d6', box3(0, 1, high(0.5) + y, high(0.5) + y + 0.06, 0.04));
+      return;
+    }
     if (b.kind === 'low') {
       for (let i = 0; i < n; i++) {
         const t0 = i / n, t1 = (i + 1) / n, g = high((t0 + t1) / 2);
@@ -890,6 +924,7 @@ export class HouseEngine {
     this.scene.add(this.player.root);
     this.perkKey = undefined;
     this.minimap.exitKnown = !!this.char.knowsWay;
+    this.chores?.setBaby(!!this.char.crawl);
     this.kick();
   }
 
@@ -931,12 +966,19 @@ export class HouseEngine {
     return this.third;
   }
 
+  /** Areas you can explore: the locked places only count once they're open. */
+  private get areaTotal(): number {
+    const open = this.chores.unlocked;
+    return AREAS.filter((r) => !PLACES.some((p) => p.id === r.id && !open.includes(p.id))).length;
+  }
+
   private get solid(): StaticWorld { return this.char.crawl ? this.worldCrawl : this.world; }
 
   /** Door panels plus anyone standing in the way. */
   private obstacles(): OBB[] {
     const list = this.doorPanels();
     for (const n of this.npcs) if (n.obb && n.rig.root.visible) list.push(n.obb);
+    list.push(...this.chores.obstacles());
     return list;
   }
 
@@ -967,6 +1009,8 @@ export class HouseEngine {
   // ── run lifecycle ────────────────────────────────────────────────────────
   reset() {
     this.endTalk();
+    this.chores.reset(!!this.char.crawl);
+    this.lookedOut = false;
     this.pos = [SPAWN.pos[0], SPAWN.pos[2]];
     this.floorY = heightAt(this.pos[0], this.pos[1]);
     this.vel = [0, 0];
@@ -996,7 +1040,7 @@ export class HouseEngine {
     if (this.minimap.expanded) { this.minimap.expanded = false; this.cb.onMap?.(false); }
     this.hud.timer.textContent = '00:00.0';
     this.setPrompt('');
-    this.cb.onRooms?.(0, AREAS.length);
+    this.cb.onRooms?.(0, this.areaTotal);
     this.kick();
   }
 
@@ -1023,6 +1067,7 @@ export class HouseEngine {
     if (this.state !== 'playing') return;
     this.state = 'paused';
     this.endTalk();
+    this.chores.stopWork();
     this.keys.clear();
     this.touchMove = [0, 0];
     if (document.pointerLockElement === this.renderer.domElement) document.exitPointerLock();
@@ -1081,6 +1126,8 @@ export class HouseEngine {
       this.talkingTo = f.index;
       this.cb.onTalk?.({ player: this.char, npc: characterById(n.id), room, turn: this.talkTurn++ });
       this.sfx.pickup();
+    } else if (f.kind === 'chore' || f.kind === 'tool' || f.kind === 'lock') {
+      this.chores.interact(f.kind, f.index);
     } else if (f.kind === 'cat') {
       this.cb.onSay?.([{ who: 'The cat', text: 'Purrr… (it flicks its tail and goes back to sleep)' }]);
     } else if (f.kind === 'window') {
@@ -1225,10 +1272,18 @@ export class HouseEngine {
       const room = roomAt(this.pos[0], this.pos[1]);
       if (room?.area && !this.visited.has(room.id)) {
         this.visited.add(room.id);
-        this.cb.onRooms?.(this.visited.size, AREAS.length);
+        this.cb.onRooms?.(this.visited.size, this.areaTotal);
       }
 
       this.checkPickups();
+      this.chores.update(dt, this.pos);
+      if (room?.id === 'treehouse' && !this.lookedOut) {
+        // the treehouse's reward: from up here you can see the whole compound
+        this.lookedOut = true;
+        this.minimap.revealAll();
+        for (const it of this.items) if (!it.golden) it.seen = true;
+        this.cb.onHint?.('🌳 From up here you can see everything! The whole map is clear.');
+      }
       this.updateFocus();
 
       if (this.pos[0] >= EXIT_ZONE.x0 && this.pos[0] <= EXIT_ZONE.x1 && this.pos[1] >= EXIT_ZONE.z0 && this.pos[1] <= EXIT_ZONE.z1) this.win();
@@ -1316,13 +1371,13 @@ export class HouseEngine {
   private updateFocus() {
     const fx = -Math.sin(this.yaw), fz = -Math.cos(this.yaw);
     let best: { kind: FocusKind; index: number; score: number } | null = null;
-    const consider = (kind: FocusKind, index: number, x: number, z: number, maxDist = REACH) => {
+    const consider = (kind: FocusKind, index: number, x: number, z: number, maxDist = REACH, bonus = 0) => {
       const dx = x - this.pos[0], dz = z - this.pos[1];
       const dist = Math.hypot(dx, dz);
-      if (dist > maxDist || dist < 0.05) return;
-      const facing = (dx * fx + dz * fz) / dist;
+      if (dist > maxDist) return;
+      const facing = dist < 0.05 ? 1 : (dx * fx + dz * fz) / dist;
       if (facing < 0.55) return;
-      const score = dist - facing;
+      const score = dist - facing - bonus;
       if (!best || score < best.score) best = { kind, index, score };
     };
     this.doors.forEach((d, i) => {
@@ -1341,6 +1396,7 @@ export class HouseEngine {
       if (w.spec.at === 'x') consider('window', i, w.spec.line, mid, 1.8); else consider('window', i, mid, w.spec.line, 1.8);
     });
     consider('poster', 0, POSTER.x, POSTER.z, 2.2);
+    this.chores.candidates(consider);
     const b = best as { kind: FocusKind; index: number; score: number } | null;
     this.focus = b ? { kind: b.kind, index: b.index } : null;
     const key = this.opts.touch ? 'Tap ✋' : 'E';
@@ -1350,6 +1406,7 @@ export class HouseEngine {
     if (b?.kind === 'poster') text = `${key} · Read the poster: how a database index works`;
     if (b?.kind === 'npc') text = this.talkingTo === b.index ? `${key} · Say goodbye` : `${key} · Talk to ${firstName(characterById(this.npcs[b.index].id))}`;
     if (b?.kind === 'cat') text = `${key} · Pet the cat`;
+    if (b?.kind === 'chore' || b?.kind === 'tool' || b?.kind === 'lock') text = this.chores.prompt(b.kind, b.index, key);
     this.setPrompt(text);
   }
 
@@ -1367,7 +1424,7 @@ export class HouseEngine {
     this.setPrompt('');
     if (document.pointerLockElement === this.renderer.domElement) document.exitPointerLock();
     this.sfx.win();
-    this.cb.onWin({ timeMs: Math.round(this.elapsed * 1000), items: this.collected, total: COLLECTIBLES.length, golden: this.golden, rooms: this.visited.size, totalRooms: AREAS.length });
+    this.cb.onWin({ timeMs: Math.round(this.elapsed * 1000), items: this.collected, total: COLLECTIBLES.length, golden: this.golden, rooms: this.visited.size, totalRooms: this.areaTotal, stars: this.chores.snapshot().runStars });
   }
 
   // ── frame loop ───────────────────────────────────────────────────────────
@@ -1492,6 +1549,9 @@ export class HouseEngine {
       setLook: (yaw: number, pitch: number) => { this.yaw = yaw; this.pitch = pitch; },
       press: (code: string, down: boolean) => { if (down) this.keys.add(code); else this.keys.delete(code); },
       perf: () => this.perf,
+      stars: (n: number) => this.chores.debugStars(n),
+      finish: (stepId: string) => this.chores.debugFinish(stepId),
+      chores: () => this.chores.snapshot(),
     };
   }
 
