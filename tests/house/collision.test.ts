@@ -1,8 +1,9 @@
 // Run with: node --test tests/house/   (Node 22.18+ runs TypeScript directly)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildStaticWorld, doorOBB, moveAndSlide, blocked, resolve, PLAYER_R, type OBB } from '../../src/game/house/collision.ts';
-import { DOORS, COLLECTIBLES, GOLDEN_SPOTS, SPAWN, EXIT_ZONE, PROPS, heightAt, type XZ } from '../../src/game/house/layout.ts';
+import { buildStaticWorld, doorOBB, bodyOBB, moveAndSlide, blocked, resolve, PLAYER_R, type OBB } from '../../src/game/house/collision.ts';
+import { DOORS, COLLECTIBLES, GOLDEN_SPOTS, SPAWN, EXIT_ZONE, PROPS, NPC_SPOTS, heightAt, type XZ } from '../../src/game/house/layout.ts';
+import { CHARACTERS } from '../../src/game/house/characters.ts';
 
 const world = buildStaticWorld();
 const allDoors = (openness: number): OBB[] => DOORS.map((d) => doorOBB(d, openness));
@@ -103,6 +104,35 @@ test('with every door open, all 12 parts, every Golden Chip spot and the exit ca
   for (const c of COLLECTIBLES) assert.ok(map.near(c.pos[0], c.pos[2], PICKUP), `${c.name} in ${c.room} is out of reach`);
   for (const g of GOLDEN_SPOTS) assert.ok(map.near(g.pos[0], g.pos[2], PICKUP), `golden spot in ${g.room} is out of reach`);
   assert.ok(map.inside(EXIT_ZONE), 'exit zone is out of reach');
+});
+
+// everyone who stands (or sits on the ground) blocks you; people on chairs and sofas don't add anything
+const standing = (): OBB[] => Object.values(NPC_SPOTS).filter((n) => n.collide).map((n) => bodyOBB(n.pos[0], n.pos[2]));
+
+test('every character has a place in the house, and their ids and names are unique', () => {
+  const ids = new Set(CHARACTERS.map((c) => c.id));
+  assert.equal(ids.size, CHARACTERS.length, 'duplicate id');
+  assert.equal(new Set(CHARACTERS.map((c) => c.name)).size, CHARACTERS.length, 'duplicate name');
+  for (const c of CHARACTERS) assert.ok(NPC_SPOTS[c.id], `${c.name} has no spot in NPC_SPOTS`);
+  assert.deepEqual(Object.keys(NPC_SPOTS).filter((k) => !ids.has(k as never)), [], 'spot for someone who is not a character');
+});
+
+test('nobody stands inside a wall or a piece of furniture', () => {
+  for (const [id, n] of Object.entries(NPC_SPOTS)) {
+    if (!n.collide) continue;
+    assert.equal(blocked([n.pos[0], n.pos[2]], 0.2, world, allDoors(1)), false, `${id} is standing inside something`);
+    assert.ok(Math.abs(n.pos[1] - heightAt(n.pos[0], n.pos[2])) < 0.05, `${id} is floating or sunk: y ${n.pos[1]} vs floor ${heightAt(n.pos[0], n.pos[2]).toFixed(2)}`);
+  }
+});
+
+test('with the whole family standing about, every part, Golden Chip spot and the exit can still be reached', () => {
+  const map = reachable([...allDoors(1), ...standing()]);
+  for (const c of COLLECTIBLES) assert.ok(map.near(c.pos[0], c.pos[2], PICKUP), `${c.name} in ${c.room} is blocked by someone standing`);
+  for (const g of GOLDEN_SPOTS) assert.ok(map.near(g.pos[0], g.pos[2], PICKUP), `golden spot in ${g.room} is blocked by someone standing`);
+  assert.ok(map.inside(EXIT_ZONE), 'exit blocked by someone standing');
+  const baby = reachable([...allDoors(1), ...standing()], buildStaticWorld({ crawl: true }), 0.22);
+  for (const c of COLLECTIBLES) assert.ok(baby.near(c.pos[0], c.pos[2], PICKUP), `${c.name} blocked for the baby`);
+  assert.ok(baby.inside(EXIT_ZONE));
 });
 
 test('nowhere can you walk off a ledge: every height change is a slope or stairs', () => {

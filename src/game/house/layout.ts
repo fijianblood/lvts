@@ -708,7 +708,7 @@ PROPS.push(
 );
 
 // ── The family: where each one is when you play as someone else ─────────────
-export type NpcPose = 'stand' | 'sit' | 'lie' | 'ipad';
+export type NpcPose = 'stand' | 'sit' | 'lie' | 'ipad' | 'floor';
 export interface NpcSpot { pos: XYZ; yaw: number; pose: NpcPose; seat?: number; collide?: boolean }
 /** Keyed by character id (see characters.ts). Yaw 0 faces north (-z). */
 export const NPC_SPOTS: Record<string, NpcSpot> = {
@@ -718,6 +718,28 @@ export const NPC_SPOTS: Record<string, NpcSpot> = {
   zane: { pos: [10.55, 0, 10.0], yaw: HALF_PI, pose: 'sit', seat: 0.42 },     // in the orange armchair
   mahala: { pos: [3.3, 0, 14.1], yaw: -HALF_PI, pose: 'ipad', collide: true }, // on the veranda with her iPad
   aisha: { pos: [7.8, 0.45, 6.1], yaw: HALF_PI, pose: 'lie' },                // in the bassinet by the sofa
+
+  // aunties: round the dining table, and one at the kitchen counter
+  nancy: { pos: [1.98, 0, 10.8], yaw: -HALF_PI, pose: 'sit', seat: 0.5 },
+  louzanne: { pos: [3.92, 0, 9.9], yaw: HALF_PI, pose: 'sit', seat: 0.5 },
+  alicia: { pos: [3.92, 0, 11.6], yaw: HALF_PI, pose: 'sit', seat: 0.5 },
+  maria: { pos: [4.6, 0, 7.3], yaw: -HALF_PI, pose: 'stand', collide: true },     // by the kettle on the peninsula
+  zoya: { pos: [7.5, 0, 15.02], yaw: 0, pose: 'sit', seat: 0.5 },                // on the veranda bench
+  // uncles: in the carport with the Ranger, and out in the back yard
+  mira: { pos: [15.33, BACK_Y, -0.5], yaw: HALF_PI, pose: 'sit', seat: 0.45 },  // on the carport bench
+  altaaf: { pos: [13.3, BACK_Y, -5.75], yaw: Math.PI, pose: 'stand', collide: true }, // looking under the Ranger's bonnet
+  ravi: { pos: [10.0, BACK_Y, -11.0], yaw: HALF_PI, pose: 'stand', collide: true },
+  hakeem: { pos: [9.0, BACK_Y, -11.0], yaw: -HALF_PI, pose: 'stand', collide: true },
+  malvin: { pos: [4.3, groundY(17.6), 17.6], yaw: Math.PI, pose: 'stand', collide: true },  // in the front garden
+  // cousins: playing out the back and in the front garden, one on the lounge sofa, one with Mahala
+  mikhyle: { pos: [6.8, BACK_Y, -10.9], yaw: HALF_PI, pose: 'stand', collide: true },
+  sarah: { pos: [5.6, BACK_Y, -10.9], yaw: -HALF_PI, pose: 'stand', collide: true },
+  nabeeha: { pos: [2.85, BACK_Y + 0.02, -11.45], yaw: Math.PI, pose: 'floor', collide: true },   // on the blue tarp
+  emaana: { pos: [3.6, BACK_Y + 0.02, -11.45], yaw: Math.PI, pose: 'floor', collide: true },
+  rohan: { pos: [8.2, groundY(18.2), 18.2], yaw: HALF_PI, pose: 'stand', collide: true },
+  kahaani: { pos: [6.4, groundY(18.6), 18.6], yaw: -HALF_PI, pose: 'stand', collide: true },
+  yash: { pos: [9.3, 0, 11.15], yaw: 0, pose: 'sit', seat: 0.42 },               // on the grey sofa
+  maanvi: { pos: [3.3, 0, 14.62], yaw: -HALF_PI, pose: 'stand', collide: true }, // next to Mahala and her iPad
 };
 export const CAT_SPOT = { pos: [5.95, BACK_Y, -8.5] as XYZ, yaw: 0.6 };
 

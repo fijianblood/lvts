@@ -62,6 +62,8 @@ export class Minimap {
   private gz: number;
   private trail: [number, number][] = [];
   private exitSeen = false;
+  /** Show the exit from the start (a character who knows the way). */
+  exitKnown = false;
   expanded = false;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -248,7 +250,7 @@ export class Minimap {
       g.beginPath(); g.arc(this.mx(golden[0]), this.my(golden[1]), 5 / scale * dpr, 0, Math.PI * 2); g.fill(); g.stroke();
     }
 
-    if (this.exitSeen) {
+    if (this.exitSeen || this.exitKnown) {
       const ex = this.mx((EXIT_ZONE.x0 + EXIT_ZONE.x1) / 2), ez = this.my((EXIT_ZONE.z0 + EXIT_ZONE.z1) / 2);
       g.fillStyle = INK.exit;
       g.beginPath(); g.arc(ex, ez, 5 / scale * dpr, 0, Math.PI * 2); g.fill();

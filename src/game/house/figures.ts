@@ -7,7 +7,7 @@ import { lambert } from './models.ts';
 import { canvasTexture } from './textures.ts';
 import type { Look } from './characters.ts';
 
-export type FigurePose = 'stand' | 'sit' | 'lie' | 'crawl' | 'ipad';
+export type FigurePose = 'stand' | 'sit' | 'lie' | 'crawl' | 'ipad' | 'floor';
 
 export interface Rig {
   root: THREE.Group;
@@ -106,6 +106,11 @@ export function buildFigure(look: Look, pose: FigurePose = 'stand', seat = 0.45)
       bun.position.set(0, headH * 0.92, headD * 0.56);
       head.add(bun);
     }
+    if (look.hairStyle === 'long') {
+      // worn down: over the back of the head to the shoulders, framing the face
+      part(head, headW * 1.12, headH * 1.05, headD * 0.2, look.hair, 0, headH * 0.42, headD * 0.6);
+      for (const s of [-1, 1]) part(head, headW * 0.12, headH * 0.8, headD * 0.85, look.hair, s * headW * 0.56, headH * 0.55, headD * 0.08);
+    }
     if (look.hairStyle === 'ponytail') {
       // tied back: a band at the crown, then a tail hanging down the back of the head
       part(head, headW * 0.3, headH * 0.16, headD * 0.24, look.hair, 0, headH * 0.78, headD * 0.6);
@@ -187,6 +192,12 @@ export function applyPose(rig: Rig, pose: FigurePose, seat = 0.45) {
     legL.rotation.x = legR.rotation.x = 0.35;
     kneeL.rotation.x = kneeR.rotation.x = -0.5;
     armL.rotation.z = -0.5; armR.rotation.z = 0.5;
+  } else if (pose === 'floor') {
+    // sitting on the ground, legs straight out in front
+    body.position.y = rig.legW / 2 + 0.01;
+    legL.rotation.x = legR.rotation.x = Math.PI / 2;
+    armL.rotation.x = armR.rotation.x = 0.35;
+    torso.rotation.x = 0.08;
   } else if (pose === 'crawl') {
     body.position.y = Math.max(rig.thigh + rig.legW / 2, rig.arm - 0.01);
     torso.rotation.x = -Math.PI / 2;
@@ -216,28 +227,52 @@ export function animate(rig: Rig, phase: number, amount: number) {
   rig.body.position.y = rig.hip + Math.abs(Math.cos(phase)) * 0.025 * amount;
 }
 
+/** One material for every baked figure: the colours ride on the vertices. */
+const painted = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+
+/** Merge the lit boxes under `from` into one vertex-coloured mesh, in `space`'s coordinates. */
+function mergePainted(from: THREE.Object3D, space: THREE.Object3D): THREE.Mesh | null {
+  space.updateMatrixWorld(true);
+  const toSpace = space.matrixWorld.clone().invert();
+  const parts: THREE.BufferGeometry[] = [];
+  from.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh || !(m.material instanceof THREE.MeshLambertMaterial)) return;
+    const g = (m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone()).applyMatrix4(toSpace.clone().multiply(m.matrixWorld));
+    const c = m.material.color;
+    const n = g.getAttribute('position').count;
+    const col = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) { col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    for (const key of Object.keys(g.attributes)) if (key !== 'position' && key !== 'normal' && key !== 'color') g.deleteAttribute(key);
+    parts.push(g);
+  });
+  if (!parts.length) return null;
+  return new THREE.Mesh(mergeGeometries(parts), painted);
+}
+
 /**
- * Merge everything but the head into one mesh per colour, for figures that
- * only ever turn their head (the family members you are not playing).
+ * Bake a figure that only ever turns its head (the family members you are not
+ * playing) into two meshes: the body, and the head on its own pivot. Anything
+ * unlit (the iPad screen) is kept as it is.
  */
 export function bakeStatic(rig: Rig) {
   rig.root.updateMatrixWorld(true);
   rig.root.attach(rig.head);
-  const byMat = new Map<THREE.Material, THREE.BufferGeometry[]>();
-  rig.body.traverse((o) => {
-    const m = o as THREE.Mesh;
-    if (!m.isMesh) return;
-    const mat = m.material as THREE.Material;
-    if (mat instanceof THREE.MeshBasicMaterial) return;
-    const list = byMat.get(mat) ?? [];
-    list.push(m.geometry.clone().applyMatrix4(m.matrixWorld));
-    byMat.set(mat, list);
-  });
-  const extras: THREE.Object3D[] = [];
-  rig.body.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh && m.material instanceof THREE.MeshBasicMaterial) extras.push(m); });
-  for (const e of extras) rig.root.attach(e);
+  const unlit: THREE.Object3D[] = [];
+  rig.root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh && !(m.material instanceof THREE.MeshLambertMaterial)) unlit.push(m); });
+  for (const u of unlit) if (!isInside(u, rig.head)) rig.root.attach(u);
+  const body = mergePainted(rig.body, rig.root);
+  const head = mergePainted(rig.head, rig.head);
   rig.root.remove(rig.body);
-  for (const [mat, list] of byMat) rig.root.add(new THREE.Mesh(mergeGeometries(list), mat));
+  for (const c of [...rig.head.children]) if (!unlit.includes(c)) { rig.head.remove(c); }
+  if (body) rig.root.add(body);
+  if (head) rig.head.add(head);
+}
+
+function isInside(o: THREE.Object3D, parent: THREE.Object3D): boolean {
+  for (let p = o.parent; p; p = p.parent) if (p === parent) return true;
+  return false;
 }
 
 /** The orange cat from the back walkway, sitting. */

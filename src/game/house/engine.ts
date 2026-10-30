@@ -29,6 +29,9 @@ export interface RunResult {
   totalRooms: number;
 }
 
+export interface PerkPill { text: string; tone: string; title: string }
+const SENSE = ['🧊 Cold', '🌤️ Warm', '🔥 Hot', '🔥 Very hot!'];
+
 export interface EngineHud {
   timer: HTMLElement;
   prompt: HTMLElement;
@@ -44,8 +47,8 @@ export interface EngineCallbacks {
   /** Someone in the family (or the cat) said something. */
   onTalk?: (who: string, line: string) => void;
   onView?: (third: boolean) => void;
-  /** Ronlyn's warmer/colder: 0 cold … 3 very hot, or null when it doesn't apply. */
-  onSense?: (level: number | null) => void;
+  /** A perk's live readout for the HUD (warmer/colder, the Golden Chip's room), or null. */
+  onPerk?: (pill: PerkPill | null) => void;
 }
 
 export interface EngineOptions { touch: boolean; baseUrl: string }
@@ -252,7 +255,7 @@ export class HouseEngine {
   private golden = false;
   private visited = new Set<string>();
   private goldenIndex = 0;
-  private senseLevel: number | null | undefined = undefined;
+  private perkKey: string | undefined = undefined;
 
   private raf = 0;
   private last = 0;
@@ -296,8 +299,8 @@ export class HouseEngine {
     this.buildHouse();
     this.buildCompound();
     this.buildItems();
+    this.minimap = new Minimap(hud.minimap);   // before the family: picking a character sets up the map
     this.buildFamily();
-    this.minimap = new Minimap(hud.minimap);
     this.reset();
 
     this.bindInput();
@@ -877,19 +880,38 @@ export class HouseEngine {
     this.player = buildFigure(this.char.look, this.char.crawl ? 'crawl' : 'stand');
     this.player.root.visible = this.third;
     this.scene.add(this.player.root);
-    this.senseLevel = undefined;
+    this.perkKey = undefined;
+    this.minimap.exitKnown = !!this.char.knowsWay;
     this.kick();
   }
 
-  /** Warmer or colder, for a character who can sense the Golden Chip. */
-  private updateSense() {
-    let level: number | null = null;
-    if (this.char.sense && !this.golden && (this.state === 'playing' || this.state === 'paused')) {
-      const g = GOLDEN_SPOTS[this.goldenIndex].pos;
-      const d = Math.hypot(g[0] - this.pos[0], g[2] - this.pos[1]);
-      level = d < 3.5 ? 3 : d < 7 ? 2 : d < 12 ? 1 : 0;
+  /** A perk's live readout: warmer/colder, or the Golden Chip's room. */
+  private updatePerk() {
+    let pill: PerkPill | null = null;
+    if (!this.golden && (this.state === 'playing' || this.state === 'paused')) {
+      const spot = GOLDEN_SPOTS[this.goldenIndex];
+      if (this.char.sense) {
+        const d = Math.hypot(spot.pos[0] - this.pos[0], spot.pos[2] - this.pos[1]);
+        const level = d < 3.5 ? 3 : d < 7 ? 2 : d < 12 ? 1 : 0;
+        pill = { text: SENSE[level], tone: `sense-${level}`, title: 'How close the Golden Chip is' };
+      } else if (this.char.chipRoom) {
+        pill = { text: `📍 ${ROOMS.find((r) => r.id === spot.room)?.name ?? 'Somewhere'}`, tone: 'hint', title: 'The family group chat says the Golden Chip is in this room' };
+      }
     }
-    if (level !== this.senseLevel) { this.senseLevel = level; this.cb.onSense?.(level); }
+    const key = pill ? pill.tone + pill.text : '';
+    if (key !== this.perkKey) { this.perkKey = key; this.cb.onPerk?.(pill); }
+  }
+
+  /** Nothing tall (a wall, a shut door) between you and the point (x, z). */
+  private clearLine(x: number, z: number): boolean {
+    const [px, pz] = this.pos;
+    const n = Math.ceil(Math.hypot(x - px, z - pz) / 0.1);
+    const panels = this.doorPanels();
+    for (let i = 1; i < n; i++) {
+      const t = i / n;
+      if (blocked([px + (x - px) * t, pz + (z - pz) * t], 0.02, this.worldCam, panels)) return false;
+    }
+    return true;
   }
 
   get character(): Character { return this.char; }
@@ -1239,7 +1261,9 @@ export class HouseEngine {
     for (const it of this.items) {
       if (it.taken) continue;
       const d = Math.hypot(it.pos[0] - this.pos[0], it.pos[2] - this.pos[1]);
-      if (d > PICKUP || Math.abs(it.pos[1] - (this.floorY + 0.9)) > 1.4) continue;
+      const reach = Math.max(PICKUP, this.char.magnet ?? 0);
+      if (d > reach || Math.abs(it.pos[1] - (this.floorY + 0.9)) > 1.4) continue;
+      if (d > PICKUP && !this.clearLine(it.pos[0], it.pos[2])) continue;
       it.taken = true;
       this.spawnBurst(it.pos, it.golden ? '#fbbf24' : '#60a5fa');
       if (it.golden) { this.golden = true; this.sfx.golden(); }
@@ -1393,7 +1417,7 @@ export class HouseEngine {
     const txt = `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}.${ds}`;
     if (this.hud.timer.textContent !== txt) this.hud.timer.textContent = txt;
 
-    this.updateSense();
+    this.updatePerk();
     const t2 = performance.now();
     this.renderer.render(this.scene, this.camera);
     const t3 = performance.now();

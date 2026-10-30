@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { HouseEngine, type RunResult } from './engine.ts';
+import { HouseEngine, type RunResult, type PerkPill } from './engine.ts';
 import { CONTEST, prizeState, claimSteps } from './contest.ts';
 import { COLLECTIBLES } from './layout.ts';
-import { CHARACTERS, characterById, firstName, type Look } from './characters.ts';
+import { CHARACTERS, GROUPS, characterById, firstName, type CharacterGroup, type Look } from './characters.ts';
 
 type Phase = 'intro' | 'playing' | 'paused' | 'won' | 'nogl';
 type PauseReason = 'lock-lost' | 'poster' | 'manual';
@@ -30,6 +30,7 @@ function Portrait({ look, size = 52 }: { look: Look; size?: number }) {
         ? <rect x="12" y="4" width="36" height="19" rx="9" fill={look.hair} />
         : <rect x={head.x - 1} y={head.y - 2} width={head.w + 2} height={baby ? 5 : 8} rx="3" fill={look.hair} />}
       {look.hairStyle === 'bun' && <circle cx="30" cy="9" r="5.5" fill={look.hair} />}
+      {look.hairStyle === 'long' && <path d={`M${head.x - 2} ${head.y + 2} h4 v${head.h + 2} h-4 z M${head.x + head.w - 2} ${head.y + 2} h4 v${head.h + 2} h-4 z`} fill={look.hair} />}
       {look.streak && <path d="M24.5 11 v7 M35.5 11 v7" stroke={look.streak} strokeWidth="1.5" strokeLinecap="round" />}
       {look.earrings && <><circle cx={head.x - 0.5} cy="31" r="1.8" fill={look.earrings} /><circle cx={head.x + head.w + 0.5} cy="31" r="1.8" fill={look.earrings} /></>}
       {look.beard && <path d="M16 27 h28 v7 q-14 11 -28 0 z" fill={look.hair} />}
@@ -41,7 +42,6 @@ function Portrait({ look, size = 52 }: { look: Look; size?: number }) {
 }
 const BASE = import.meta.env.BASE_URL;
 /** Ronlyn's warmer/colder readout, coldest first. */
-const SENSE = ['🧊 Cold', '🌤️ Warm', '🔥 Hot', '🔥 Very hot!'];
 
 function fmt(ms: number) {
   const t = ms / 1000;
@@ -137,8 +137,9 @@ export default function HouseGame() {
   const [rooms, setRooms] = useState<[number, number]>([0, 9]);
   const [toast, setToast] = useState<{ text: string; kind: 'part' | 'gold' | 'talk' } | null>(null);
   const [charId, setCharId] = useState(readChar);
+  const [tab, setTab] = useState<CharacterGroup>(() => characterById(readChar()).group);
   const [third, setThird] = useState(false);
-  const [sense, setSense] = useState<number | null>(null);
+  const [perk, setPerk] = useState<PerkPill | null>(null);
   const [confirmQuit, setConfirmQuit] = useState(false);
   const [result, setResult] = useState<RunResult | null>(null);
   const [best, setBest] = useState<number | null>(() => readBest());
@@ -183,7 +184,7 @@ export default function HouseGame() {
           onMap: (big) => setMapBig(big),
           onTalk: (who, line) => showToast(`${who}: “${line}”`, 'talk'),
           onView: (t) => setThird(t),
-          onSense: (l) => setSense(l),
+          onPerk: (p) => setPerk(p),
         },
         { touch, baseUrl: BASE },
       );
@@ -224,12 +225,21 @@ export default function HouseGame() {
     document.addEventListener('fullscreenchange', onFs);
     return () => document.removeEventListener('fullscreenchange', onFs);
   }, []);
+  // the start card too, once the game fills most of the screen: otherwise the dock sits over its Start button
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(([e]) => setInView(e.intersectionRatio >= 0.7), { threshold: [0, 0.7, 1] });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   // while you play, the site's dock and chat bubble step out of the way of the HUD
   useEffect(() => {
-    const on = full || phase === 'playing' || phase === 'paused' || phase === 'won';
+    const on = full || phase === 'playing' || phase === 'paused' || phase === 'won' || (phase === 'intro' && inView);
     document.body.classList.toggle('hh-playing', on);
     return () => document.body.classList.remove('hh-playing');
-  }, [phase, full]);
+  }, [phase, full, inView]);
 
   useEffect(() => {
     if (!full) return;
@@ -314,7 +324,7 @@ export default function HouseGame() {
           <span className="hh-pill hh-timer" title="Time"><span aria-hidden>⏱</span> <span ref={timerRef}>00:00.0</span></span>
           <span className="hh-pill" title="Tech parts found"><span aria-hidden>🔧</span> {count}/{total}</span>
           <span className="hh-pill" title="Areas explored, inside and out"><span aria-hidden>🧭</span> {rooms[0]}/{rooms[1]}</span>
-          {sense !== null && <span className={`hh-pill hh-sense hh-sense-${sense}`} title="Mum always knows: how close the Golden Chip is" aria-live="polite">{SENSE[sense]}</span>}
+          {perk && <span className={`hh-pill hh-perk hh-perk-${perk.tone}`} title={perk.title} aria-live="polite">{perk.text}</span>}
           {golden && <span className="hh-pill hh-gold" title="Golden Chip">✨ Golden Chip</span>}
         </div>
         <div className={`hh-map${mapBig ? ' hh-map-big' : ''}`} onClick={toggleMap} role="button" aria-label={mapBig ? 'Shrink map' : 'Expand map'} tabIndex={-1}>
@@ -344,10 +354,17 @@ export default function HouseGame() {
             <h2 className="hh-title">House <span className="grad-text">Hunt</span></h2>
             <p className="hh-lead">Explore the house and the yard, grab the {total} tech parts, hunt down the <strong>Golden Chip</strong> (it hides somewhere new every game), then get out through the front gate.</p>
             <div className="hh-pick-label">Who do you want to play as?</div>
+            <div className="hh-tabs" role="tablist" aria-label="Family groups">
+              {GROUPS.map((g) => (
+                <button key={g.id} type="button" role="tab" aria-selected={tab === g.id} className={`hh-tab${tab === g.id ? ' on' : ''}`} onClick={() => setTab(g.id)}>
+                  {g.label} <span className="hh-tab-n">{CHARACTERS.filter((c) => c.group === g.id).length}</span>
+                </button>
+              ))}
+            </div>
             <div className="hh-pick" role="radiogroup" aria-label="Choose your character">
-              {CHARACTERS.map((c) => (
+              {CHARACTERS.filter((c) => c.group === tab).map((c) => (
                 <button key={c.id} type="button" role="radio" aria-checked={charId === c.id} className={`hh-pick-tile${charId === c.id ? ' on' : ''}`} onClick={() => pick(c.id)}>
-                  <Portrait look={c.look} size={touch ? 44 : 50} />
+                  <Portrait look={c.look} size={touch ? 34 : 50} />
                   <span className="hh-pick-name">{firstName(c)}</span>
                   <span className="hh-pick-role">{c.role}</span>
                 </button>
@@ -490,11 +507,12 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
 .hh-pill { background: rgba(15,23,42,0.78); color: #f8fafc; padding: 6px 11px; border-radius: 999px; font-size: 0.82rem; font-weight: 600; box-shadow: 0 4px 14px rgba(15,23,42,0.18); white-space: nowrap; }
 .hh-timer { font-family: 'JetBrains Mono', monospace; }
 .hh-gold { background: linear-gradient(135deg,#f59e0b,#fbbf24); color: #422006; }
-.hh-sense { transition: background .3s; }
-.hh-sense-0 { background: rgba(37,99,235,0.88); }
-.hh-sense-1 { background: rgba(217,119,6,0.9); }
-.hh-sense-2 { background: rgba(234,88,12,0.92); }
-.hh-sense-3 { background: #dc2626; animation: hh-throb 0.9s ease-in-out infinite; }
+.hh-perk { transition: background .3s; }
+.hh-perk-sense-0 { background: rgba(37,99,235,0.88); }
+.hh-perk-sense-1 { background: rgba(217,119,6,0.9); }
+.hh-perk-sense-2 { background: rgba(234,88,12,0.92); }
+.hh-perk-sense-3 { background: #dc2626; animation: hh-throb 0.9s ease-in-out infinite; }
+.hh-perk-hint { background: rgba(124,58,237,0.9); }
 @keyframes hh-throb { 50% { transform: scale(1.08); } }
 .hh-map { position: absolute; top: 12px; right: 12px; width: 168px; height: 168px; border-radius: 16px; overflow: hidden; border: 2px solid rgba(255,255,255,0.75); box-shadow: 0 8px 24px rgba(15,23,42,0.3); background: #0b1222; pointer-events: auto; cursor: pointer; transition: all .25s cubic-bezier(.22,1,.36,1); }
 .hh-map canvas { width: 100%; height: 100%; display: block; }
@@ -504,7 +522,7 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
 .hh-prompt { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); background: rgba(15,23,42,0.82); color: #fff; padding: 8px 16px; border-radius: 12px; font-weight: 600; font-size: 0.9rem; transition: opacity .15s; white-space: nowrap; max-width: 92%; overflow: hidden; text-overflow: ellipsis; }
 .hh-is-touch .hh-prompt { bottom: auto; top: 92px; left: 12px; transform: none; max-width: calc(100% - 150px); white-space: normal; font-size: 0.8rem; line-height: 1.35; }
 .hh-is-touch .hh-toast { top: 136px; }
-.hh-btn-top { margin: 0 0 1rem; width: 100%; max-width: 340px; }
+.hh-btn-top { margin: 0 0 1rem; width: 100%; max-width: 340px; position: sticky; bottom: 0; z-index: 2; box-shadow: 0 -12px 14px #fff, 0 8px 20px rgba(37,99,235,0.3); }  /* stays in view however tall the picker gets */
 .hh-toast { position: absolute; top: 58px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg,#2563eb,#7c3aed); color: #fff; padding: 9px 16px; border-radius: 12px; font-weight: 700; font-size: 0.9rem; box-shadow: 0 10px 30px rgba(37,99,235,0.35); animation: hh-pop .35s cubic-bezier(.34,1.56,.64,1); white-space: nowrap; max-width: 92%; overflow: hidden; text-overflow: ellipsis; }
 .hh-toast-gold { background: linear-gradient(135deg,#f59e0b,#fbbf24); color: #422006; white-space: normal; text-align: center; }
 .hh-toast-talk { background: #fff; color: #0f172a; border: 2px solid #c7d2fe; white-space: normal; text-align: left; max-width: min(460px, 92%); font-weight: 600; }
@@ -512,6 +530,10 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
 .hh-who svg { border-radius: 6px; }
 .hh-pick-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; margin-bottom: 0.45rem; }
 .hh-pick { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin: 0 auto 0.5rem; max-width: 480px; }
+.hh-tabs { display: inline-flex; gap: 4px; padding: 3px; margin: 0 auto 0.55rem; background: #f1f5f9; border-radius: 999px; max-width: 100%; overflow-x: auto; }
+.hh-tab { border: none; background: transparent; padding: 5px 11px; border-radius: 999px; font-family: 'Space Grotesk', sans-serif; font-size: 0.76rem; font-weight: 700; color: #475569; cursor: pointer; white-space: nowrap; }
+.hh-tab.on { background: #fff; color: #1d4ed8; box-shadow: 0 2px 8px rgba(15,23,42,0.12); }
+.hh-tab-n { font-weight: 600; color: #94a3b8; margin-left: 2px; }
 .hh-pick-tile { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px 7px; border: 2px solid #e2e8f0; border-radius: 12px; background: #fff; cursor: pointer; font-family: 'Space Grotesk', sans-serif; transition: border-color .15s, transform .15s; }
 .hh-pick-tile:hover { transform: translateY(-2px); }
 .hh-pick-tile.on { border-color: #2563eb; box-shadow: 0 6px 16px rgba(37,99,235,0.18); }
@@ -576,8 +598,12 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
   .hh-is-touch .hh-lead { font-size: 0.84rem; margin-bottom: 0.7rem; }
   .hh-is-touch .hh-title { font-size: 1.6rem; }
   .hh-keys { grid-template-columns: 1fr 1fr; font-size: 0.74rem; }
-  .hh-pick { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 330px; }
+  .hh-pick { grid-template-columns: repeat(5, minmax(0, 1fr)); max-width: 360px; gap: 4px; }
+  .hh-pick-tile { padding: 4px 0 5px; border-radius: 10px; }
+  .hh-pick-name { font-size: 0.68rem; }
+  .hh-pick-role { font-size: 0.56rem; }
+  .hh-tab { padding: 5px 8px; font-size: 0.7rem; }
   .hh-who-name { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { .hh-toast { animation: none; } .hh-map { transition: none; } .hh-sense-3 { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .hh-toast { animation: none; } .hh-map { transition: none; } .hh-perk-sense-3 { animation: none; } }
 `;
