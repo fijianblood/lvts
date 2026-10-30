@@ -44,6 +44,8 @@ export interface EngineCallbacks {
   /** Someone in the family (or the cat) said something. */
   onTalk?: (who: string, line: string) => void;
   onView?: (third: boolean) => void;
+  /** Ronlyn's warmer/colder: 0 cold … 3 very hot, or null when it doesn't apply. */
+  onSense?: (level: number | null) => void;
 }
 
 export interface EngineOptions { touch: boolean; baseUrl: string }
@@ -250,6 +252,7 @@ export class HouseEngine {
   private golden = false;
   private visited = new Set<string>();
   private goldenIndex = 0;
+  private senseLevel: number | null | undefined = undefined;
 
   private raf = 0;
   private last = 0;
@@ -874,7 +877,19 @@ export class HouseEngine {
     this.player = buildFigure(this.char.look, this.char.crawl ? 'crawl' : 'stand');
     this.player.root.visible = this.third;
     this.scene.add(this.player.root);
+    this.senseLevel = undefined;
     this.kick();
+  }
+
+  /** Warmer or colder, for a character who can sense the Golden Chip. */
+  private updateSense() {
+    let level: number | null = null;
+    if (this.char.sense && !this.golden && (this.state === 'playing' || this.state === 'paused')) {
+      const g = GOLDEN_SPOTS[this.goldenIndex].pos;
+      const d = Math.hypot(g[0] - this.pos[0], g[2] - this.pos[1]);
+      level = d < 3.5 ? 3 : d < 7 ? 2 : d < 12 ? 1 : 0;
+    }
+    if (level !== this.senseLevel) { this.senseLevel = level; this.cb.onSense?.(level); }
   }
 
   get character(): Character { return this.char; }
@@ -1378,6 +1393,7 @@ export class HouseEngine {
     const txt = `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}.${ds}`;
     if (this.hud.timer.textContent !== txt) this.hud.timer.textContent = txt;
 
+    this.updateSense();
     const t2 = performance.now();
     this.renderer.render(this.scene, this.camera);
     const t3 = performance.now();

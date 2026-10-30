@@ -31,11 +31,12 @@ game shows; change it there to show first names only.
 |---|---|---|---|
 | Hussein | Grandpa | 1.6 m | Sees further: the map clears 8.5 m around him |
 | Josese | Dad | 1.7 m | Tech radar: parts within 7 m show on the map, even through walls |
+| Ronlyn | Mum | 1.52 m | Mum always knows: a Cold / Warm / Hot / Very hot pill shows how close the Golden Chip is |
 | Zane | Big brother | 1.55 m | Fastest runner |
 | Mahala | Big sister | 1.15 m | After 6 parts her iPad marks the Golden Chip on the map |
 | Aisha | Baby sister | 0.38 m | Crawls (slowly) and fits under tables |
 
-The other four sit around the house (common areas only) and say something when
+The other five sit around the house (common areas only) and say something when
 you press E next to them: until you have the Golden Chip, each of them hints
 at the room it is in. V
 switches to a third-person view. The pick is remembered in `localStorage`.
@@ -94,7 +95,7 @@ then `npm run dev` and open `http://localhost:5173/lvts/#house`.
 | `layout.ts` | The house and compound as data: rooms and outdoor areas, ground heights, walls, fences and railings, doors and gates, windows, furniture, trees, the family's spots, parts, Golden Chip spots, spawn, exit. The renderer, collision and minimap all read it. |
 | `collision.ts` | Player-vs-wall/furniture/door collision (circle vs boxes), with sliding; a crawling version for Aisha and a walls-only version for the third-person camera. |
 | `engine.ts` | three.js scene, controls, doors and windows, pickups, the family, third-person camera, timer, win. |
-| `characters.ts` | The five playable family members. |
+| `characters.ts` | The six playable family members. |
 | `figures.ts` | The low-poly people (poses, walk and crawl cycles) and the cat. |
 | `minimap.ts` | Fog-of-war minimap revealed by line of sight, with a breadcrumb trail. |
 | `HouseGame.tsx` | HUD, start/pause/win cards, touch controls, fullscreen. |

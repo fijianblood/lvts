@@ -106,7 +106,17 @@ export function buildFigure(look: Look, pose: FigurePose = 'stand', seat = 0.45)
       bun.position.set(0, headH * 0.92, headD * 0.56);
       head.add(bun);
     }
+    if (look.hairStyle === 'ponytail') {
+      // tied back: a band at the crown, then a tail hanging down the back of the head
+      part(head, headW * 0.3, headH * 0.16, headD * 0.24, look.hair, 0, headH * 0.78, headD * 0.6);
+      part(head, headW * 0.24, headH * 0.62, headD * 0.18, look.hair, 0, headH * 0.36, headD * 0.66);
+    }
+    if (look.streak) {
+      // grey streaks combed back from the forehead
+      for (const x of [-0.22, 0.18]) part(head, headW * 0.07, t + 0.004, headD * 0.85, look.streak, headW * x, headH + t / 2 - 0.003, 0.012);
+    }
   }
+  if (look.earrings) for (const s of [-1, 1]) part(head, 0.018, 0.026, 0.018, look.earrings, s * (headW / 2 + 0.008), headH * 0.36, 0);
   if (look.beard) {
     const front = -headD / 2 - 0.012, back = headD * 0.12;
     part(head, headW * 1.1, headH * 0.46, back - front, look.hair, 0, headH * 0.2, (front + back) / 2);

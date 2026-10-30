@@ -30,6 +30,8 @@ function Portrait({ look, size = 52 }: { look: Look; size?: number }) {
         ? <rect x="12" y="4" width="36" height="19" rx="9" fill={look.hair} />
         : <rect x={head.x - 1} y={head.y - 2} width={head.w + 2} height={baby ? 5 : 8} rx="3" fill={look.hair} />}
       {look.hairStyle === 'bun' && <circle cx="30" cy="9" r="5.5" fill={look.hair} />}
+      {look.streak && <path d="M24.5 11 v7 M35.5 11 v7" stroke={look.streak} strokeWidth="1.5" strokeLinecap="round" />}
+      {look.earrings && <><circle cx={head.x - 0.5} cy="31" r="1.8" fill={look.earrings} /><circle cx={head.x + head.w + 0.5} cy="31" r="1.8" fill={look.earrings} /></>}
       {look.beard && <path d="M16 27 h28 v7 q-14 11 -28 0 z" fill={look.hair} />}
       <rect x={baby ? 22 : 23} y={baby ? 25 : 24} width="3.5" height="3" fill="#1a1412" />
       <rect x={baby ? 34.5 : 33.5} y={baby ? 25 : 24} width="3.5" height="3" fill="#1a1412" />
@@ -38,6 +40,8 @@ function Portrait({ look, size = 52 }: { look: Look; size?: number }) {
   );
 }
 const BASE = import.meta.env.BASE_URL;
+/** Ronlyn's warmer/colder readout, coldest first. */
+const SENSE = ['🧊 Cold', '🌤️ Warm', '🔥 Hot', '🔥 Very hot!'];
 
 function fmt(ms: number) {
   const t = ms / 1000;
@@ -134,6 +138,7 @@ export default function HouseGame() {
   const [toast, setToast] = useState<{ text: string; kind: 'part' | 'gold' | 'talk' } | null>(null);
   const [charId, setCharId] = useState(readChar);
   const [third, setThird] = useState(false);
+  const [sense, setSense] = useState<number | null>(null);
   const [result, setResult] = useState<RunResult | null>(null);
   const [best, setBest] = useState<number | null>(() => readBest());
   const [newBest, setNewBest] = useState(false);
@@ -177,6 +182,7 @@ export default function HouseGame() {
           onMap: (big) => setMapBig(big),
           onTalk: (who, line) => showToast(`${who}: “${line}”`, 'talk'),
           onView: (t) => setThird(t),
+          onSense: (l) => setSense(l),
         },
         { touch, baseUrl: BASE },
       );
@@ -279,10 +285,11 @@ export default function HouseGame() {
       {/* HUD */}
       <div className={`hh-hud${phase === 'playing' ? '' : ' hh-hud-dim'}`} aria-hidden={phase !== 'playing'}>
         <div className="hh-pills">
-          <span className="hh-pill hh-who" title={`Playing as ${me.name}`}><Portrait look={me.look} size={20} /> {firstName(me)}</span>
+          <span className="hh-pill hh-who" title={`Playing as ${me.name}`}><Portrait look={me.look} size={20} /> <span className="hh-who-name">{firstName(me)}</span></span>
           <span className="hh-pill hh-timer" title="Time"><span aria-hidden>⏱</span> <span ref={timerRef}>00:00.0</span></span>
           <span className="hh-pill" title="Tech parts found"><span aria-hidden>🔧</span> {count}/{total}</span>
           <span className="hh-pill" title="Areas explored, inside and out"><span aria-hidden>🧭</span> {rooms[0]}/{rooms[1]}</span>
+          {sense !== null && <span className={`hh-pill hh-sense hh-sense-${sense}`} title="Mum always knows: how close the Golden Chip is" aria-live="polite">{SENSE[sense]}</span>}
           {golden && <span className="hh-pill hh-gold" title="Golden Chip">✨ Golden Chip</span>}
         </div>
         <div className={`hh-map${mapBig ? ' hh-map-big' : ''}`} onClick={toggleMap} role="button" aria-label={mapBig ? 'Shrink map' : 'Expand map'} tabIndex={-1}>
@@ -444,6 +451,12 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
 .hh-pill { background: rgba(15,23,42,0.78); color: #f8fafc; padding: 6px 11px; border-radius: 999px; font-size: 0.82rem; font-weight: 600; box-shadow: 0 4px 14px rgba(15,23,42,0.18); white-space: nowrap; }
 .hh-timer { font-family: 'JetBrains Mono', monospace; }
 .hh-gold { background: linear-gradient(135deg,#f59e0b,#fbbf24); color: #422006; }
+.hh-sense { transition: background .3s; }
+.hh-sense-0 { background: rgba(37,99,235,0.88); }
+.hh-sense-1 { background: rgba(217,119,6,0.9); }
+.hh-sense-2 { background: rgba(234,88,12,0.92); }
+.hh-sense-3 { background: #dc2626; animation: hh-throb 0.9s ease-in-out infinite; }
+@keyframes hh-throb { 50% { transform: scale(1.08); } }
 .hh-map { position: absolute; top: 12px; right: 12px; width: 168px; height: 168px; border-radius: 16px; overflow: hidden; border: 2px solid rgba(255,255,255,0.75); box-shadow: 0 8px 24px rgba(15,23,42,0.3); background: #0b1222; pointer-events: auto; cursor: pointer; transition: all .25s cubic-bezier(.22,1,.36,1); }
 .hh-map canvas { width: 100%; height: 100%; display: block; }
 .hh-map-big { top: 50%; right: 50%; transform: translate(50%, -50%); width: min(70vh, 86%); height: min(70vh, 86%); }
@@ -459,7 +472,7 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
 .hh-who { display: inline-flex; align-items: center; gap: 6px; padding-left: 4px; }
 .hh-who svg { border-radius: 6px; }
 .hh-pick-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; margin-bottom: 0.45rem; }
-.hh-pick { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 0 auto 0.5rem; max-width: 440px; }
+.hh-pick { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin: 0 auto 0.5rem; max-width: 480px; }
 .hh-pick-tile { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px 7px; border: 2px solid #e2e8f0; border-radius: 12px; background: #fff; cursor: pointer; font-family: 'Space Grotesk', sans-serif; transition: border-color .15s, transform .15s; }
 .hh-pick-tile:hover { transform: translateY(-2px); }
 .hh-pick-tile.on { border-color: #2563eb; box-shadow: 0 6px 16px rgba(37,99,235,0.18); }
@@ -520,6 +533,8 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
   .hh-is-touch .hh-lead { font-size: 0.84rem; margin-bottom: 0.7rem; }
   .hh-is-touch .hh-title { font-size: 1.6rem; }
   .hh-keys { grid-template-columns: 1fr 1fr; font-size: 0.74rem; }
+  .hh-pick { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 330px; }
+  .hh-who-name { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { .hh-toast { animation: none; } .hh-map { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .hh-toast { animation: none; } .hh-map { transition: none; } .hh-sense-3 { animation: none; } }
 `;

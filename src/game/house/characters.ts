@@ -4,7 +4,7 @@
 // To change how names appear in the game (for example first names only),
 // edit `name` here; nothing else needs to change.
 
-export type CharacterId = 'hussein' | 'josese' | 'zane' | 'mahala' | 'aisha';
+export type CharacterId = 'hussein' | 'josese' | 'ronlyn' | 'zane' | 'mahala' | 'aisha';
 
 export interface Look {
   /** Standing height in metres (for the baby, length from head to toe). */
@@ -13,7 +13,11 @@ export interface Look {
   build: number;
   skin: string;
   hair: string;
-  hairStyle: 'short' | 'afro' | 'bun' | 'grey' | 'baby';
+  hairStyle: 'short' | 'afro' | 'bun' | 'grey' | 'baby' | 'ponytail';
+  /** Streaks through the hair (grey). */
+  streak?: string;
+  /** Small earrings. */
+  earrings?: string;
   beard?: boolean;
   shirt: string;
   /** A small print on the chest. */
@@ -44,13 +48,15 @@ export interface Character {
   radar?: number;
   /** After this many parts, the Golden Chip shows on the minimap. */
   ipadAfter?: number;
+  /** Warmer/colder: tells you how close the Golden Chip is. */
+  sense?: boolean;
   /** Third-person camera distance. */
   thirdDist: number;
   /** What they say when you walk up and talk to them. `room` is the Golden Chip's room, or null once you have it. */
   line: (room: string | null) => string;
 }
 
-const SKIN = { hussein: '#7d4f33', josese: '#6f4529', zane: '#7a4a2c', mahala: '#8a5636', aisha: '#93603f' };
+const SKIN = { hussein: '#7d4f33', josese: '#6f4529', ronlyn: '#8f5f3f', zane: '#7a4a2c', mahala: '#8a5636', aisha: '#93603f' };
 
 export const CHARACTERS: Character[] = [
   {
@@ -66,6 +72,13 @@ export const CHARACTERS: Character[] = [
     look: { height: 1.82, build: 1.3, skin: SKIN.josese, hair: '#16110e', hairStyle: 'afro', beard: true, shirt: '#22262b', print: '#e46a8a', pants: '#8ec5e8', shoes: '#30343a', kind: 'adult' },
     eye: 1.7, walk: 2.6, run: 4.3, radius: 0.28, radar: 7, thirdDist: 2.7,
     line: (room) => (room ? `My tech radar says the Golden Chip is somewhere in the ${room}.` : 'Nice work! The front gate is at the bottom of the driveway.'),
+  },
+  {
+    id: 'ronlyn', name: 'Ronlyn Sahib', role: 'Mum',
+    perk: 'Mum always knows: you get warmer or colder as you near the Golden Chip',
+    look: { height: 1.62, build: 1.2, skin: SKIN.ronlyn, hair: '#221c19', hairStyle: 'ponytail', streak: '#8d8882', earrings: '#d4a537', shirt: '#8e2a33', pants: '#2b2d33', kind: 'adult' },
+    eye: 1.52, walk: 2.5, run: 4.0, radius: 0.28, sense: true, thirdDist: 2.5,
+    line: (room) => (room ? `Have a look in the ${room}. Mum always knows where things are.` : 'Well done! Shut the gate on your way out.'),
   },
   {
     id: 'zane', name: 'Zane Sahib', role: 'Big brother',

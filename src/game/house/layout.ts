@@ -714,6 +714,7 @@ export interface NpcSpot { pos: XYZ; yaw: number; pose: NpcPose; seat?: number; 
 export const NPC_SPOTS: Record<string, NpcSpot> = {
   hussein: { pos: [5.2, 0, 14.92], yaw: 0, pose: 'sit', seat: 0.5 },          // on the veranda sofa
   josese: { pos: [1.36, 0, 9.8], yaw: HALF_PI, pose: 'sit', seat: 0.5 },      // at the office desk
+  ronlyn: { pos: [7.6, 0, 7.3], yaw: -HALF_PI, pose: 'sit', seat: 0.42 },     // on the lounge sofa, next to the baby
   zane: { pos: [10.55, 0, 10.0], yaw: HALF_PI, pose: 'sit', seat: 0.42 },     // in the orange armchair
   mahala: { pos: [3.3, 0, 14.1], yaw: -HALF_PI, pose: 'ipad', collide: true }, // on the veranda with her iPad
   aisha: { pos: [7.8, 0.45, 6.1], yaw: HALF_PI, pose: 'lie' },                // in the bassinet by the sofa
