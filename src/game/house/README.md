@@ -1,10 +1,45 @@
 # LvTS House Hunt
 
-A first-person, low-poly 3D walk through the house, at `#house` on the site.
-Find the 12 tech parts, hunt the Golden Chip (it hides in one of six spots,
-picked at random each game), and leave through the back door. If you have the
-Golden Chip when you escape, the win card shows the secret code for the
-current prize round.
+A first-person, low-poly 3D walk through the house and the compound around it,
+at `#house` on the site. Pick a family member to play as, find the 12 tech
+parts, hunt the Golden Chip (it hides in one of 13 spots, picked at random each
+game), and leave through the front gate at the bottom of the driveway. If you
+have the Golden Chip when you escape, the win card shows the secret code for
+the current prize round.
+
+## The compound
+
+The site falls about 3 m from the back yard to the road. Outdoors the ground
+height is `groundY(z)` in `layout.ts`: flat at the back (yard, walkway, carport,
+storeroom), then a straight slope down the driveway and front garden to the
+road. The house, veranda, kitchen balcony and the landings are raised floors
+(`PLATFORMS`); the veranda stairs, the side stairs and the back steps are walked
+as ramps (`RAMPS`). Collision stays 2D; the camera height follows `heightAt`.
+Every place the floor height jumps is walled or railed except at stairs, and a
+test proves it.
+
+Doors and gates: the kitchen back door, the veranda gate, the side gate, the
+storeroom door and the double front gate all open with E. The veranda gate and
+the front gate swing away from you if you are standing where they would open.
+
+## Characters
+
+Edit `characters.ts` to change names, roles, looks or perks. `name` is what the
+game shows; change it there to show first names only.
+
+| Character | Role | Eye height | Perk |
+|---|---|---|---|
+| Hussein | Grandpa | 1.6 m | Sees further: the map clears 8.5 m around him |
+| Josese | Dad | 1.7 m | Tech radar: parts within 7 m show on the map, even through walls |
+| Ronlyn | Mum | 1.52 m | Mum always knows: a Cold / Warm / Hot / Very hot pill shows how close the Golden Chip is |
+| Zane | Big brother | 1.55 m | Fastest runner |
+| Mahala | Big sister | 1.15 m | After 6 parts her iPad marks the Golden Chip on the map |
+| Aisha | Baby sister | 0.38 m | Crawls (slowly) and fits under tables |
+
+The other five sit around the house (common areas only) and say something when
+you press E next to them: until you have the Golden Chip, each of them hints
+at the room it is in. V
+switches to a third-person view. The pick is remembered in `localStorage`.
 
 ## Running a prize round
 
@@ -57,9 +92,11 @@ then `npm run dev` and open `http://localhost:5173/lvts/#house`.
 
 | File | What it is |
 |---|---|
-| `layout.ts` | The house as data: rooms, walls, doors, windows, furniture, parts, Golden Chip spots, spawn, exit. The renderer, collision and minimap all read it. |
-| `collision.ts` | Player-vs-wall/furniture/door collision (circle vs boxes), with sliding. |
-| `engine.ts` | three.js scene, controls, doors and windows, pickups, timer, win. |
+| `layout.ts` | The house and compound as data: rooms and outdoor areas, ground heights, walls, fences and railings, doors and gates, windows, furniture, trees, the family's spots, parts, Golden Chip spots, spawn, exit. The renderer, collision and minimap all read it. |
+| `collision.ts` | Player-vs-wall/furniture/door collision (circle vs boxes), with sliding; a crawling version for Aisha and a walls-only version for the third-person camera. |
+| `engine.ts` | three.js scene, controls, doors and windows, pickups, the family, third-person camera, timer, win. |
+| `characters.ts` | The six playable family members. |
+| `figures.ts` | The low-poly people (poses, walk and crawl cycles) and the cat. |
 | `minimap.ts` | Fog-of-war minimap revealed by line of sight, with a breadcrumb trail. |
 | `HouseGame.tsx` | HUD, start/pause/win cards, touch controls, fullscreen. |
 | `contest.ts`, `prizeCodec.ts` | Contest settings and the code scrambling. |
@@ -69,6 +106,7 @@ then `npm run dev` and open `http://localhost:5173/lvts/#house`.
 ## Tests
 
 `npm run test:game` (Node 22.18 or newer) checks collision, that every part,
-every Golden Chip spot and the exit can be reached with the doors open, that a
-shut door blocks its doorway, that no door swings through furniture, and the
-prize-code scrambling and round dates.
+every Golden Chip spot and the exit can be reached with the doors open (walking
+and crawling), that you can never walk off a ledge, that a shut door blocks its
+doorway, that no door or gate swings through furniture, and the prize-code
+scrambling and round dates.

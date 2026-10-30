@@ -1,7 +1,7 @@
 // Solid walls and furniture for a first-person player, as circles against
 // boxes in plan. Pure functions, no three.js, so they can be unit-tested.
 
-import { WALLS, PROPS, DOORS, wallSolidRects, type Rect, type Door, type XZ } from './layout.ts';
+import { WALLS, PROPS, DOORS, BARRIERS, TREES, wallSolidRects, barrierRect, barrierBlocksSight, heightAt, type Rect, type Door, type XZ } from './layout.ts';
 
 export interface Circle { x: number; z: number; r: number }
 
@@ -10,24 +10,54 @@ export interface OBB { cx: number; cz: number; hx: number; hz: number; angle: nu
 
 export const PLAYER_R = 0.28;
 
-/** Anything whose bottom is above this height is overhead (upper cabinets, lights) and never blocks you. */
+/** Anything that starts this far above the floor under it is overhead (upper cabinets, roofs) and never blocks you. */
 const OVERHEAD = 1.2;
+/** A crawling baby fits under anything that starts this far above the floor. */
+const CRAWL_CLEAR = 0.5;
 
 /** Pushes overshoot by a micrometre so a resolved circle tests clear on the next check. */
 const EPS = 1e-6;
 
+/** Trees inside the boundary get a trunk you bump into; the rest are scenery. */
+const INSIDE = { x0: -2.7, x1: 15.65, z0: -14, z1: 21.9 };
+const TRUNK: Record<string, number> = { palm: 0.18, banana: 0.2, bush: 0.15, breadfruit: 0.25 };
+
 export interface StaticWorld { rects: Rect[]; circles: Circle[] }
 
-export function buildStaticWorld(): StaticWorld {
+/**
+ * Everything solid that never moves. With `crawl`, the world as a crawling
+ * baby sees it: table skirts and anything raised off the floor don't block.
+ */
+export function buildStaticWorld(opts: { crawl?: boolean } = {}): StaticWorld {
   const rects: Rect[] = [];
   for (const wall of WALLS) rects.push(...wallSolidRects(wall));
+  for (const b of BARRIERS) rects.push(barrierRect(b));
   const circles: Circle[] = [];
   for (const prim of PROPS) {
-    if (prim.kind === 'box' && prim.solid && prim.min[1] < OVERHEAD) {
+    if (prim.kind === 'box') {
+      if (!prim.solid) continue;
+      const lift = prim.min[1] - heightAt((prim.min[0] + prim.max[0]) / 2, (prim.min[2] + prim.max[2]) / 2);
+      if (lift >= OVERHEAD) continue;
+      if (opts.crawl && (prim.crawl || lift >= CRAWL_CLEAR)) continue;
       rects.push({ x0: prim.min[0], x1: prim.max[0], z0: prim.min[2], z1: prim.max[2] });
-    } else if (prim.kind === 'cyl' && prim.solid && prim.base[1] < OVERHEAD) {
-      circles.push({ x: prim.base[0], z: prim.base[2], r: prim.r });
+    } else if (prim.kind === 'cyl' && prim.solid) {
+      const [x, y, z] = prim.base;
+      if (prim.axis === 'x' || prim.axis === 'z') {
+        // a lying cylinder blocks as its box in plan
+        const hx = prim.axis === 'x' ? prim.h / 2 : prim.r;
+        const hz = prim.axis === 'z' ? prim.h / 2 : prim.r;
+        rects.push({ x0: x - hx, x1: x + hx, z0: z - hz, z1: z + hz });
+        continue;
+      }
+      const lift = y - heightAt(x, z);
+      if (lift >= OVERHEAD) continue;
+      if (opts.crawl && lift >= CRAWL_CLEAR) continue;
+      circles.push({ x, z, r: prim.r });
     }
+  }
+  for (const t of TREES) {
+    if (t.x < INSIDE.x0 || t.x > INSIDE.x1 || t.z < INSIDE.z0 || t.z > INSIDE.z1) continue;
+    circles.push({ x: t.x, z: t.z, r: TRUNK[t.kind] * (t.kind === 'palm' ? 1 : t.s) });
   }
   // the fixed half of the sliding door
   const slider = DOORS.find((d) => d.kind === 'slide');
@@ -36,6 +66,32 @@ export function buildStaticWorld(): StaticWorld {
     rects.push({ x0: slider.from, x1: mid, z0: slider.line - 0.04, z1: slider.line + 0.04 });
   }
   return { rects, circles };
+}
+
+/**
+ * What a third-person camera, floating above head height, has to stay clear of:
+ * walls and anything taller than a person. Railings, fences and furniture pass under it.
+ */
+export function buildCameraWorld(): StaticWorld {
+  const rects: Rect[] = [];
+  for (const wall of WALLS) rects.push(...wallSolidRects(wall));
+  for (const b of BARRIERS) if (barrierBlocksSight(b)) rects.push(barrierRect(b));
+  for (const prim of PROPS) {
+    if (prim.kind !== 'box' || !prim.solid) continue;
+    const floor = heightAt((prim.min[0] + prim.max[0]) / 2, (prim.min[2] + prim.max[2]) / 2);
+    if (prim.max[1] - floor >= 1.9 && prim.min[1] - floor < OVERHEAD) rects.push({ x0: prim.min[0], x1: prim.max[0], z0: prim.min[2], z1: prim.max[2] });
+  }
+  const slider = DOORS.find((d) => d.kind === 'slide');
+  if (slider && slider.kind === 'slide') {
+    const mid = (slider.from + slider.to) / 2;
+    rects.push({ x0: slider.from, x1: mid, z0: slider.line - 0.04, z1: slider.line + 0.04 });
+  }
+  return { rects, circles: [] };
+}
+
+/** A small square body for a standing person, as an OBB so it can sit with the door panels. */
+export function bodyOBB(x: number, z: number, r = 0.22): OBB {
+  return { cx: x, cz: z, hx: r, hz: r, angle: 0 };
 }
 
 const SLIDE_INSET = 0.05;

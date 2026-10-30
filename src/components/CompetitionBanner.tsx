@@ -17,7 +17,7 @@ const MESSAGES: Record<ContestPhase, string> = {
 };
 
 // While a House Hunt prize round is live, the banner promotes it instead.
-const HOUSE_MSG = '🏠 The LvTS House Hunt is LIVE! Explore the house, find the hidden Golden Chip and escape to reveal this round’s secret code — winners are paid by M-PAiSA.';
+const HOUSE_MSG = '🏠 The LvTS House Hunt is LIVE! Explore the house, find the hidden Golden Chip and get out the front gate to reveal this round’s secret code — winners are paid by M-PAiSA.';
 
 const FAST_SPEED = 9; // % of bar width per second — slow, easy to read
 const HOVER_SPEED = 0; // eases all the way to a stop while hovered, waiting for the click

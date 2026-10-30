@@ -225,3 +225,52 @@ export function bushTree(size = 1.4): THREE.Group {
   g.add(crown2);
   return g;
 }
+
+/** A banana plant: a fibrous trunk and long, arching leaves. */
+export function banana(size = 1): THREE.Group {
+  const g = new THREE.Group();
+  const h = 2.4 * size;
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.11 * size, 0.18 * size, h, 7), lambert('#8b8f5a'));
+  trunk.position.y = h / 2;
+  g.add(trunk);
+  const dead = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * size, 0.24 * size, h * 0.45, 7), lambert('#a08a5c'));
+  dead.position.y = h * 0.25;
+  g.add(dead);
+  for (let i = 0; i < 7; i++) {
+    const leaf = new THREE.Mesh(new THREE.BoxGeometry(0.42 * size, 0.02, 1.7 * size), lambert(i % 2 ? '#5aa33f' : '#6bb84a'));
+    const pivot = new THREE.Group();
+    pivot.position.y = h;
+    pivot.rotation.y = (i / 7) * Math.PI * 2 + i * 0.3;
+    leaf.position.set(0, 0.35 * size, 0.75 * size);
+    leaf.rotation.x = -0.55 + (i % 3) * 0.18;
+    pivot.add(leaf);
+    g.add(pivot);
+  }
+  return g;
+}
+
+/** A breadfruit tree: short trunk, big glossy dark-green crown. */
+export function breadfruit(size = 1): THREE.Group {
+  const g = new THREE.Group();
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.16 * size, 0.24 * size, 2.2 * size, 7), lambert('#6b5038'));
+  trunk.position.y = 1.1 * size;
+  g.add(trunk);
+  for (const [x, y, z, r, c] of [[0, 3.0, 0, 1.6, '#2f6b2b'], [0.9, 3.4, 0.4, 1.1, '#3b7d34'], [-0.8, 3.3, -0.5, 1.2, '#356f2f'], [0.2, 4.1, -0.2, 1.0, '#438a3a']] as const) {
+    const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(r * size, 0), lambert(c));
+    crown.position.set(x * size, y * size, z * size);
+    g.add(crown);
+  }
+  return g;
+}
+
+/** A plain white delivery van, parked across the road. Built along +x. */
+export function van(): THREE.Group {
+  const g = new THREE.Group();
+  addBox(g, 4.4, 1.5, 1.75, '#f4f4f2', 0, 1.0, 0);
+  addBox(g, 1.3, 0.9, 1.7, '#f4f4f2', -1.6, 0.55, 0);
+  addBox(g, 0.05, 0.6, 1.5, '#1f2933', -2.2, 1.25, 0);
+  addBox(g, 0.9, 0.55, 0.02, '#1f2933', -1.4, 1.35, 0.876);
+  addBox(g, 0.9, 0.55, 0.02, '#1f2933', -1.4, 1.35, -0.876);
+  for (const x of [-1.4, 1.4]) for (const z of [-0.8, 0.8]) addCyl(g, 0.33, 0.24, '#151618', x, 0.33, z, 14, 'z');
+  return g;
+}
