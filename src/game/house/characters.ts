@@ -9,7 +9,7 @@
 
 export type CharacterId =
   | 'hussein' | 'josese' | 'ronlyn' | 'zane' | 'mahala' | 'aisha'
-  | 'nancy' | 'louzanne' | 'alicia' | 'maria' | 'zoya' | 'mira' | 'altaaf' | 'ravi' | 'malvin' | 'hakeem'
+  | 'nancy' | 'louzanne' | 'alicia' | 'maria' | 'zoya' | 'mira' | 'fawzia' | 'altaaf' | 'ravi' | 'malvin' | 'hakeem'
   | 'mikhyle' | 'nabeeha' | 'emaana' | 'rohan' | 'kahaani' | 'yash' | 'maanvi' | 'sarah';
 
 /** Which tab of the picker a character sits on. */
@@ -169,6 +169,9 @@ export const CHARACTERS: Character[] = [
   uncle('mira', 'Mira', '#6b4229', { hairStyle: 'short', beard: true, shirt: '#2563eb', pants: '#78716c', longPants: true },
     { perk: 'Knows the way out: the front gate is on the map from the start', knowsWay: true },
     (room) => (room ? `Have you looked in the ${room}?` : 'Front gate, then you are done. Good job!')),
+  aunty('fawzia', 'Fawzia', '#8f5d3c', { hairStyle: 'long', shirt: '#be185d', pants: '#1e293b', longPants: true, earrings: '#d4a537' },
+    { perk: 'Quick hands: grabs parts from 1.8 m away', magnet: 1.8 },
+    (room) => (room ? `Mira and I saw something gold in the ${room}.` : 'MashaAllah, well done! The front gate is down the driveway.')),
   uncle('altaaf', 'Altaaf', '#7a4b2f', { hairStyle: 'short', shirt: '#15803d', pants: '#1f2937' },
     { perk: 'Quick on his feet: runs fast', run: 4.8 },
     (room) => (room ? `Bet you can't beat me to the ${room}!` : 'Fast! Now beat the clock to the gate.')),

@@ -41,7 +41,7 @@ export default function HouseHuntPage() {
         <div style={card}>
           <div style={h3}><MapIcon size={18} color="#2563eb" /> How to play</div>
           <p style={p}>
-            Pick who you play as: anyone at home (Grandpa Hussein, Dad Josese, Mum Ronlyn, Zane, Mahala or baby Aisha), one of the aunties and uncles, or one of the cousins. Each one moves differently and has a perk. On a computer: <b>W A S D</b> to walk, the <b>mouse</b> to look, <b>E</b> to open doors, gates and windows or talk to the family, <b>Shift</b> to run, <b>V</b> to switch between first and third person, <b>M</b> for the big map, <b>Esc</b> to pause and <b>X</b> to quit. On a phone: drag the left side to walk, the right side to look, tap ✋ to open things or talk, and tap the red ✕ to quit.
+            Pick who you play as: anyone at home (Grandpa Hussein, Dad Josese, Mum Ronlyn, Zane, Mahala or baby Aisha), one of the aunties and uncles, or one of the cousins. Each one moves differently and has a perk. On a computer: <b>W A S D</b> to walk, the <b>mouse</b> to look, <b>E</b> to open doors, gates and windows or talk to the family (then <b>1–7</b> to pick a question), <b>Shift</b> to run, <b>V</b> to switch between first and third person, <b>M</b> for the big map, <b>Esc</b> to pause and <b>X</b> to quit. On a phone: drag the left side to walk, the right side to look, tap ✋ to open things or talk (then tap a question), and tap the red ✕ to quit.
             The minimap only shows what you have actually seen, and leaves a trail of where you have been. Ask the family about the Golden Chip: they have seen where it is.
           </p>
         </div>
