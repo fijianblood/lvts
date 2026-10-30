@@ -2,7 +2,7 @@
 
 A first-person, low-poly 3D walk through the house and the compound around it,
 at `#house` on the site. Pick a family member to play as, find the 12 tech
-parts, hunt the Golden Chip (it hides in one of 13 spots, picked at random each
+parts, hunt the Golden Chip (it hides in one of 12 spots, picked at random each
 game), and leave through the front gate at the bottom of the driveway. If you
 have the Golden Chip when you escape, the win card shows the secret code for
 the current prize round.
@@ -25,7 +25,10 @@ the front gate swing away from you if you are standing where they would open.
 ## Characters
 
 Edit `characters.ts` to change names, roles, looks or perks. `name` is what the
-game shows; change it there to show first names only.
+game shows; change it there to show first names only. The picker has three
+tabs (`group`): Home, Aunties & Uncles, and Cousins.
+
+Home:
 
 | Character | Role | Eye height | Perk |
 |---|---|---|---|
@@ -36,10 +39,38 @@ game shows; change it there to show first names only.
 | Mahala | Big sister | 1.15 m | After 6 parts her iPad marks the Golden Chip on the map |
 | Aisha | Baby sister | 0.38 m | Crawls (slowly) and fits under tables |
 
-The other five sit around the house (common areas only) and say something when
-you press E next to them: until you have the Golden Chip, each of them hints
-at the room it is in. V
-switches to a third-person view. The pick is remembered in `localStorage`.
+Aunties & Uncles (Josese's sisters, brothers and brothers-in-law) and Cousins
+(his nieces and nephews) have no photos yet, so their clothes and hair are made
+up, and the cousins' heights are guesses: change them in `characters.ts`.
+
+| Character | Role | Perk |
+|---|---|---|
+| Nancy | Aunty | Eagle eyes: the map clears 8 m around her |
+| Louzanne | Aunty | Family group chat: a pill names the Golden Chip's room |
+| Alicia | Aunty | Hawk eyes: the map clears 7.5 m around her |
+| Maria | Aunty | Warmer / colder, like Ronlyn |
+| Zoya | Aunty | Phone map: the Golden Chip shows on the map after 5 parts |
+| Mira | Uncle | Knows the way out: the front gate is on the map from the start |
+| Altaaf | Uncle | Quick on his feet: runs fast |
+| Ravi | Uncle | Quick hands: grabs parts from 1.8 m (never through a wall or shut door) |
+| Malvin | Uncle | Long stride: the fastest walker |
+| Hakeem | Uncle | Tech radar: parts within 6 m show on the map |
+| Mikhyle | Cousin | Sprinter: the fastest of the cousins |
+| Nabeeha | Cousin | Tablet map after 5 parts |
+| Emaana | Cousin | Warmer / colder |
+| Rohan | Cousin | Quick hands (1.8 m) |
+| Kahaani | Cousin | Family group chat |
+| Yash | Cousin | Tech radar (5 m) |
+| Maanvi | Cousin | Knows the way out |
+| Sarah | Cousin | Sharp eyes (7.5 m) |
+
+Everyone you are not playing is somewhere in the house or yard (common areas
+only: veranda, lounge, kitchen, dining table, carport, yards) and says
+something when you press E next to them: until you have the Golden Chip, each
+of them hints at the room it is in. Their spots are `NPC_SPOTS` in `layout.ts`;
+anyone standing blocks your way, and a test checks that nobody blocks a part,
+a Golden Chip spot or the exit. V switches to a third-person view. The pick is
+remembered in `localStorage`.
 
 ## Running a prize round
 
@@ -95,8 +126,8 @@ then `npm run dev` and open `http://localhost:5173/lvts/#house`.
 | `layout.ts` | The house and compound as data: rooms and outdoor areas, ground heights, walls, fences and railings, doors and gates, windows, furniture, trees, the family's spots, parts, Golden Chip spots, spawn, exit. The renderer, collision and minimap all read it. |
 | `collision.ts` | Player-vs-wall/furniture/door collision (circle vs boxes), with sliding; a crawling version for Aisha and a walls-only version for the third-person camera. |
 | `engine.ts` | three.js scene, controls, doors and windows, pickups, the family, third-person camera, timer, win. |
-| `characters.ts` | The six playable family members. |
-| `figures.ts` | The low-poly people (poses, walk and crawl cycles) and the cat. |
+| `characters.ts` | The 24 playable family members. |
+| `figures.ts` | The low-poly people (poses, walk and crawl cycles) and the cat. Everyone you aren't playing is baked into two meshes (body, and head on its own pivot) so a full house stays cheap to draw. |
 | `minimap.ts` | Fog-of-war minimap revealed by line of sight, with a breadcrumb trail. |
 | `HouseGame.tsx` | HUD, start/pause/win cards, touch controls, fullscreen. |
 | `contest.ts`, `prizeCodec.ts` | Contest settings and the code scrambling. |
