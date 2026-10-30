@@ -139,6 +139,7 @@ export default function HouseGame() {
   const [charId, setCharId] = useState(readChar);
   const [third, setThird] = useState(false);
   const [sense, setSense] = useState<number | null>(null);
+  const [confirmQuit, setConfirmQuit] = useState(false);
   const [result, setResult] = useState<RunResult | null>(null);
   const [best, setBest] = useState<number | null>(() => readBest());
   const [newBest, setNewBest] = useState(false);
@@ -250,7 +251,7 @@ export default function HouseGame() {
     setPhase('playing');
     e.start();
   };
-  const resume = () => { setPhase('playing'); engineRef.current?.resume(); };
+  const resume = () => { setConfirmQuit(false); setPhase('playing'); engineRef.current?.resume(); };
   const restart = () => {
     const e = engineRef.current;
     if (!e) return;
@@ -267,8 +268,32 @@ export default function HouseGame() {
     if (!e) return;
     e.reset();
     e.state = 'intro';
+    setConfirmQuit(false);
     setCount(0); setGolden(false); setResult(null); setCopied(false); setNewBest(false);
     setPhase('intro');
+  };
+  /** The ✕ button: stop and ask first, so a stray tap doesn't throw a run away. */
+  const askQuit = () => {
+    if (phase === 'playing') engineRef.current?.pause('manual');
+    setConfirmQuit(true);
+  };
+  // X on the keyboard does the same as the ✕ button (it asks first, and frees the mouse to answer)
+  useEffect(() => {
+    if (phase !== 'playing') return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== 'KeyX' || e.repeat) return;
+      e.preventDefault();
+      engineRef.current?.pause('manual');
+      setConfirmQuit(true);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [phase]);
+  /** End the run: back to the start card, out of full screen. */
+  const quit = () => {
+    if (document.pointerLockElement) document.exitPointerLock();
+    changeCharacter();
+    if (full) exitFull();
   };
   const me = characterById(charId);
   const copyCode = async () => {
@@ -300,6 +325,7 @@ export default function HouseGame() {
         <div ref={promptRef} className="hh-prompt" style={{ opacity: 0 }} />
         {toast && <div className={`hh-toast${toast.kind === 'gold' ? ' hh-toast-gold' : toast.kind === 'talk' ? ' hh-toast-talk' : ''}`}>{toast.text}</div>}
         <div className="hh-corner">
+          {phase === 'playing' && <button type="button" className="hh-icon hh-quit" onClick={askQuit} aria-label="Quit the game" title="Quit the game">✕</button>}
           <button type="button" className="hh-icon" onClick={toggleView} aria-label={third ? 'First-person view' : 'Third-person view'} title="Switch view (V)">{third ? '👁' : '🎥'}</button>
           <button type="button" className="hh-icon" onClick={() => setMuted((m) => !m)} aria-label={muted ? 'Sound on' : 'Mute'}>{muted ? '🔇' : '🔊'}</button>
           <button type="button" className="hh-icon" onClick={() => (full ? exitFull() : enterFull())} aria-label={full ? 'Exit full screen' : 'Full screen'}>{full ? '🗗' : '⛶'}</button>
@@ -335,12 +361,12 @@ export default function HouseGame() {
                   <li><b>Left thumb</b> walk</li>
                   <li><b>Right thumb</b> look</li>
                   <li><b>✋</b> open doors, talk to the family</li>
-                  <li><b>🗺️</b> big map · <b>🎥</b> view</li>
+                  <li><b>🗺️</b> big map · <b>🎥</b> view · <b>✕</b> quit</li>
                 </>
               ) : (
                 <>
                   <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk</li>
-                  <li><b>Mouse</b> look</li>
+                  <li><b>Mouse</b> look · <kbd>X</kbd> quit</li>
                   <li><kbd>E</kbd> open doors, talk to the family</li>
                   <li><kbd>Shift</kbd> run · <kbd>M</kbd> map · <kbd>V</kbd> view</li>
                 </>
@@ -355,7 +381,19 @@ export default function HouseGame() {
       )}
 
       {/* Pause / poster */}
-      {phase === 'paused' && reason !== 'poster' && (
+      {phase === 'paused' && confirmQuit && (
+        <div className="hh-overlay">
+          <div className="hh-card hh-card-sm" role="alertdialog" aria-labelledby="hh-quit-title">
+            <h3 className="hh-title-sm" id="hh-quit-title">Quit this game?</h3>
+            <p className="hh-lead">Your time and the parts you’ve found so far won’t be kept.</p>
+            <div className="hh-row">
+              <button type="button" className="hh-btn hh-btn-danger" onClick={quit}>Quit game</button>
+              <button type="button" className="hh-btn hh-btn-ghost" onClick={resume}>Keep playing</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {phase === 'paused' && !confirmQuit && reason !== 'poster' && (
         <div className="hh-overlay">
           <div className="hh-card hh-card-sm">
             <h3 className="hh-title-sm">Paused</h3>
@@ -364,6 +402,7 @@ export default function HouseGame() {
               <button type="button" className="hh-btn" onClick={resume}>Resume</button>
               <button type="button" className="hh-btn hh-btn-ghost" onClick={restart}>Restart</button>
               <button type="button" className="hh-btn hh-btn-ghost" onClick={changeCharacter}>Change character</button>
+              <button type="button" className="hh-btn hh-btn-ghost hh-btn-quit" onClick={quit}>✕ Quit game</button>
             </div>
           </div>
         </div>
@@ -480,9 +519,11 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
 .hh-pick-role { font-size: 0.64rem; color: #64748b; line-height: 1.1; }
 .hh-pick-perk { font-size: 0.78rem; color: #475569; line-height: 1.45; margin-bottom: 0.9rem; min-height: 2.3em; }
 @keyframes hh-pop { from { transform: translate(-50%, -8px) scale(.9); opacity: 0; } to { transform: translate(-50%, 0) scale(1); opacity: 1; } }
-.hh-corner { position: absolute; bottom: 12px; right: 12px; display: flex; gap: 6px; pointer-events: auto; }
+.hh-corner { position: absolute; bottom: 12px; right: 12px; display: flex; gap: 6px; pointer-events: auto; z-index: 3; }  /* above the phone's look/walk layer */
 .hh-is-touch .hh-corner { bottom: auto; top: 188px; right: 12px; flex-direction: column; }
 .hh-icon { width: 36px; height: 36px; border-radius: 10px; border: none; background: rgba(15,23,42,0.7); color: #fff; font-size: 1rem; cursor: pointer; }
+.hh-quit { order: 9; background: rgba(220,38,38,0.88); font-weight: 700; }
+.hh-is-touch .hh-quit { order: -1; }
 .hh-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(15,23,42,0.5); overflow-y: auto; }
 .hh-card { background: #fff; border-radius: 18px; padding: 1.5rem 1.6rem; max-width: 520px; width: 100%; box-shadow: 0 24px 60px rgba(15,23,42,0.35); text-align: center; max-height: 100%; overflow-y: auto; }
 .hh-card-sm { max-width: 380px; }
@@ -501,6 +542,8 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
 .hh-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; background: linear-gradient(135deg,#2563eb,#7c3aed); color: #fff; border: none; padding: 0.75rem 1.4rem; border-radius: 11px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.95rem; cursor: pointer; text-decoration: none; box-shadow: 0 8px 20px rgba(37,99,235,0.3); }
 .hh-btn:hover { filter: brightness(1.08); }
 .hh-btn-ghost { background: #fff; color: #334155; border: 1px solid #e2e8f0; box-shadow: none; }
+.hh-btn-danger { background: #dc2626; box-shadow: 0 8px 20px rgba(220,38,38,0.3); }
+.hh-btn-quit { color: #b91c1c; }
 .hh-btn-sm { padding: 0.45rem 0.9rem; font-size: 0.82rem; }
 .hh-btn-fb { background: #1877f2; box-shadow: 0 6px 16px rgba(24,119,242,0.3); }
 .hh-row { display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap; }
