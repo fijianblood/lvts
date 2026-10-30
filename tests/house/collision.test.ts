@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildStaticWorld, doorOBB, moveAndSlide, blocked, resolve, PLAYER_R, type OBB } from '../../src/game/house/collision.ts';
-import { DOORS, COLLECTIBLES, GOLDEN_SPOTS, SPAWN, EXIT_ZONE, PROPS, type XZ } from '../../src/game/house/layout.ts';
+import { DOORS, COLLECTIBLES, GOLDEN_SPOTS, SPAWN, EXIT_ZONE, PROPS, heightAt, type XZ } from '../../src/game/house/layout.ts';
 
 const world = buildStaticWorld();
 const allDoors = (openness: number): OBB[] => DOORS.map((d) => doorOBB(d, openness));
@@ -48,12 +48,12 @@ test('resolve pushes a circle out of a box it starts inside', () => {
 });
 
 // Flood-fill the walkable floor from the spawn point on a 10 cm grid.
-function reachable(doors: OBB[]) {
-  const step = 0.1;
-  const x0 = -1, z0 = -10, nx = 180, nz = 270;
+const GRID = { x0: -3.2, z0: -14.6, step: 0.1, nx: 196, nz: 390 };
+function reachable(doors: OBB[], w = world, r = PLAYER_R) {
+  const { x0, z0, step, nx, nz } = GRID;
   const key = (i: number, j: number) => i * nz + j;
   const seen = new Uint8Array(nx * nz);
-  const free = (i: number, j: number) => !blocked([x0 + i * step, z0 + j * step], PLAYER_R, world, doors);
+  const free = (i: number, j: number) => !blocked([x0 + i * step, z0 + j * step], r, w, doors);
   const si = Math.round((SPAWN.pos[0] - x0) / step), sj = Math.round((SPAWN.pos[2] - z0) / step);
   assert.ok(free(si, sj), 'spawn point is inside something');
   const queue = [[si, sj]];
@@ -74,14 +74,28 @@ function reachable(doors: OBB[]) {
         if (i >= 0 && j >= 0 && i < nx && j < nz && seen[key(i, j)] && Math.hypot(x0 + i * step - x, z0 + j * step - z) <= radius) return true;
     return false;
   };
-  const inside = (r: { x0: number; x1: number; z0: number; z1: number }) => {
+  const inside = (q: { x0: number; x1: number; z0: number; z1: number }) => {
     for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
       const x = x0 + i * step, z = z0 + j * step;
-      if (seen[key(i, j)] && x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1) return true;
+      if (seen[key(i, j)] && x >= q.x0 && x <= q.x1 && z >= q.z0 && z <= q.z1) return true;
     }
     return false;
   };
-  return { near, inside };
+  /** Every pair of neighbouring walkable cells whose floor heights differ by more than `limit`: a ledge you could walk off. */
+  const cliffs = (limit: number) => {
+    const out: string[] = [];
+    for (let i = 0; i < nx - 1; i++) for (let j = 0; j < nz - 1; j++) {
+      if (!seen[key(i, j)]) continue;
+      const x = x0 + i * step, z = z0 + j * step, h = heightAt(x, z);
+      for (const [a, b] of [[i + 1, j], [i, j + 1]]) {
+        if (!seen[key(a, b)]) continue;
+        const d = Math.abs(heightAt(x0 + a * step, z0 + b * step) - h);
+        if (d > limit) out.push(`(${x.toFixed(1)}, ${z.toFixed(1)}) drops ${d.toFixed(2)} m`);
+      }
+    }
+    return out;
+  };
+  return { near, inside, cliffs };
 }
 
 test('with every door open, all 12 parts, every Golden Chip spot and the exit can be reached', () => {
@@ -89,6 +103,20 @@ test('with every door open, all 12 parts, every Golden Chip spot and the exit ca
   for (const c of COLLECTIBLES) assert.ok(map.near(c.pos[0], c.pos[2], PICKUP), `${c.name} in ${c.room} is out of reach`);
   for (const g of GOLDEN_SPOTS) assert.ok(map.near(g.pos[0], g.pos[2], PICKUP), `golden spot in ${g.room} is out of reach`);
   assert.ok(map.inside(EXIT_ZONE), 'exit zone is out of reach');
+});
+
+test('nowhere can you walk off a ledge: every height change is a slope or stairs', () => {
+  const found = reachable(allDoors(1)).cliffs(0.1);
+  assert.deepEqual(found.slice(0, 8), [], `${found.length} ledges`);
+});
+
+test('a crawling baby reaches everything too, and fits under the dining table', () => {
+  const crawlWorld = buildStaticWorld({ crawl: true });
+  const map = reachable(allDoors(1), crawlWorld, 0.22);
+  for (const c of COLLECTIBLES) assert.ok(map.near(c.pos[0], c.pos[2], PICKUP), `${c.name} out of reach for the baby`);
+  assert.ok(map.inside(EXIT_ZONE));
+  assert.ok(map.near(2.95, 10.7, 0.15), 'cannot crawl under the dining table');
+  assert.equal(reachable(allDoors(1)).near(2.95, 10.7, 0.15), false, 'grown-ups should not fit under the table');
 });
 
 test('with every door shut you are stuck on the veranda', () => {
@@ -99,8 +127,9 @@ test('with every door shut you are stuck on the veranda', () => {
 
 test('no door swings through furniture', () => {
   const solids = PROPS.filter((p) => p.kind === 'box' && p.solid && p.min[1] < 1.2) as Extract<(typeof PROPS)[number], { kind: 'box' }>[];
-  for (const door of DOORS) {
-    if (door.kind !== 'hinged') continue;
+  // a gate that can open either way is checked both ways
+  const swings = DOORS.flatMap((d) => (d.kind !== 'hinged' ? [] : d.bothWays ? [d, { ...d, swing: -d.swing }] : [d]));
+  for (const door of swings) {
     for (let k = 0; k <= 20; k++) {
       const b = doorOBB(door, k / 20);
       for (const s of solids) {

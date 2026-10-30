@@ -17,14 +17,19 @@ export default function HouseHuntPage() {
       <div className="orb" style={{ width: 420, height: 420, background: 'rgba(245,158,11,0.10)', top: '-8%', right: '-6%' }} />
       <div ref={heroRef} className="fade-in" style={{ maxWidth: 820, margin: '0 auto 2rem', textAlign: 'center' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#d97706', marginBottom: '0.75rem' }}>
-          <Gamepad2 size={14} /> Interactive · 3D
+          <Gamepad2 size={14} /> Interactive 3D Experience
         </div>
         <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(2rem,5vw,3.2rem)', color: '#0f172a', lineHeight: 1.1, marginBottom: '1rem' }}>
           LvTS <span className="grad-text">House Hunt</span>
         </h1>
-        <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: 1.75 }}>
-          A first-person, low-poly walk through a Suva family home. Find the tech parts, open the doors, hunt the hidden Golden Chip and get out the back door as fast as you can.
-          {prize.live && <> This round’s escapees with the Golden Chip get a secret code that can win a {CONTEST.prize}, paid by {CONTEST.payout}.</>}
+        <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: 1.75, marginBottom: '0.9rem' }}>
+          Take a first-person, low-poly walk-through of a Suva family home! Explore the house, discover the different rooms, find hidden technology parts and interact with the home environment.
+        </p>
+        <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: 1.75, marginBottom: '1.1rem' }}>
+          Step inside, explore the family’s home, uncover its technology secrets and connect with the family along the way. Every corner has something to discover!
+        </p>
+        <p style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(1rem,2.4vw,1.2rem)', color: '#0f172a', lineHeight: 1.4 }}>
+          Explore. Discover. Connect. <span className="grad-text">Experience Suva family life.</span>
         </p>
       </div>
 
@@ -36,14 +41,14 @@ export default function HouseHuntPage() {
         <div style={card}>
           <div style={h3}><MapIcon size={18} color="#2563eb" /> How to play</div>
           <p style={p}>
-            On a computer: <b>W A S D</b> to walk, the <b>mouse</b> to look, <b>E</b> to open and close doors and windows, <b>Shift</b> to run, <b>M</b> for the big map and <b>Esc</b> to pause. On a phone: drag the left side to walk, the right side to look, and tap ✋ to open things.
-            The minimap only shows what you have actually seen, and leaves a trail of where you have been.
+            Pick who you play as: Grandpa Hussein, Dad Josese, Zane, Mahala or baby Aisha. Each one moves differently and has a perk. On a computer: <b>W A S D</b> to walk, the <b>mouse</b> to look, <b>E</b> to open doors, gates and windows or talk to the family, <b>Shift</b> to run, <b>V</b> to switch between first and third person, <b>M</b> for the big map and <b>Esc</b> to pause. On a phone: drag the left side to walk, the right side to look, and tap ✋ to open things or talk.
+            The minimap only shows what you have actually seen, and leaves a trail of where you have been. Ask the family about the Golden Chip: they have seen where it is.
           </p>
         </div>
         <div style={card}>
           <div style={h3}><Trophy size={18} color="#d97706" /> Prize rounds</div>
           <ol style={{ ...p, paddingLeft: '1.1rem' }}>
-            <li>Find the Golden Chip and escape through the back door. The win screen shows the secret code for the current round.</li>
+            <li>Find the Golden Chip and get out through the front gate at the bottom of the driveway. The win screen shows the secret code for the current round.</li>
             {claimSteps().map((s) => <li key={s}>{s}</li>)}
             <li>One prize per person per round. The code changes every round.</li>
           </ol>

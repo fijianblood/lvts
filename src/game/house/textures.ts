@@ -203,3 +203,10 @@ export const chainLink = () => canvasTexture(64, 64, (g, w, h) => {
   g.strokeStyle = 'rgba(150,155,160,0.9)'; g.lineWidth = 2;
   g.beginPath(); g.moveTo(0, 0); g.lineTo(w, h); g.moveTo(w, 0); g.lineTo(0, h); g.stroke();
 }, true);
+
+export const asphalt = () => canvasTexture(128, 128, (g, w, h) => {
+  let s = 17;
+  const r = () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+  g.fillStyle = '#44474b'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 700; i++) { g.fillStyle = `rgba(${r() > 0.5 ? '255,255,255' : '0,0,0'},${r() * 0.1})`; g.fillRect(r() * w, r() * h, 2, 2); }
+}, true);

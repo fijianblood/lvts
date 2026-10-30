@@ -2,12 +2,41 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { HouseEngine, type RunResult } from './engine.ts';
 import { CONTEST, prizeState, claimSteps } from './contest.ts';
 import { COLLECTIBLES } from './layout.ts';
+import { CHARACTERS, characterById, firstName, type Look } from './characters.ts';
 
 type Phase = 'intro' | 'playing' | 'paused' | 'won' | 'nogl';
 type PauseReason = 'lock-lost' | 'poster' | 'manual';
 
 const BEST_KEY = 'lvts_househunt_best_v1';
 const MUTE_KEY = 'lvts_househunt_muted_v1';
+const CHAR_KEY = 'lvts_househunt_character_v1';
+
+function readChar(): string {
+  try { return characterById(localStorage.getItem(CHAR_KEY) ?? 'josese').id; } catch { return 'josese'; }
+}
+
+/** A small low-poly portrait drawn from the same look as the 3D figure. */
+function Portrait({ look, size = 52 }: { look: Look; size?: number }) {
+  const baby = look.kind === 'baby';
+  const head = baby ? { x: 14, y: 11, w: 32, h: 30 } : { x: 17, y: 13, w: 26, h: 27 };
+  return (
+    <svg viewBox="0 0 60 60" width={size} height={size} aria-hidden focusable="false">
+      <rect width="60" height="60" rx="14" fill="#eef2ff" />
+      <path d="M7 60 Q8 44 30 42 Q52 44 53 60 Z" fill={look.shirt} stroke="rgba(15,23,42,0.12)" />
+      {look.print && <rect x="26" y="50" width="8" height="5" fill={look.print} />}
+      <rect x="26" y="36" width="8" height="8" fill={look.skin} />
+      <rect x={head.x} y={head.y} width={head.w} height={head.h} rx="5" fill={look.skin} />
+      {look.hairStyle === 'afro'
+        ? <rect x="12" y="4" width="36" height="19" rx="9" fill={look.hair} />
+        : <rect x={head.x - 1} y={head.y - 2} width={head.w + 2} height={baby ? 5 : 8} rx="3" fill={look.hair} />}
+      {look.hairStyle === 'bun' && <circle cx="30" cy="9" r="5.5" fill={look.hair} />}
+      {look.beard && <path d="M16 27 h28 v7 q-14 11 -28 0 z" fill={look.hair} />}
+      <rect x={baby ? 22 : 23} y={baby ? 25 : 24} width="3.5" height="3" fill="#1a1412" />
+      <rect x={baby ? 34.5 : 33.5} y={baby ? 25 : 24} width="3.5" height="3" fill="#1a1412" />
+      {!look.beard && <rect x="27" y={baby ? 33 : 32} width="6" height="1.6" rx="0.8" fill="#5a2f22" />}
+    </svg>
+  );
+}
 const BASE = import.meta.env.BASE_URL;
 
 function fmt(ms: number) {
@@ -28,7 +57,7 @@ function webglAvailable() {
 }
 
 /** Left thumb moves, right thumb looks; buttons for use, map, run and pause. */
-function TouchControls({ engine, onPause, onMap }: { engine: HouseEngine; onPause: () => void; onMap: () => void }) {
+function TouchControls({ engine, onPause, onMap, onView }: { engine: HouseEngine; onPause: () => void; onMap: () => void; onView: () => void }) {
   const stick = useRef<{ id: number; x: number; y: number } | null>(null);
   const lookPtr = useRef<{ id: number; x: number; y: number } | null>(null);
   const [knob, setKnob] = useState<{ x: number; y: number; ox: number; oy: number } | null>(null);
@@ -80,6 +109,7 @@ function TouchControls({ engine, onPause, onMap }: { engine: HouseEngine; onPaus
         <button type="button" className="hh-tbtn hh-tbtn-use" onPointerDown={(e) => { e.stopPropagation(); engine.interact(); }} aria-label="Use: open or close what you are looking at">✋</button>
         <button type="button" className={`hh-tbtn${run ? ' on' : ''}`} onPointerDown={(e) => { e.stopPropagation(); const v = !run; setRun(v); engine.setRun(v); }} aria-label="Run">🏃</button>
         <button type="button" className="hh-tbtn" onPointerDown={(e) => { e.stopPropagation(); onMap(); }} aria-label="Map">🗺️</button>
+        <button type="button" className="hh-tbtn" onPointerDown={(e) => { e.stopPropagation(); onView(); }} aria-label="Switch between first and third person">🎥</button>
         <button type="button" className="hh-tbtn" onPointerDown={(e) => { e.stopPropagation(); onPause(); }} aria-label="Pause">⏸</button>
       </div>
     </>
@@ -101,7 +131,9 @@ export default function HouseGame() {
   const [count, setCount] = useState(0);
   const [golden, setGolden] = useState(false);
   const [rooms, setRooms] = useState<[number, number]>([0, 9]);
-  const [toast, setToast] = useState<{ text: string; golden: boolean } | null>(null);
+  const [toast, setToast] = useState<{ text: string; kind: 'part' | 'gold' | 'talk' } | null>(null);
+  const [charId, setCharId] = useState(readChar);
+  const [third, setThird] = useState(false);
   const [result, setResult] = useState<RunResult | null>(null);
   const [best, setBest] = useState<number | null>(() => readBest());
   const [newBest, setNewBest] = useState(false);
@@ -111,10 +143,10 @@ export default function HouseGame() {
   const [copied, setCopied] = useState(false);
   const prize = prizeState();   // cheap: re-read on every render so a round that starts mid-visit shows up
 
-  const showToast = useCallback((text: string, isGolden: boolean) => {
-    setToast({ text, golden: isGolden });
+  const showToast = useCallback((text: string, kind: 'part' | 'gold' | 'talk') => {
+    setToast({ text, kind });
     window.clearTimeout(toastTimer.current);
-    toastTimer.current = window.setTimeout(() => setToast(null), isGolden ? 4200 : 1900);
+    toastTimer.current = window.setTimeout(() => setToast(null), kind === 'part' ? 1900 : kind === 'gold' ? 4200 : 4800);
   }, []);
 
   useEffect(() => {
@@ -127,8 +159,8 @@ export default function HouseGame() {
         { timer: timerRef.current, prompt: promptRef.current, minimap: mapRef.current },
         {
           onPickup: ({ name, count: n, total, golden: g }) => {
-            if (g) { setGolden(true); showToast('✨ Golden Chip found! Now find the way out to unlock your code', true); }
-            else { setCount(n); showToast(`+ ${name}  ·  ${n}/${total}`, false); }
+            if (g) { setGolden(true); showToast('✨ Golden Chip found! Now get out the front gate to unlock your code', 'gold'); }
+            else { setCount(n); showToast(`+ ${name}  ·  ${n}/${total}`, 'part'); }
           },
           onWin: (r) => {
             setResult(r);
@@ -143,6 +175,8 @@ export default function HouseGame() {
           onPause: (why) => { setReason(why); setPhase('paused'); },
           onRooms: (v, t) => setRooms([v, t]),
           onMap: (big) => setMapBig(big),
+          onTalk: (who, line) => showToast(`${who}: “${line}”`, 'talk'),
+          onView: (t) => setThird(t),
         },
         { touch, baseUrl: BASE },
       );
@@ -151,6 +185,7 @@ export default function HouseGame() {
       return;
     }
     engine.setMuted(muted);
+    engine.setCharacter(readChar());
     engineRef.current = engine;
     if (import.meta.env.DEV) (window as unknown as { __house?: unknown }).__house = engine.debug();
     return () => { engine.dispose(); engineRef.current = null; };
@@ -196,9 +231,15 @@ export default function HouseGame() {
     return () => { document.body.style.overflow = prev; };
   }, [full]);
 
+  const pick = (id: string) => {
+    setCharId(id);
+    try { localStorage.setItem(CHAR_KEY, id); } catch { /* storage unavailable */ }
+    engineRef.current?.setCharacter(id);
+  };
   const play = () => {
     const e = engineRef.current;
     if (!e) return;
+    e.setCharacter(charId);
     if (touch) enterFull();
     setPhase('playing');
     e.start();
@@ -213,6 +254,17 @@ export default function HouseGame() {
     e.start();
   };
   const toggleMap = () => { const big = engineRef.current?.toggleMap(); setMapBig(!!big); };
+  const toggleView = () => { const t = engineRef.current?.toggleView(); setThird(!!t); };
+  /** Back to the start card to pick someone else. */
+  const changeCharacter = () => {
+    const e = engineRef.current;
+    if (!e) return;
+    e.reset();
+    e.state = 'intro';
+    setCount(0); setGolden(false); setResult(null); setCopied(false); setNewBest(false);
+    setPhase('intro');
+  };
+  const me = characterById(charId);
   const copyCode = async () => {
     try { await navigator.clipboard.writeText(prize.code); setCopied(true); } catch { setCopied(false); }
   };
@@ -227,9 +279,10 @@ export default function HouseGame() {
       {/* HUD */}
       <div className={`hh-hud${phase === 'playing' ? '' : ' hh-hud-dim'}`} aria-hidden={phase !== 'playing'}>
         <div className="hh-pills">
+          <span className="hh-pill hh-who" title={`Playing as ${me.name}`}><Portrait look={me.look} size={20} /> {firstName(me)}</span>
           <span className="hh-pill hh-timer" title="Time"><span aria-hidden>⏱</span> <span ref={timerRef}>00:00.0</span></span>
           <span className="hh-pill" title="Tech parts found"><span aria-hidden>🔧</span> {count}/{total}</span>
-          <span className="hh-pill" title="Rooms explored"><span aria-hidden>🚪</span> {rooms[0]}/{rooms[1]}</span>
+          <span className="hh-pill" title="Areas explored, inside and out"><span aria-hidden>🧭</span> {rooms[0]}/{rooms[1]}</span>
           {golden && <span className="hh-pill hh-gold" title="Golden Chip">✨ Golden Chip</span>}
         </div>
         <div className={`hh-map${mapBig ? ' hh-map-big' : ''}`} onClick={toggleMap} role="button" aria-label={mapBig ? 'Shrink map' : 'Expand map'} tabIndex={-1}>
@@ -238,15 +291,16 @@ export default function HouseGame() {
         </div>
         <div className="hh-cross" />
         <div ref={promptRef} className="hh-prompt" style={{ opacity: 0 }} />
-        {toast && <div className={`hh-toast${toast.golden ? ' hh-toast-gold' : ''}`}>{toast.text}</div>}
+        {toast && <div className={`hh-toast${toast.kind === 'gold' ? ' hh-toast-gold' : toast.kind === 'talk' ? ' hh-toast-talk' : ''}`}>{toast.text}</div>}
         <div className="hh-corner">
+          <button type="button" className="hh-icon" onClick={toggleView} aria-label={third ? 'First-person view' : 'Third-person view'} title="Switch view (V)">{third ? '👁' : '🎥'}</button>
           <button type="button" className="hh-icon" onClick={() => setMuted((m) => !m)} aria-label={muted ? 'Sound on' : 'Mute'}>{muted ? '🔇' : '🔊'}</button>
           <button type="button" className="hh-icon" onClick={() => (full ? exitFull() : enterFull())} aria-label={full ? 'Exit full screen' : 'Full screen'}>{full ? '🗗' : '⛶'}</button>
         </div>
       </div>
 
       {phase === 'playing' && touch && engineRef.current && (
-        <TouchControls engine={engineRef.current} onPause={() => engineRef.current?.pause('manual')} onMap={toggleMap} />
+        <TouchControls engine={engineRef.current} onPause={() => engineRef.current?.pause('manual')} onMap={toggleMap} onView={toggleView} />
       )}
 
       {/* Start card */}
@@ -255,29 +309,39 @@ export default function HouseGame() {
           <div className="hh-card">
             <div className="hh-eyebrow">LvTS · First-person 3D</div>
             <h2 className="hh-title">House <span className="grad-text">Hunt</span></h2>
-            <p className="hh-lead">Explore the house, grab the {total} tech parts hidden in its rooms and corridors, hunt down the <strong>Golden Chip</strong> (it hides somewhere new every game), then find the back door.</p>
-            {touch && <button type="button" className="hh-btn hh-btn-top" onClick={play}>Start the hunt →</button>}
+            <p className="hh-lead">Explore the house and the yard, grab the {total} tech parts, hunt down the <strong>Golden Chip</strong> (it hides somewhere new every game), then get out through the front gate.</p>
+            <div className="hh-pick-label">Who do you want to play as?</div>
+            <div className="hh-pick" role="radiogroup" aria-label="Choose your character">
+              {CHARACTERS.map((c) => (
+                <button key={c.id} type="button" role="radio" aria-checked={charId === c.id} className={`hh-pick-tile${charId === c.id ? ' on' : ''}`} onClick={() => pick(c.id)}>
+                  <Portrait look={c.look} size={touch ? 44 : 50} />
+                  <span className="hh-pick-name">{firstName(c)}</span>
+                  <span className="hh-pick-role">{c.role}</span>
+                </button>
+              ))}
+            </div>
+            <div className="hh-pick-perk"><b>{me.name}</b> · {me.perk}</div>
+            <button type="button" className="hh-btn hh-btn-top" onClick={play}>Start as {firstName(me)} →</button>
             <ul className="hh-keys">
               {touch ? (
                 <>
                   <li><b>Left thumb</b> walk</li>
                   <li><b>Right thumb</b> look</li>
-                  <li><b>✋</b> open doors &amp; windows</li>
-                  <li><b>🗺️</b> big map</li>
+                  <li><b>✋</b> open doors, talk to the family</li>
+                  <li><b>🗺️</b> big map · <b>🎥</b> view</li>
                 </>
               ) : (
                 <>
                   <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk</li>
                   <li><b>Mouse</b> look</li>
-                  <li><kbd>E</kbd> open doors &amp; windows</li>
-                  <li><kbd>Shift</kbd> run · <kbd>M</kbd> map · <kbd>Esc</kbd> pause</li>
+                  <li><kbd>E</kbd> open doors, talk to the family</li>
+                  <li><kbd>Shift</kbd> run · <kbd>M</kbd> map · <kbd>V</kbd> view</li>
                 </>
               )}
             </ul>
             {prize.live
               ? <div className="hh-prize-live">🏆 A prize round is live: find the Golden Chip and escape to reveal this round’s secret code — winners are paid by {CONTEST.payout}.</div>
               : <div className="hh-prize-off">No prize round is running right now{prize.next ? ` — the next one starts ${prize.next}` : ''}. Follow <a href={CONTEST.facebookUrl} target="_blank" rel="noopener noreferrer">{CONTEST.handle}</a> to hear when it does.</div>}
-            {!touch && <button type="button" className="hh-btn" onClick={play}>Start the hunt →</button>}
             {best !== null && <div className="hh-best">Your best time: {fmt(best)}</div>}
           </div>
         </div>
@@ -292,6 +356,7 @@ export default function HouseGame() {
             <div className="hh-row">
               <button type="button" className="hh-btn" onClick={resume}>Resume</button>
               <button type="button" className="hh-btn hh-btn-ghost" onClick={restart}>Restart</button>
+              <button type="button" className="hh-btn hh-btn-ghost" onClick={changeCharacter}>Change character</button>
             </div>
           </div>
         </div>
@@ -317,7 +382,7 @@ export default function HouseGame() {
             <h2 className="hh-title">{fmt(result.timeMs)}</h2>
             <div className="hh-stats">
               <span>🔧 {result.items}/{result.total} parts</span>
-              <span>🚪 {result.rooms}/{result.totalRooms} rooms</span>
+              <span>🧭 {result.rooms}/{result.totalRooms} areas</span>
               <span>{result.golden ? '✨ Golden Chip' : '— no Golden Chip'}</span>
             </div>
             {newBest && <div className="hh-best hh-best-new">New personal best!</div>}
@@ -345,6 +410,7 @@ export default function HouseGame() {
             )}
             <div className="hh-row">
               <button type="button" className="hh-btn" onClick={restart}>Play again</button>
+              <button type="button" className="hh-btn hh-btn-ghost" onClick={changeCharacter}>Change character</button>
               {full && <button type="button" className="hh-btn hh-btn-ghost" onClick={exitFull}>Exit full screen</button>}
             </div>
           </div>
@@ -384,11 +450,22 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
 .hh-map-tag { position: absolute; bottom: 6px; right: 8px; font-size: 0.65rem; font-weight: 700; color: rgba(248,250,252,0.85); background: rgba(15,23,42,0.6); padding: 2px 6px; border-radius: 6px; }
 .hh-cross { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: rgba(255,255,255,0.9); box-shadow: 0 0 0 2px rgba(15,23,42,0.35); }
 .hh-prompt { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); background: rgba(15,23,42,0.82); color: #fff; padding: 8px 16px; border-radius: 12px; font-weight: 600; font-size: 0.9rem; transition: opacity .15s; white-space: nowrap; max-width: 92%; overflow: hidden; text-overflow: ellipsis; }
-.hh-is-touch .hh-prompt { bottom: auto; top: 54px; left: 12px; transform: none; max-width: calc(100% - 150px); white-space: normal; font-size: 0.8rem; line-height: 1.35; }
-.hh-is-touch .hh-toast { top: 92px; }
-.hh-btn-top { margin: 0 0 1rem; width: 100%; }
+.hh-is-touch .hh-prompt { bottom: auto; top: 92px; left: 12px; transform: none; max-width: calc(100% - 150px); white-space: normal; font-size: 0.8rem; line-height: 1.35; }
+.hh-is-touch .hh-toast { top: 136px; }
+.hh-btn-top { margin: 0 0 1rem; width: 100%; max-width: 340px; }
 .hh-toast { position: absolute; top: 58px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg,#2563eb,#7c3aed); color: #fff; padding: 9px 16px; border-radius: 12px; font-weight: 700; font-size: 0.9rem; box-shadow: 0 10px 30px rgba(37,99,235,0.35); animation: hh-pop .35s cubic-bezier(.34,1.56,.64,1); white-space: nowrap; max-width: 92%; overflow: hidden; text-overflow: ellipsis; }
 .hh-toast-gold { background: linear-gradient(135deg,#f59e0b,#fbbf24); color: #422006; white-space: normal; text-align: center; }
+.hh-toast-talk { background: #fff; color: #0f172a; border: 2px solid #c7d2fe; white-space: normal; text-align: left; max-width: min(460px, 92%); font-weight: 600; }
+.hh-who { display: inline-flex; align-items: center; gap: 6px; padding-left: 4px; }
+.hh-who svg { border-radius: 6px; }
+.hh-pick-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; margin-bottom: 0.45rem; }
+.hh-pick { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 0 auto 0.5rem; max-width: 440px; }
+.hh-pick-tile { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px 7px; border: 2px solid #e2e8f0; border-radius: 12px; background: #fff; cursor: pointer; font-family: 'Space Grotesk', sans-serif; transition: border-color .15s, transform .15s; }
+.hh-pick-tile:hover { transform: translateY(-2px); }
+.hh-pick-tile.on { border-color: #2563eb; box-shadow: 0 6px 16px rgba(37,99,235,0.18); }
+.hh-pick-name { font-size: 0.8rem; font-weight: 700; color: #0f172a; }
+.hh-pick-role { font-size: 0.64rem; color: #64748b; line-height: 1.1; }
+.hh-pick-perk { font-size: 0.78rem; color: #475569; line-height: 1.45; margin-bottom: 0.9rem; min-height: 2.3em; }
 @keyframes hh-pop { from { transform: translate(-50%, -8px) scale(.9); opacity: 0; } to { transform: translate(-50%, 0) scale(1); opacity: 1; } }
 .hh-corner { position: absolute; bottom: 12px; right: 12px; display: flex; gap: 6px; pointer-events: auto; }
 .hh-is-touch .hh-corner { bottom: auto; top: 188px; right: 12px; flex-direction: column; }
@@ -430,6 +507,7 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
 .hh-stick-base { position: absolute; border-radius: 50%; background: rgba(15,23,42,0.18); border: 2px solid rgba(255,255,255,0.6); pointer-events: none; }
 .hh-stick-knob { position: absolute; width: 44px; height: 44px; border-radius: 50%; background: rgba(37,99,235,0.85); border: 2px solid #fff; box-shadow: 0 4px 12px rgba(15,23,42,0.3); pointer-events: none; }
 .hh-touch-buttons { position: absolute; right: 12px; bottom: 16px; display: grid; grid-template-columns: repeat(2, 52px); gap: 8px; z-index: 2; }
+.hh-touch-buttons .hh-tbtn:last-child:nth-child(odd) { grid-column: span 2; width: 112px; }
 .hh-tbtn { width: 52px; height: 52px; border-radius: 16px; border: 2px solid rgba(255,255,255,0.7); background: rgba(15,23,42,0.6); font-size: 1.35rem; color: #fff; touch-action: none; }
 .hh-tbtn.on { background: rgba(37,99,235,0.85); }
 .hh-tbtn-use { grid-column: span 2; width: 112px; background: linear-gradient(135deg,#2563eb,#7c3aed); }

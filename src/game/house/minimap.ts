@@ -1,14 +1,14 @@
-// The minimap: a plan of the house hidden under fog, cleared by what the
-// player can actually see (rays stopped by walls and shut doors), with a
-// breadcrumb trail of the path walked.
-import { ROOMS, WALLS, EXIT_ZONE, type WallRun, type Rect } from './layout.ts';
+// The minimap: a plan of the house and compound hidden under fog, cleared by
+// what the player can actually see (rays stopped by walls and shut doors),
+// with a breadcrumb trail of the path walked.
+import { ROOMS, WALLS, BARRIERS, EXIT_ZONE, barrierRect, barrierBlocksSight, type WallRun, type Rect, type Room } from './layout.ts';
 import type { OBB } from './collision.ts';
 
-const B = { x0: -0.8, x1: 16.0, z0: -9.8, z1: 15.8 };
+const B = { x0: -4.0, x1: 17.0, z0: -15.0, z1: 24.5 };
 const PPM = 14;              // base-map pixels per metre
 const GRID = 0.1;            // sight-grid cell, metres
-const SIGHT = 5.5;           // how far you can see, metres
-const RAYS = 90;
+const RAYS = 110;
+const CELL = 0.5;            // 'have I seen this spot?' grid, metres (read back without touching the canvas)
 
 const INK = {
   fog: '#0b1222',
@@ -16,6 +16,14 @@ const INK = {
   bath: '#dbeafe',
   veranda: '#fde7b0',
   outside: '#cdeccf',
+  grass: '#bbe5b8',
+  concrete: '#cfd6de',
+  deck: '#ecd5ae',
+  stairs: '#f6c9a0',
+  road: '#5b6472',
+  fence: 'rgba(15,23,42,0.45)',
+  rail: 'rgba(15,23,42,0.6)',
+  gold: '#fbbf24',
   wall: '#0f172a',
   door: '#f59e0b',
   trail: 'rgba(124,58,237,0.75)',
@@ -48,6 +56,8 @@ export class Minimap {
   private fog: HTMLCanvasElement;
   private fogCtx: CanvasRenderingContext2D;
   private sight: Uint8Array;
+  private seen: Uint8Array;
+  private cx: number;
   private gx: number;
   private gz: number;
   private trail: [number, number][] = [];
@@ -61,11 +71,14 @@ export class Minimap {
     this.base.width = w; this.base.height = h;
     this.fog = document.createElement('canvas');
     this.fog.width = w; this.fog.height = h;
-    this.fogCtx = this.fog.getContext('2d', { willReadFrequently: true })!;
+    this.fogCtx = this.fog.getContext('2d')!;
     this.gx = Math.ceil((B.x1 - B.x0) / GRID);
     this.gz = Math.ceil((B.z1 - B.z0) / GRID);
     this.sight = new Uint8Array(this.gx * this.gz);
+    this.cx = Math.ceil((B.x1 - B.x0) / CELL);
+    this.seen = new Uint8Array(this.cx * Math.ceil((B.z1 - B.z0) / CELL));
     for (const wall of WALLS) for (const r of sightRects(wall)) this.markRect(r);
+    for (const b of BARRIERS) if (barrierBlocksSight(b)) this.markRect(barrierRect(b));
     this.drawBase();
     this.reset();
   }
@@ -83,13 +96,25 @@ export class Minimap {
   private drawBase() {
     const g = this.base.getContext('2d')!;
     g.clearRect(0, 0, this.base.width, this.base.height);
-    for (const room of ROOMS) {
-      g.fillStyle = room.outside ? INK.outside : room.floor === 'bath' ? INK.bath : room.floor === 'veranda' ? INK.veranda : INK.floor;
+    // ground first, then raised floors and stairs, then the house
+    const rank = (r: Room) => (r.floor === 'road' ? 0 : r.floor === 'grass' ? 1 : r.ground ? 2 : r.floor === 'stairs' ? 4 : r.outside || r.id === 'veranda' ? 3 : 5);
+    const fill = (r: Room) => ({ grass: INK.grass, concrete: INK.concrete, deck: INK.deck, stairs: INK.stairs, road: INK.road, veranda: INK.veranda, bath: INK.bath, tile: INK.floor } as Record<string, string>)[r.floor];
+    for (const room of [...ROOMS].sort((a, b) => rank(a) - rank(b))) {
+      g.fillStyle = fill(room);
       g.fillRect(this.mx(room.x0), this.my(room.z0), (room.x1 - room.x0) * PPM, (room.z1 - room.z0) * PPM);
+      if (room.floor === 'stairs') {
+        g.strokeStyle = 'rgba(120,60,20,0.35)';
+        g.lineWidth = 1;
+        for (let z = room.z0 + 0.28; z < room.z1; z += 0.28) { g.beginPath(); g.moveTo(this.mx(room.x0), this.my(z)); g.lineTo(this.mx(room.x1), this.my(z)); g.stroke(); }
+      }
     }
-    // yard around the back steps and the carport apron
-    g.fillStyle = INK.outside;
-    g.fillRect(this.mx(-0.8), this.my(-9.8), 16.8 * PPM, 2.2 * PPM);
+    for (const b of BARRIERS) {
+      if (b.kind === 'invisible') continue;
+      const r = barrierRect(b);
+      g.fillStyle = barrierBlocksSight(b) ? INK.wall : b.kind === 'fence' ? INK.fence : INK.rail;
+      const thin = barrierBlocksSight(b) ? 2 : 1.4;
+      g.fillRect(this.mx(r.x0), this.my(r.z0), Math.max(thin, (r.x1 - r.x0) * PPM), Math.max(thin, (r.z1 - r.z0) * PPM));
+    }
     g.fillStyle = INK.wall;
     for (const wall of WALLS) {
       for (const r of sightRects(wall)) g.fillRect(this.mx(r.x0), this.my(r.z0), Math.max(2, (r.x1 - r.x0) * PPM), Math.max(2, (r.z1 - r.z0) * PPM));
@@ -113,42 +138,66 @@ export class Minimap {
     g.fillRect(0, 0, this.fog.width, this.fog.height);
     this.trail = [];
     this.exitSeen = false;
+    this.seen.fill(0);
+  }
+
+  private markSeen(x: number, z: number) {
+    const i = Math.floor((x - B.x0) / CELL), j = Math.floor((z - B.z0) / CELL);
+    if (i >= 0 && j >= 0 && i < this.cx) { const k = j * this.cx + i; if (k < this.seen.length) this.seen[k] = 1; }
   }
 
   /** Clear the fog for everything in sight of (px, pz). `shut` are the door panels that block sight. */
-  reveal(px: number, pz: number, shut: OBB[]) {
+  reveal(px: number, pz: number, shut: OBB[], sight = 5.5) {
     const g = this.fogCtx;
     g.globalCompositeOperation = 'destination-out';
     g.fillStyle = '#000';
-    const r = 0.45 * PPM;
+    const r = 0.45;
+    // march each ray to the first wall or shut door, then clear the whole fan in one fill
+    // (plus a soft round end on every ray) rather than stamping a circle at every step
+    const ends: [number, number][] = [];
     for (let k = 0; k < RAYS; k++) {
       const a = (k / RAYS) * Math.PI * 2;
       const dx = Math.cos(a), dz = Math.sin(a);
-      for (let d = 0; d <= SIGHT; d += GRID * 1.5) {
+      let reach = 0;
+      for (let d = 0; d <= sight; d += GRID * 1.5) {
         const x = px + dx * d, z = pz + dz * d;
         const i = Math.floor((x - B.x0) / GRID), j = Math.floor((z - B.z0) / GRID);
         if (i < 0 || j < 0 || i >= this.gx || j >= this.gz) break;
-        g.beginPath(); g.arc(this.mx(x), this.my(z), r, 0, Math.PI * 2); g.fill();
+        reach = d;
+        this.markSeen(x, z);
+        if (!this.exitSeen && x >= EXIT_ZONE.x0 - 0.3 && x <= EXIT_ZONE.x1 + 0.3 && z >= EXIT_ZONE.z0 - 0.3 && z <= EXIT_ZONE.z1 + 0.3) this.exitSeen = true;
         if (this.sight[i * this.gz + j]) break;
         let stop = false;
         for (const b of shut) if (insideOBB(x, z, b, 0.06)) { stop = true; break; }
         if (stop) break;
-        if (!this.exitSeen && x >= EXIT_ZONE.x0 - 0.3 && x <= EXIT_ZONE.x1 + 0.3 && z >= EXIT_ZONE.z0 - 0.3 && z <= EXIT_ZONE.z1 + 0.3) this.exitSeen = true;
       }
+      ends.push([px + dx * reach, pz + dz * reach]);
     }
+    g.beginPath();
+    ends.forEach(([x, z], k) => {
+      const a = (k / RAYS) * Math.PI * 2;
+      const ex = this.mx(x + Math.cos(a) * r * 0.6), ez = this.my(z + Math.sin(a) * r * 0.6);
+      if (k === 0) g.moveTo(ex, ez); else g.lineTo(ex, ez);
+    });
+    g.closePath();
+    g.fill();
+    g.beginPath();
+    for (const [x, z] of ends) { g.moveTo(this.mx(x) + r * PPM, this.my(z)); g.arc(this.mx(x), this.my(z), r * PPM, 0, Math.PI * 2); }
+    g.moveTo(this.mx(px) + r * PPM, this.my(pz)); g.arc(this.mx(px), this.my(pz), r * PPM, 0, Math.PI * 2);
+    g.fill();
     g.globalCompositeOperation = 'source-over';
     const last = this.trail[this.trail.length - 1];
     if (!last || Math.hypot(last[0] - px, last[1] - pz) > 0.35) this.trail.push([px, pz]);
   }
 
   isRevealed(x: number, z: number): boolean {
-    const p = this.fogCtx.getImageData(Math.floor(this.mx(x)), Math.floor(this.my(z)), 1, 1).data;
-    return p[3] < 40;
+    const i = Math.floor((x - B.x0) / CELL), j = Math.floor((z - B.z0) / CELL);
+    return i >= 0 && j >= 0 && i < this.cx && this.seen[j * this.cx + i] === 1;
   }
 
   get sawExit() { return this.exitSeen; }
 
-  draw(px: number, pz: number, yaw: number, items: [number, number][]) {
+  draw(px: number, pz: number, yaw: number, items: [number, number][], golden: [number, number] | null = null) {
     const c = this.canvas;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const cssW = c.clientWidth || 180, cssH = c.clientHeight || 180;
@@ -191,6 +240,13 @@ export class Minimap {
     // parts you have spotted but not picked up
     g.fillStyle = INK.item;
     for (const [x, z] of items) { g.beginPath(); g.arc(this.mx(x), this.my(z), 3.4 / scale * dpr, 0, Math.PI * 2); g.fill(); }
+
+    if (golden) {
+      g.fillStyle = INK.gold;
+      g.strokeStyle = '#fff';
+      g.lineWidth = 1.5 / scale * dpr;
+      g.beginPath(); g.arc(this.mx(golden[0]), this.my(golden[1]), 5 / scale * dpr, 0, Math.PI * 2); g.fill(); g.stroke();
+    }
 
     if (this.exitSeen) {
       const ex = this.mx((EXIT_ZONE.x0 + EXIT_ZONE.x1) / 2), ez = this.my((EXIT_ZONE.z0 + EXIT_ZONE.z1) / 2);
