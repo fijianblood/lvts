@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import './index.css';
 import NavBar from './components/NavBar';
@@ -20,7 +20,10 @@ import SeoToolsPage from './pages/SeoToolsPage';
 import NetworkDiagramPage from './pages/NetworkDiagramPage';
 import ActivationHelpPage from './pages/ActivationHelpPage';
 
-const VALID_PAGES = ['home', 'services', 'website', 'rewards', 'ranger', 'play', 'tools', 'whiteboard', 'meditrack', 'seo', 'network', 'ask', 'contact', 'activation'];
+// three.js is heavy, so the House Hunt loads only when someone opens it.
+const HouseHuntPage = lazy(() => import('./pages/HouseHuntPage'));
+
+const VALID_PAGES = ['home', 'services', 'website', 'rewards', 'ranger', 'play', 'house', 'tools', 'whiteboard', 'meditrack', 'seo', 'network', 'ask', 'contact', 'activation'];
 
 function initialPage() {
   const hash = window.location.hash.replace('#', '');
@@ -35,6 +38,11 @@ function renderPage(page: string, onNav: (p: string) => void) {
     case 'rewards':  return <RewardsPage  onNav={onNav} />;
     case 'ranger':   return <RangerPage />;
     case 'play':     return <PlayPage />;
+    case 'house':    return (
+      <Suspense fallback={<div style={{ padding: '160px 1.5rem', textAlign: 'center', color: '#64748b' }}>Loading the House Hunt…</div>}>
+        <HouseHuntPage />
+      </Suspense>
+    );
     case 'tools':    return <ToolsPage />;
     case 'whiteboard': return <WhiteboardPage />;
     case 'meditrack': return <MediTrackPage onNav={onNav} />;

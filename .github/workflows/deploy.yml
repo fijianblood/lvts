@@ -25,6 +25,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+        env:
+          # House Hunt prize codes, set in Settings → Secrets and variables → Actions.
+          # Leave it unset and the game runs with its demo code.
+          HOUSE_PRIZE_CODES: ${{ secrets.HOUSE_PRIZE_CODES }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { getContestPhase, type ContestPhase } from '../lib/weaveContest';
+import { prizeState } from '../game/house/contest';
 
 interface CompetitionBannerProps {
   onNav: (p: string) => void;
@@ -14,6 +15,9 @@ const MESSAGES: Record<ContestPhase, string> = {
   live: `🏆 The Weave Playground contest is LIVE! ${CONTEST_DESC} ${TREASURE_TEASER}`,
   ended: `🎮 Play the Weave Playground — my custom coding language and game, free to try right now. ${CONTEST_DESC} ${TREASURE_TEASER}`,
 };
+
+// While a House Hunt prize round is live, the banner promotes it instead.
+const HOUSE_MSG = '🏠 The LvTS House Hunt is LIVE! Explore the house, find the hidden Golden Chip and escape to reveal this round’s secret code — winners are paid by M-PAiSA.';
 
 const FAST_SPEED = 9; // % of bar width per second — slow, easy to read
 const HOVER_SPEED = 0; // eases all the way to a stop while hovered, waiting for the click
@@ -30,8 +34,10 @@ export default function CompetitionBanner({ onNav }: CompetitionBannerProps) {
   const frameRef = useRef<number | null>(null);
   const lastRef = useRef<number | null>(null);
 
-  const message = MESSAGES[getContestPhase()];
-  const fullText = `${message}  ·  Tap to play the Weave Playground →`;
+  const houseLive = prizeState().live;
+  const message = houseLive ? HOUSE_MSG : MESSAGES[getContestPhase()];
+  const gameName = houseLive ? 'the House Hunt' : 'the Weave Playground';
+  const fullText = `${message}  ·  Tap to play ${gameName} →`;
 
   useEffect(() => {
     if (reduceMotion) return;
@@ -61,11 +67,11 @@ export default function CompetitionBanner({ onNav }: CompetitionBannerProps) {
 
   return (
     <button
-      onClick={() => onNav('play')}
+      onClick={() => onNav(houseLive ? 'house' : 'play')}
       onMouseEnter={() => { hoveredRef.current = true; }}
       onMouseLeave={() => { hoveredRef.current = false; }}
       className="contest-banner"
-      aria-label={`${message} Tap to go to the Weave Playground.`}
+      aria-label={`${message} Tap to go to ${gameName}.`}
       style={{
         display: 'block', width: '100%', border: 'none', cursor: 'pointer', textAlign: 'left',
         position: 'sticky', top: 0, zIndex: 55, height: 46, overflow: 'hidden',
