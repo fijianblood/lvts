@@ -29,6 +29,8 @@ export interface Room {
   name: string;
   x0: number; x1: number; z0: number; z1: number;
   floor: FloorKind;
+  /** Floor height for a raised room that isn't at the house's level (the treehouse). */
+  y?: number;
   /** Rooms with a roof over them get a ceiling. */
   ceiling: boolean;
   /** Tile skin on the inside faces (the bathroom's white tiles and mosaic band). */
@@ -195,6 +197,8 @@ export function groundY(z: number): number {
 }
 
 export interface Platform { x0: number; x1: number; z0: number; z1: number; y: number }
+/** The treehouse deck: a little over 2 m above the sloping front garden. */
+export const TREEHOUSE_Y = groundY(19.1) + 2.2;
 /** Raised floors. Every edge is walled or railed except where stairs meet them. */
 export const PLATFORMS: Platform[] = [
   { x0: -0.1, x1: 11.1, z0: -7.7, z1: 13.1, y: 0 },      // the house
@@ -202,14 +206,16 @@ export const PLATFORMS: Platform[] = [
   { x0: -1.52, x1: 0, z0: 2.3, z1: 6.3, y: 0 },          // kitchen balcony
   { x0: -2.65, x1: -1.52, z0: 2.35, z1: 3.25, y: 0 },    // top of the side stairs
   { x0: 0.65, x1: 2.25, z0: -8.6, z1: -7.6, y: 0 },      // back landing
+  { x0: 1.7, x1: 4.3, z0: 17.0, z1: 19.4, y: TREEHOUSE_Y },  // the treehouse in the breadfruit tree
 ];
 
 /** Stairs, walked as ramps: height runs linearly from y0 at z0 to y1 at z1. */
-export interface Ramp { x0: number; x1: number; z0: number; z1: number; y0: number; y1: number; style: 'tile' | 'concrete' }
+export interface Ramp { x0: number; x1: number; z0: number; z1: number; y0: number; y1: number; style: 'tile' | 'concrete' | 'wood' }
 export const RAMPS: Ramp[] = [
   { x0: 11.1, x1: 12.28, z0: 9.6, z1: 13.0, y0: groundY(9.6), y1: 0, style: 'tile' },        // veranda stairs
   { x0: -2.65, x1: -1.52, z0: 3.25, z1: 5.25, y0: 0, y1: groundY(5.25), style: 'concrete' }, // side stairs
   { x0: 0.65, x1: 2.25, z0: -10.0, z1: -8.6, y0: BACK_Y, y1: 0, style: 'concrete' },         // back steps
+  { x0: 2.6, x1: 3.4, z0: 19.4, z1: 20.8, y0: TREEHOUSE_Y, y1: groundY(20.8), style: 'wood' },  // treehouse ladder, from the garden side
 ];
 
 /** Floor height anywhere: stairs, then raised floors, then the ground. */
@@ -239,6 +245,10 @@ export const ROOMS: Room[] = [
   { id: 'vstairs', name: 'Veranda stairs', x0: 11.1, x1: 12.28, z0: 9.6, z1: 13.0, floor: 'stairs', ceiling: false, outside: true },
   { id: 'landing', name: 'Back steps', x0: 0.65, x1: 2.25, z0: -8.6, z1: -7.6, floor: 'deck', ceiling: false, outside: true },
   { id: 'backsteps', name: 'Back steps', x0: 0.65, x1: 2.25, z0: -10.0, z1: -8.6, floor: 'stairs', ceiling: false, outside: true },
+  { id: 'treehouse', name: 'Treehouse', x0: 1.7, x1: 4.3, z0: 17.0, z1: 19.4, floor: 'deck', y: TREEHOUSE_Y, ceiling: false, outside: true, area: true },
+  { id: 'treeladder', name: 'Treehouse', x0: 2.6, x1: 3.4, z0: 19.4, z1: 20.8, floor: 'stairs', ceiling: false, outside: true },
+  { id: 'garden', name: 'Vegetable garden', x0: 11.8, x1: 15.6, z0: -14, z1: -11.0, floor: 'grass', ceiling: false, outside: true, ground: true, area: true },
+  { id: 'bure', name: 'Family bure', x0: -2.2, x1: 1.2, z0: -13.7, z1: -11.2, floor: 'deck', ceiling: false, outside: true, ground: true, area: true },
   { id: 'storage', name: 'Storeroom', x0: 11.2, x1: 15.6, z0: -10.6, z1: -7.4, floor: 'concrete', ceiling: false, outside: true, ground: true, area: true },
   { id: 'carport', name: 'Carport', x0: 11.1, x1: 15.6, z0: -7.4, z1: 2.4, floor: 'concrete', ceiling: false, outside: true, ground: true, area: true },
   { id: 'walkway', name: 'Back walkway', x0: 2.25, x1: 11.2, z0: -9.75, z1: -7.7, floor: 'concrete', ceiling: false, outside: true, ground: true, area: true },
@@ -569,7 +579,7 @@ export const PROPS: Prim[] = [
 // ── The compound ────────────────────────────────────────────────────────────
 // Walls, railings and fences outside, all axis-aligned. Each one is solid to
 // walk into; 'wall' and 'block' also block sight on the minimap.
-export type BarrierKind = 'wall' | 'block' | 'fence' | 'rail' | 'grille' | 'low' | 'invisible';
+export type BarrierKind = 'wall' | 'block' | 'fence' | 'rail' | 'grille' | 'low' | 'invisible' | 'picket' | 'woven';
 export interface Barrier { a: XZ; b: XZ; kind: BarrierKind; h: number; t?: number; curb?: number }
 
 export const BARRIERS: Barrier[] = [
@@ -607,9 +617,29 @@ export const BARRIERS: Barrier[] = [
   { a: [12.25, 21.9], b: [12.25, 23.8], kind: 'invisible', h: 1, t: 0.1 },
   { a: [15.7, 21.9], b: [15.7, 23.8], kind: 'invisible', h: 1, t: 0.1 },
   { a: [12.25, 23.8], b: [15.7, 23.8], kind: 'invisible', h: 1, t: 0.1 },
+
+  // ── places you unlock with stars from chores (each has one way in, shut by a lock until then) ──
+  // vegetable garden behind the storeroom: a picket fence, the gate on the west side (z -12.9..-12.1)
+  { a: [11.8, -11.0], b: [15.65, -11.0], kind: 'picket', h: 0.9, t: 0.08 },
+  { a: [11.8, -14.0], b: [11.8, -12.9], kind: 'picket', h: 0.9, t: 0.08 },
+  { a: [11.8, -12.1], b: [11.8, -11.0], kind: 'picket', h: 0.9, t: 0.08 },
+  // family bure: woven walls, the doorway facing the house (x -0.8..0.2)
+  { a: [-2.2, -11.2], b: [-0.8, -11.2], kind: 'woven', h: 1.55, t: 0.12 },
+  { a: [0.2, -11.2], b: [1.2, -11.2], kind: 'woven', h: 1.55, t: 0.12 },
+  { a: [-2.2, -13.7], b: [1.2, -13.7], kind: 'woven', h: 1.55, t: 0.12 },
+  { a: [-2.2, -13.7], b: [-2.2, -11.2], kind: 'woven', h: 1.55, t: 0.12 },
+  { a: [1.2, -13.7], b: [1.2, -11.2], kind: 'woven', h: 1.55, t: 0.12 },
+  // treehouse: a rail all round the deck, open only at the top of the ladder; rails up both sides of the ladder
+  { a: [1.7, 17.0], b: [4.3, 17.0], kind: 'rail', h: 0.95, t: 0.08 },
+  { a: [1.7, 19.4], b: [2.6, 19.4], kind: 'rail', h: 0.95, t: 0.08 },
+  { a: [3.4, 19.4], b: [4.3, 19.4], kind: 'rail', h: 0.95, t: 0.08 },
+  { a: [1.7, 17.0], b: [1.7, 19.4], kind: 'rail', h: 0.95, t: 0.08 },
+  { a: [4.3, 17.0], b: [4.3, 19.4], kind: 'rail', h: 0.95, t: 0.08 },
+  { a: [2.6, 19.4], b: [2.6, 20.8], kind: 'rail', h: 0.9, t: 0.08 },
+  { a: [3.4, 19.4], b: [3.4, 20.8], kind: 'rail', h: 0.9, t: 0.08 },
 ];
 
-export const barrierBlocksSight = (b: Barrier) => b.kind === 'wall' || b.kind === 'block';
+export const barrierBlocksSight = (b: Barrier) => b.kind === 'wall' || b.kind === 'block' || b.kind === 'woven';
 
 /** The barrier's footprint in plan. */
 export function barrierRect(b: Barrier): Rect {
@@ -626,10 +656,10 @@ export interface Tree { kind: 'palm' | 'banana' | 'bush' | 'breadfruit'; x: numb
 /** `s` is a size factor (for palms, the height in metres). */
 export const TREES: Tree[] = [
   // back yard: banana trees along the fence, one tall palm
-  { kind: 'banana', x: -1.2, z: -11.8, s: 1 }, { kind: 'banana', x: 1.8, z: -12.9, s: 1.1 }, { kind: 'banana', x: 6.0, z: -12.6, s: 1 },
-  { kind: 'banana', x: 9.4, z: -12.9, s: 1.05 }, { kind: 'banana', x: 12.8, z: -12.4, s: 1 }, { kind: 'palm', x: 4.2, z: -13.3, s: 6 },
+  { kind: 'banana', x: -1.9, z: -10.5, s: 1 }, { kind: 'banana', x: 2.4, z: -13.4, s: 1.1 }, { kind: 'banana', x: 6.0, z: -12.6, s: 1 },
+  { kind: 'banana', x: 9.4, z: -12.9, s: 1.05 }, { kind: 'banana', x: 10.7, z: -13.4, s: 1 }, { kind: 'palm', x: 4.2, z: -13.3, s: 6 },
   // front garden
-  { kind: 'breadfruit', x: 3.0, z: 18.2, s: 1.2 }, { kind: 'bush', x: 0.6, z: 19.6, s: 1.0 }, { kind: 'bush', x: 6.8, z: 20.4, s: 0.9 },
+  { kind: 'breadfruit', x: 6.3, z: 17.3, s: 1.25 }, { kind: 'bush', x: 0.6, z: 19.6, s: 1.0 }, { kind: 'bush', x: 6.8, z: 20.4, s: 0.9 },
   { kind: 'bush', x: 9.8, z: 19.0, s: 0.9 }, { kind: 'palm', x: -1.6, z: 17.2, s: 5.2 },
   // beyond the fences
   { kind: 'palm', x: -4.2, z: 6, s: 6 }, { kind: 'palm', x: -4.0, z: -3, s: 5.4 }, { kind: 'palm', x: 18.0, z: 9, s: 6.2 },
@@ -707,6 +737,49 @@ PROPS.push(
   box(15.2, groundY(21.9) + 1.55, 21.72, 15.7, groundY(21.9) + 1.75, 21.74, '#16a34a', false, { emissive: true, tex: 'exit:-z' }),
 );
 
+// ── Chores and the places they unlock ──────────────────────────────────────
+// (the messes, the tools and the locks change during a game, so the engine
+// builds those; these are the fixed parts)
+{
+  const T = TREEHOUSE_Y;
+  const beds = [-13.4, -12.5, -11.6];
+  PROPS.push(
+    // kitchen bin by the end of the sink run, and the tool rack on the back-room wall
+    cyl(0.42, 0, 7.95, 0.17, 0.5, '#4b5563', true, 12), cyl(0.42, 0.5, 7.95, 0.18, 0.03, '#374151'),
+    box(1.95, 1.22, -1.5, 3.75, 1.3, -1.44, '#7b5a3c'),
+    ...[2.2, 2.85, 3.5].map((x) => box(x - 0.015, 1.12, -1.48, x + 0.015, 1.22, -1.45, '#9aa0a6')),
+    // washing line in the back yard
+    cyl(6.7, B, -13.55, 0.04, 2.0, '#9aa0a6', true, 8), cyl(9.1, B, -13.55, 0.04, 2.0, '#9aa0a6', true, 8),
+    box(6.7, B + 1.84, -13.56, 9.1, B + 1.85, -13.54, '#e5e7eb'),
+
+    // vegetable garden: three beds of dalo, cassava and bele
+    ...beds.map((z) => box(12.2, B, z - 0.26, 15.3, B + 0.14, z + 0.26, '#6b4423')),
+    ...[12.5, 13.1, 13.7, 14.3, 14.9].flatMap((x) => [
+      { kind: 'cone' as const, base: [x, B + 0.14, -13.4] as XYZ, r: 0.24, h: 0.5, color: '#3f7d3a', seg: 5 },
+      cyl(x, B + 0.14, -12.5, 0.025, 0.75, '#8b6a4a', false, 5),
+      { kind: 'cone' as const, base: [x, B + 0.7, -12.5] as XYZ, r: 0.22, h: 0.3, color: '#5a9e3f', seg: 5 },
+      { kind: 'cone' as const, base: [x, B + 0.14, -11.6] as XYZ, r: 0.2, h: 0.32, color: '#2f6b2f', seg: 6 },
+    ]),
+    box(15.0, B, -11.35, 15.3, B + 0.35, -11.15, '#a16207'),                     // a crate for the harvest
+
+    // family bure: a thatched roof over woven walls, mats and cushions inside
+    { kind: 'cone', base: [-0.5, B + 1.5, -12.45], r: 2.55, h: 2.1, color: '#a9844f', seg: 8 },
+    box(-2.05, B + 0.005, -13.55, 1.05, B + 0.02, -11.35, '#c9a46a'),             // big woven mat
+    box(-1.9, B + 0.02, -13.4, -0.4, B + 0.04, -12.4, '#7c2d12'), box(-0.2, B + 0.02, -13.4, 0.9, B + 0.04, -12.4, '#1e3a8a'),
+    ...[[-1.8, -13.45], [-1.2, -13.45], [-0.6, -13.45], [0.0, -13.45], [0.6, -13.45]].map(([x, z]) => box(x - 0.24, B + 0.04, z - 0.12, x + 0.24, B + 0.32, z + 0.12, ['#f59e0b', '#ef4444', '#10b981', '#3b82f6', '#a855f7'][Math.round((x + 1.8) / 0.6)])),
+    box(-0.9, B, -12.2, -0.1, B + 0.3, -11.7, '#5b3a22', true),                   // low table
+    box(-2.13, B + 0.6, -13.0, -2.12, B + 1.3, -11.9, '#3f2a1d'), box(-2.125, B + 0.68, -12.9, -2.115, B + 1.22, -12.0, '#e7d7b8'),   // masi cloth
+
+    // treehouse: deck, posts down to the ground, a little roof, a bench and a spyglass
+    box(1.7, T - 0.14, 17.0, 4.3, T - 0.002, 19.4, '#8b5e34'),
+    ...[[1.75, 17.05], [4.25, 17.05], [1.75, 19.35], [4.25, 19.35]].map(([x, z]) => cyl(x, groundY(z) - 0.05, z, 0.07, T - groundY(z), '#6b4a2b', false, 6)),
+    { kind: 'cone', base: [3.0, T + 1.95, 18.2], r: 1.95, h: 0.9, color: '#a9844f', seg: 6 },
+    ...[[1.75, 17.05], [4.25, 17.05], [1.75, 19.35], [4.25, 19.35]].map(([x, z]) => cyl(x, T, z, 0.05, 1.95, '#6b4a2b', false, 6)),
+    box(1.76, T, 17.5, 2.0, T + 0.42, 18.9, '#a0703f', true),
+    cyl(4.0, T, 17.3, 0.03, 0.9, '#3f3f46', false, 5), cyl(4.0, T + 0.9, 17.25, 0.05, 0.4, '#1f2937', false, 8),
+  );
+}
+
 // ── The family: where each one is when you play as someone else ─────────────
 export type NpcPose = 'stand' | 'sit' | 'lie' | 'ipad' | 'floor';
 export interface NpcSpot { pos: XYZ; yaw: number; pose: NpcPose; seat?: number; collide?: boolean }
@@ -731,7 +804,7 @@ export const NPC_SPOTS: Record<string, NpcSpot> = {
   altaaf: { pos: [13.3, BACK_Y, -5.75], yaw: Math.PI, pose: 'stand', collide: true }, // looking under the Ranger's bonnet
   ravi: { pos: [10.0, BACK_Y, -11.0], yaw: HALF_PI, pose: 'stand', collide: true },
   hakeem: { pos: [9.0, BACK_Y, -11.0], yaw: -HALF_PI, pose: 'stand', collide: true },
-  malvin: { pos: [4.3, groundY(17.6), 17.6], yaw: Math.PI, pose: 'stand', collide: true },  // in the front garden
+  malvin: { pos: [5.3, groundY(17.4), 17.4], yaw: Math.PI / 2 + 0.5, pose: 'stand', collide: true },  // in the front garden, looking up at the treehouse
   // cousins: playing out the back and in the front garden, one on the lounge sofa, one with Mahala
   mikhyle: { pos: [6.8, BACK_Y, -10.9], yaw: HALF_PI, pose: 'stand', collide: true },
   sarah: { pos: [5.6, BACK_Y, -10.9], yaw: -HALF_PI, pose: 'stand', collide: true },

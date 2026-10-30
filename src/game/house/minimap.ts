@@ -192,6 +192,15 @@ export class Minimap {
     if (!last || Math.hypot(last[0] - px, last[1] - pz) > 0.35) this.trail.push([px, pz]);
   }
 
+  /** Clear the whole map at once (the view from the treehouse). */
+  revealAll() {
+    const g = this.fogCtx;
+    g.globalCompositeOperation = 'source-over';
+    g.clearRect(0, 0, this.fog.width, this.fog.height);
+    this.seen.fill(1);
+    this.exitSeen = true;
+  }
+
   isRevealed(x: number, z: number): boolean {
     const i = Math.floor((x - B.x0) / CELL), j = Math.floor((z - B.z0) / CELL);
     return i >= 0 && j >= 0 && i < this.cx && this.seen[j * this.cx + i] === 1;

@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { HouseEngine, type RunResult, type PerkPill, type TalkStart } from './engine.ts';
-import { opening, questions, quiz, farewell, type Say, type Question, type Quiz } from './talk.ts';
+import { opening, questions, quiz, farewell, address, type Say, type Question, type Quiz } from './talk.ts';
+import { PLACES, TOOLS, ITEMS, availableChores } from './chores.ts';
+import type { ChoreSnapshot, Work } from './choreSystem.ts';
+import type { Character } from './characters.ts';
 import { CONTEST, prizeState, claimSteps } from './contest.ts';
 import { COLLECTIBLES } from './layout.ts';
 import { CHARACTERS, GROUPS, characterById, firstName, type CharacterGroup, type Look } from './characters.ts';
@@ -46,6 +49,14 @@ const BASE = import.meta.env.BASE_URL;
 /** One line of conversation: the speaker in bold, a Qur'an or hadith reference in small grey. */
 function Line({ say }: { say: Say }) {
   return <p className="hh-say"><b>{say.who}:</b> {say.text}{say.ref && <span className="hh-ref"> ({say.ref})</span>}</p>;
+}
+
+const THANKS = ['JazakAllahu khayran! May Allah reward you.', 'MashaAllah, what a helper!', 'Alhamdulillah, the house is shining!', 'May Allah bless your hands.'];
+/** Someone in the family thanks you for a chore (Mum, or Grandpa if you are Mum). */
+function thanks(me: Character | undefined, n: number): string {
+  const who = characterById(me?.id === 'ronlyn' ? 'hussein' : 'ronlyn');
+  const title = me ? address(me, who) : '';
+  return `${title && title !== 'Dad' ? title.replace(/^./, (c) => c.toUpperCase()) : firstName(who)}: “${THANKS[n % THANKS.length]}”`;
 }
 
 interface Talk {
@@ -156,7 +167,11 @@ export default function HouseGame() {
   const [count, setCount] = useState(0);
   const [golden, setGolden] = useState(false);
   const [rooms, setRooms] = useState<[number, number]>([0, 9]);
-  const [toast, setToast] = useState<{ text: string; kind: 'part' | 'gold' } | { lines: Say[]; kind: 'talk' } | null>(null);
+  const [toast, setToast] = useState<{ text: string; kind: 'part' | 'gold' | 'star' | 'info' } | { lines: Say[]; kind: 'talk' } | null>(null);
+  const [chores, setChores] = useState<ChoreSnapshot | null>(null);
+  const [work, setWork] = useState<Work | null>(null);
+  const [showChores, setShowChores] = useState(false);
+  const thankCount = useRef(0);
   const [talk, setTalk] = useState<Talk | null>(null);
   const [charId, setCharId] = useState(readChar);
   const [tab, setTab] = useState<CharacterGroup>(() => characterById(readChar()).group);
@@ -172,10 +187,10 @@ export default function HouseGame() {
   const [copied, setCopied] = useState(false);
   const prize = prizeState();   // cheap: re-read on every render so a round that starts mid-visit shows up
 
-  const showToast = useCallback((text: string, kind: 'part' | 'gold') => {
+  const showToast = useCallback((text: string, kind: 'part' | 'gold' | 'star' | 'info') => {
     setToast({ text, kind });
     window.clearTimeout(toastTimer.current);
-    toastTimer.current = window.setTimeout(() => setToast(null), kind === 'part' ? 1900 : 4200);
+    toastTimer.current = window.setTimeout(() => setToast(null), kind === 'part' ? 1900 : kind === 'star' ? 3600 : kind === 'info' ? 3800 : 4200);
   }, []);
   const showSay = useCallback((lines: Say[]) => {
     setToast({ lines, kind: 'talk' });
@@ -213,6 +228,11 @@ export default function HouseGame() {
           onSay: (lines) => showSay(lines),
           onView: (t) => setThird(t),
           onPerk: (p) => setPerk(p),
+          onChores: (c) => setChores(c),
+          onWork: (w) => setWork(w),
+          onChoreDone: (d) => showToast(`+${d.stars} ⭐ ${d.chore.name}: done!${d.bonus ? `\n+${d.bonus} ⭐ bonus: every chore done!` : ''}\n${thanks(engineRef.current?.character, thankCount.current++)}`, 'star'),
+          onUnlock: (p) => showToast(`🔓 ${p.emoji} ${p.name} unlocked!\n${p.reward}. Find it ${p.where}.`, 'gold'),
+          onHint: (t) => showToast(t, 'info'),
         },
         { touch, baseUrl: BASE },
       );
@@ -350,6 +370,13 @@ export default function HouseGame() {
     if (phase === 'playing') engineRef.current?.pause('manual');
     setConfirmQuit(true);
   };
+  // C opens and closes the chores list
+  useEffect(() => {
+    if (phase !== 'playing') return;
+    const onKey = (e: KeyboardEvent) => { if (e.code === 'KeyC' && !e.repeat) setShowChores((v) => !v); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [phase]);
   // X on the keyboard does the same as the ✕ button (it asks first, and frees the mouse to answer)
   useEffect(() => {
     if (phase !== 'playing') return;
@@ -388,6 +415,11 @@ export default function HouseGame() {
           <span className="hh-pill" title="Tech parts found"><span aria-hidden>🔧</span> {count}/{total}</span>
           <span className="hh-pill" title="Areas explored, inside and out"><span aria-hidden>🧭</span> {rooms[0]}/{rooms[1]}</span>
           {perk && <span className={`hh-pill hh-perk hh-perk-${perk.tone}`} title={perk.title} aria-live="polite">{perk.text}</span>}
+          {chores && !chores.baby && (
+            <span className="hh-pill hh-stars" title="Stars from chores (kept on this device)">
+              ⭐ {chores.stars}{chores.held && <> · {ITEMS[chores.held].emoji}<span className="hh-held-name"> {ITEMS[chores.held].name}</span></>}
+            </span>
+          )}
           {golden && <span className="hh-pill hh-gold" title="Golden Chip">✨ Golden Chip</span>}
         </div>
         <div className={`hh-map${mapBig ? ' hh-map-big' : ''}`} onClick={toggleMap} role="button" aria-label={mapBig ? 'Shrink map' : 'Expand map'} tabIndex={-1}>
@@ -397,14 +429,65 @@ export default function HouseGame() {
         <div className="hh-cross" />
         <div ref={promptRef} className="hh-prompt" style={{ opacity: 0 }} />
         {toast && toast.kind === 'talk' && !talk && <div className="hh-toast hh-toast-talk">{toast.lines.map((l, i) => <Line key={i} say={l} />)}</div>}
-        {toast && toast.kind !== 'talk' && <div className={`hh-toast${toast.kind === 'gold' ? ' hh-toast-gold' : ''}`}>{toast.text}</div>}
+        {toast && toast.kind !== 'talk' && <div className={`hh-toast hh-toast-${toast.kind}`}>{toast.text}</div>}
+        {phase === 'playing' && work && (
+          <div className="hh-work" role="status">
+            <span>{work.emoji} {work.label}…</span>
+            <div className="hh-work-bar"><i style={{ width: `${Math.round(work.progress * 100)}%` }} /></div>
+          </div>
+        )}
         <div className="hh-corner">
           {phase === 'playing' && <button type="button" className="hh-icon hh-quit" onClick={askQuit} aria-label="Quit the game" title="Quit the game">✕</button>}
+          <button type="button" className={`hh-icon${showChores ? ' on' : ''}`} onClick={() => setShowChores((v) => !v)} aria-label="Chores and rewards" title="Chores and rewards (C)">📋</button>
           <button type="button" className="hh-icon" onClick={toggleView} aria-label={third ? 'First-person view' : 'Third-person view'} title="Switch view (V)">{third ? '👁' : '🎥'}</button>
           <button type="button" className="hh-icon" onClick={() => setMuted((m) => !m)} aria-label={muted ? 'Sound on' : 'Mute'}>{muted ? '🔇' : '🔊'}</button>
           <button type="button" className="hh-icon" onClick={() => (full ? exitFull() : enterFull())} aria-label={full ? 'Exit full screen' : 'Full screen'}>{full ? '🗗' : '⛶'}</button>
         </div>
       </div>
+
+      {/* Chores and rewards: what's left to do this game, and the places stars unlock */}
+      {phase === 'playing' && showChores && !talk && chores && (
+        <div className="hh-chores" role="dialog" aria-label="Chores and rewards">
+          <div className="hh-chores-head">
+            <b>📋 Chores</b>
+            <span className="hh-chores-stars">⭐ {chores.stars} saved{chores.runStars ? ` · +${chores.runStars} this game` : ''}</span>
+            <button type="button" className="hh-talk-x" onPointerDown={(e) => { e.stopPropagation(); setShowChores(false); }} aria-label="Close chores">✕</button>
+          </div>
+          {chores.baby ? (
+            <p className="hh-chores-note">Aisha is too little for chores: she's the one being babysat! Pick someone else to help out.</p>
+          ) : (
+            <>
+              <ul className="hh-chore-list">
+                {availableChores(false, chores.unlocked).map((c) => {
+                  const n = c.steps.filter((st) => chores.done.includes(st.id)).length;
+                  const done = n === c.steps.length;
+                  return (
+                    <li key={c.id} className={done ? 'done' : ''}>
+                      <span className="hh-chore-emoji">{done ? '✅' : c.emoji}</span>
+                      <span className="hh-chore-text"><b>{c.name}{c.steps.length > 1 && !done ? ` (${n}/${c.steps.length})` : ''}</b><small>{c.where}</small></span>
+                      <span className="hh-chore-stars">+{c.stars}⭐</span>
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="hh-chores-note">Tools: 🧹 broom, 🪣 mop and 🧽 cloth are {TOOLS[0].where}; the 💧 watering can is {TOOLS[3].where}. Finish them all for a bonus.</p>
+            </>
+          )}
+          <div className="hh-places">
+            {PLACES.map((p) => {
+              const open = chores.unlocked.includes(p.id);
+              return (
+                <div key={p.id} className={`hh-place${open ? ' open' : ''}`}>
+                  <span className="hh-chore-emoji">{open ? p.emoji : '🔒'}</span>
+                  <span className="hh-chore-text"><b>{p.name}</b><small>{open ? `Open now, ${p.where}` : `${p.stars}⭐ · ${p.reward}`}</small>
+                    {!open && <span className="hh-place-bar"><i style={{ width: `${Math.min(100, (chores.stars / p.stars) * 100)}%` }} /></span>}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Conversation: what was just said, then the questions you can ask (or answers to theirs) */}
       {phase === 'playing' && talk && (() => {
@@ -446,7 +529,7 @@ export default function HouseGame() {
           <div className="hh-card">
             <div className="hh-eyebrow">LvTS · First-person 3D</div>
             <h2 className="hh-title">House <span className="grad-text">Hunt</span></h2>
-            <p className="hh-lead">Explore the house and the yard, grab the {total} tech parts, hunt down the <strong>Golden Chip</strong> (it hides somewhere new every game), then get out through the front gate.</p>
+            <p className="hh-lead">Explore the house and the yard, grab the {total} tech parts, hunt down the <strong>Golden Chip</strong> (it hides somewhere new every game), then get out through the front gate. Help with the chores to earn ⭐ stars and unlock new places.</p>
             <div className="hh-pick-label">Who do you want to play as?</div>
             <div className="hh-tabs" role="tablist" aria-label="Family groups">
               {GROUPS.map((g) => (
@@ -472,14 +555,14 @@ export default function HouseGame() {
                   <li><b>Left thumb</b> walk</li>
                   <li><b>Right thumb</b> look</li>
                   <li><b>✋</b> open doors, talk to the family</li>
-                  <li><b>🗺️</b> big map · <b>🎥</b> view · <b>✕</b> quit</li>
+                  <li><b>🗺️</b> map · <b>📋</b> chores · <b>🎥</b> view · <b>✕</b> quit</li>
                 </>
               ) : (
                 <>
                   <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk</li>
                   <li><b>Mouse</b> look · <kbd>X</kbd> quit</li>
                   <li><kbd>E</kbd> open doors, talk to the family</li>
-                  <li><kbd>Shift</kbd> run · <kbd>M</kbd> map · <kbd>V</kbd> view</li>
+                  <li><kbd>Shift</kbd> run · <kbd>M</kbd> map · <kbd>C</kbd> chores · <kbd>V</kbd> view</li>
                 </>
               )}
             </ul>
@@ -541,6 +624,7 @@ export default function HouseGame() {
               <span>🔧 {result.items}/{result.total} parts</span>
               <span>🧭 {result.rooms}/{result.totalRooms} areas</span>
               <span>{result.golden ? '✨ Golden Chip' : '— no Golden Chip'}</span>
+              {result.stars > 0 && <span>⭐ +{result.stars} from chores</span>}
             </div>
             {newBest && <div className="hh-best hh-best-new">New personal best!</div>}
             {!newBest && best !== null && <div className="hh-best">Your best: {fmt(best)}</div>}
@@ -618,7 +702,32 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
 .hh-is-touch .hh-toast { top: 136px; }
 .hh-btn-top { margin: 0 0 1rem; width: 100%; max-width: 340px; position: sticky; bottom: 0; z-index: 2; box-shadow: 0 -12px 14px #fff, 0 8px 20px rgba(37,99,235,0.3); }  /* stays in view however tall the picker gets */
 .hh-toast { position: absolute; top: 58px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg,#2563eb,#7c3aed); color: #fff; padding: 9px 16px; border-radius: 12px; font-weight: 700; font-size: 0.9rem; box-shadow: 0 10px 30px rgba(37,99,235,0.35); animation: hh-pop .35s cubic-bezier(.34,1.56,.64,1); white-space: nowrap; max-width: 92%; overflow: hidden; text-overflow: ellipsis; }
-.hh-toast-gold { background: linear-gradient(135deg,#f59e0b,#fbbf24); color: #422006; white-space: normal; text-align: center; }
+.hh-toast-gold { background: linear-gradient(135deg,#f59e0b,#fbbf24); color: #422006; white-space: pre-line; text-align: center; max-width: min(460px, 92%); }
+.hh-toast-star { background: linear-gradient(135deg,#15803d,#22c55e); white-space: pre-line; text-align: center; max-width: min(460px, 92%); }
+.hh-toast-info { background: rgba(15,23,42,0.92); white-space: normal; text-align: center; max-width: min(440px, 92%); font-weight: 600; }
+.hh-stars { background: linear-gradient(135deg,#15803d,#22c55e); }
+.hh-work { position: absolute; left: 50%; bottom: 72px; transform: translateX(-50%); background: rgba(15,23,42,0.88); color: #fff; padding: 8px 14px 9px; border-radius: 12px; font-weight: 700; font-size: 0.85rem; min-width: 230px; text-align: center; pointer-events: none; }
+.hh-is-touch .hh-work { bottom: auto; top: 136px; }
+.hh-work-bar { height: 8px; background: rgba(255,255,255,0.2); border-radius: 99px; margin-top: 6px; overflow: hidden; }
+.hh-work-bar i { display: block; height: 100%; background: linear-gradient(90deg,#22c55e,#a3e635); border-radius: 99px; }
+.hh-icon.on { background: #15803d; }
+.hh-chores { position: absolute; top: 56px; left: 12px; width: min(370px, 62%); max-height: calc(100% - 130px); overflow-y: auto; background: #fff; color: #0f172a; border-radius: 16px; border: 2px solid #bbf7d0; box-shadow: 0 16px 40px rgba(15,23,42,0.3); padding: 10px 12px; z-index: 4; pointer-events: auto; font-size: 0.82rem; }
+.hh-is-touch .hh-chores { top: auto; left: 12px; right: 12px; bottom: 12px; width: auto; max-height: 62%; }
+.hh-chores-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.hh-chores-stars { color: #15803d; font-weight: 700; font-size: 0.78rem; }
+.hh-chore-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.hh-chore-list li, .hh-place { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 10px; background: #f8fafc; }
+.hh-chore-list li.done { background: #f0fdf4; color: #64748b; }
+.hh-chore-list li.done b { text-decoration: line-through; }
+.hh-chore-emoji { font-size: 1.1rem; width: 1.5rem; text-align: center; flex: none; }
+.hh-chore-text { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+.hh-chore-text small { color: #64748b; font-size: 0.7rem; }
+.hh-chore-stars { font-weight: 700; color: #15803d; font-size: 0.75rem; flex: none; }
+.hh-chores-note { margin: 8px 2px; color: #475569; font-size: 0.74rem; line-height: 1.4; }
+.hh-places { display: grid; gap: 4px; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+.hh-place.open { background: #fefce8; }
+.hh-place-bar { display: block; height: 6px; background: #e2e8f0; border-radius: 99px; margin-top: 4px; overflow: hidden; }
+.hh-place-bar i { display: block; height: 100%; background: linear-gradient(90deg,#f59e0b,#fbbf24); }
 .hh-toast-talk { background: #fff; color: #0f172a; border: 2px solid #c7d2fe; white-space: normal; text-align: left; max-width: min(460px, 92%); font-weight: 600; }
 .hh-say { margin: 0 0 5px; line-height: 1.42; font-weight: 500; }
 .hh-say b { color: #1d4ed8; font-weight: 700; }
@@ -713,6 +822,7 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
   .hh-pick-role { font-size: 0.56rem; }
   .hh-tab { padding: 5px 8px; font-size: 0.7rem; }
   .hh-who-name { display: none; }
+  .hh-held-name { display: none; }
   .hh-talk-menu { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { .hh-toast { animation: none; } .hh-map { transition: none; } .hh-perk-sense-3 { animation: none; } }
