@@ -2,7 +2,7 @@ import type { ComponentType } from 'react';
 import {
   IconTool, IconWorld, IconGift, IconTruck,
   IconDeviceGamepad2, IconHammer, IconChalkboard, IconHeartbeat, IconSeo, IconMessageCircle, IconMail,
-  IconTopologyStar3, IconKey,
+  IconTopologyStar3, IconKey, IconHomeSearch,
 } from '@tabler/icons-react';
 
 export interface SitePage {
@@ -28,6 +28,8 @@ export const SITE_PAGES: SitePage[] = [
     blurb: "A personal service-log dashboard for Joe's 2024 Ford Ranger XL 4x4 — tracks kilometres, service dates, and delivery date." },
   { id: 'play', label: 'Play', icon: IconDeviceGamepad2, color: '#ec4899',
     blurb: 'The Weave Playground — a custom coding language and game built from scratch, with two $50 FJD contests to win by solving levels.' },
+  { id: 'house', label: 'House Hunt', icon: IconHomeSearch, color: '#f59e0b',
+    blurb: 'LvTS House Hunt — a first-person 3D game in a low-poly Suva house: find 12 tech parts, hunt the hidden Golden Chip and escape through the back door. During prize rounds the win screen shows a secret code to claim a cash prize paid by M-PAiSA.' },
   { id: 'tools', label: 'Tools', icon: IconHammer, color: '#f97316',
     blurb: 'A free browser-based image-to-PDF converter and PDF merger — supports JPEG/HEIC/DNG uploads with page size, orientation, and quality options.' },
   { id: 'whiteboard', label: 'Whiteboard', icon: IconChalkboard, color: '#0891b2',
