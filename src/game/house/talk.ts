@@ -21,7 +21,7 @@ export const DECLARATION = 'I bear witness that there is no god but God, and I b
 export type Generation = 'grand' | 'parent' | 'child' | 'baby';
 const RANK: Record<Generation, number> = { grand: 3, parent: 2, child: 1, baby: 0 };
 /** Married into the family: they don't call Grandpa "Dad". */
-const IN_LAW: ReadonlySet<CharacterId> = new Set(['ronlyn', 'malvin', 'hakeem']);
+const IN_LAW: ReadonlySet<CharacterId> = new Set(['ronlyn', 'malvin', 'hakeem', 'fawzia']);
 /** Josese and Ronlyn's own children. */
 const OWN_KIDS: ReadonlySet<CharacterId> = new Set(['zane', 'mahala', 'aisha']);
 

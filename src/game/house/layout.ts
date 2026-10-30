@@ -727,6 +727,7 @@ export const NPC_SPOTS: Record<string, NpcSpot> = {
   zoya: { pos: [7.5, 0, 15.02], yaw: 0, pose: 'sit', seat: 0.5 },                // on the veranda bench
   // uncles: in the carport with the Ranger, and out in the back yard
   mira: { pos: [15.33, BACK_Y, -0.5], yaw: HALF_PI, pose: 'sit', seat: 0.45 },  // on the carport bench
+  fawzia: { pos: [15.33, BACK_Y, 0.08], yaw: HALF_PI, pose: 'sit', seat: 0.45 }, // beside Mira, her husband
   altaaf: { pos: [13.3, BACK_Y, -5.75], yaw: Math.PI, pose: 'stand', collide: true }, // looking under the Ranger's bonnet
   ravi: { pos: [10.0, BACK_Y, -11.0], yaw: HALF_PI, pose: 'stand', collide: true },
   hakeem: { pos: [9.0, BACK_Y, -11.0], yaw: -HALF_PI, pose: 'stand', collide: true },

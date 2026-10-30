@@ -21,7 +21,7 @@ test("the family's declaration is word for word", () => {
 });
 
 test('anyone can talk to anyone: every pairing has a greeting, questions, their question back and a goodbye', () => {
-  assert.equal(pairs.length, 24 * 23);
+  assert.equal(pairs.length, CHARACTERS.length * (CHARACTERS.length - 1));
   for (const [p, n] of pairs) {
     const who = [firstName(p), firstName(n)];
     for (const [k, room] of [[0, 'kitchen'], [3, null]] as const) {
@@ -79,7 +79,7 @@ test('everyone is called the right thing', () => {
   const cases: [string, string, string][] = [
     ['zane', 'josese', 'Dad'], ['mahala', 'ronlyn', 'Mum'], ['rohan', 'josese', 'Uncle Josese'], ['sarah', 'ronlyn', 'Aunty Ronlyn'],
     ['rohan', 'nancy', 'Aunty Nancy'], ['emaana', 'ravi', 'Uncle Ravi'], ['maanvi', 'hussein', 'Grandpa'], ['nancy', 'hussein', 'Dad'],
-    ['malvin', 'hussein', ''], ['hussein', 'josese', 'my son'], ['nancy', 'ravi', 'Ravi'], ['yash', 'sarah', 'Sarah'], ['ravi', 'aisha', 'little Aisha'],
+    ['malvin', 'hussein', ''], ['fawzia', 'hussein', ''], ['rohan', 'fawzia', 'Aunty Fawzia'], ['hussein', 'josese', 'my son'], ['nancy', 'ravi', 'Ravi'], ['yash', 'sarah', 'Sarah'], ['ravi', 'aisha', 'little Aisha'],
   ];
   for (const [a, b, want] of cases) assert.equal(address(by(a), by(b)), want, `${a} → ${b}`);
 });
