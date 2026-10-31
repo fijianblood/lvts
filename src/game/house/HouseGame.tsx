@@ -45,6 +45,8 @@ function Portrait({ look, size = 52 }: { look: Look; size?: number }) {
   );
 }
 const BASE = import.meta.env.BASE_URL;
+/** Screen Orientation lock: Android Chrome and Firefox only, and only in full screen. */
+type OrientationLock = ScreenOrientation & { lock?: (o: 'landscape' | 'portrait') => Promise<void>; unlock?: () => void };
 
 /** One line of conversation: the speaker in bold, a Qur'an or hadith reference in small grey. */
 function Line({ say }: { say: Say }) {
@@ -93,7 +95,19 @@ function webglAvailable() {
 }
 
 /** Left thumb moves, right thumb looks; buttons for use, map, run and pause. */
-function TouchControls({ engine, onPause, onMap, onView }: { engine: HouseEngine; onPause: () => void; onMap: () => void; onView: () => void }) {
+/**
+ * A touch point in the game's own coordinates. When the game is turned on its
+ * side (rotated 90° clockwise to fake landscape), the screen's down is the
+ * game's right, and the screen's left is the game's down.
+ */
+function localPoint(e: { clientX: number; clientY: number }, el: Element, rotated: boolean) {
+  const r = el.getBoundingClientRect();
+  return rotated
+    ? { x: e.clientY - r.top, y: r.right - e.clientX, w: r.height }
+    : { x: e.clientX - r.left, y: e.clientY - r.top, w: r.width };
+}
+
+function TouchControls({ engine, onPause, onMap, onView, rotated }: { engine: HouseEngine; onPause: () => void; onMap: () => void; onView: () => void; rotated: boolean }) {
   const stick = useRef<{ id: number; x: number; y: number } | null>(null);
   const lookPtr = useRef<{ id: number; x: number; y: number } | null>(null);
   const [knob, setKnob] = useState<{ x: number; y: number; ox: number; oy: number } | null>(null);
@@ -101,28 +115,26 @@ function TouchControls({ engine, onPause, onMap, onView }: { engine: HouseEngine
   const R = 48;
 
   const down = (e: React.PointerEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    const { x, y, w } = localPoint(e, e.currentTarget, rotated);
     e.currentTarget.setPointerCapture(e.pointerId);
-    if (x < rect.width * 0.45 && !stick.current) {
+    if (x < w * 0.45 && !stick.current) {
       stick.current = { id: e.pointerId, x, y };
       setKnob({ x, y, ox: x, oy: y });
     } else if (!lookPtr.current) {
-      lookPtr.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      lookPtr.current = { id: e.pointerId, x, y };
     }
   };
   const move = (e: React.PointerEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
+    const { x, y } = localPoint(e, e.currentTarget, rotated);
     if (stick.current?.id === e.pointerId) {
-      const x = e.clientX - rect.left, y = e.clientY - rect.top;
       let dx = x - stick.current.x, dy = y - stick.current.y;
       const len = Math.hypot(dx, dy);
       if (len > R) { dx = (dx / len) * R; dy = (dy / len) * R; }
       engine.setTouchMove(dx / R, -dy / R);
       setKnob({ x: stick.current.x + dx, y: stick.current.y + dy, ox: stick.current.x, oy: stick.current.y });
     } else if (lookPtr.current?.id === e.pointerId) {
-      engine.look((e.clientX - lookPtr.current.x) * 0.0055, (e.clientY - lookPtr.current.y) * 0.0055);
-      lookPtr.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      engine.look((x - lookPtr.current.x) * 0.0055, (y - lookPtr.current.y) * 0.0055);
+      lookPtr.current = { id: e.pointerId, x, y };
     }
   };
   const up = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -183,6 +195,8 @@ export default function HouseGame() {
   const [newBest, setNewBest] = useState(false);
   const [mapBig, setMapBig] = useState(false);
   const [full, setFull] = useState(false);
+  /** The game is turned 90° on screen (where the browser can't rotate the screen itself). */
+  const [rotated, setRotated] = useState(false);
   const [muted, setMuted] = useState(() => { try { return localStorage.getItem(MUTE_KEY) === '1'; } catch { return false; } });
   const [copied, setCopied] = useState(false);
   const prize = prizeState();   // cheap: re-read on every render so a round that starts mid-visit shows up
@@ -266,13 +280,49 @@ export default function HouseGame() {
   }, []);
   const exitFull = useCallback(() => {
     setFull(false);
+    setRotated(false);
+    try { (screen.orientation as OrientationLock | undefined)?.unlock?.(); } catch { /* nothing locked */ }
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
   }, []);
   useEffect(() => {
-    const onFs = () => { if (!document.fullscreenElement) setFull(false); };
+    const onFs = () => { if (!document.fullscreenElement && !rotatingRef.current) setFull(false); };
     document.addEventListener('fullscreenchange', onFs);
     return () => document.removeEventListener('fullscreenchange', onFs);
   }, []);
+  // rotate: the real thing where the browser allows it (Android Chrome and Firefox, in full screen),
+  // otherwise the game itself turns on its side (iPhone, iPad, most others)
+  const rotatingRef = useRef(false);
+  const rotate = useCallback(async () => {
+    if (rotated) { setRotated(false); return; }
+    const want = window.matchMedia('(orientation: portrait)').matches ? 'landscape' : 'portrait';
+    const el = wrapRef.current;
+    const lock = (screen.orientation as OrientationLock | undefined)?.lock;
+    if (el && lock && el.requestFullscreen) {
+      rotatingRef.current = true;
+      try {
+        if (!document.fullscreenElement) await el.requestFullscreen();
+        setFull(true);
+        await lock.call(screen.orientation, want);
+        rotatingRef.current = false;
+        return;
+      } catch {
+        // the browser said no: turn the game itself instead (inside full screen if we got it, which is fine: only the inner layer turns)
+      }
+      rotatingRef.current = false;
+    }
+    setFull(true);
+    setRotated(true);
+  }, [rotated]);
+  // turn the phone for real while the game is turned, and the game turns back
+  useEffect(() => {
+    if (!rotated) return;
+    const mq = window.matchMedia('(orientation: portrait)');
+    const start = mq.matches;
+    const onChange = () => { if (mq.matches !== start) setRotated(false); };
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, [rotated]);
+
   // the start card too, once the game fills most of the screen: otherwise the dock sits over its Start button
   const [inView, setInView] = useState(false);
   useEffect(() => {
@@ -404,7 +454,8 @@ export default function HouseGame() {
   const steps = claimSteps();
 
   return (
-    <div ref={wrapRef} className={`hh-wrap${full ? ' hh-full' : ''}${touch ? ' hh-is-touch' : ''}`}>
+    <div ref={wrapRef} className={`hh-wrap${full ? ' hh-full' : ''}${touch ? ' hh-is-touch' : ''}${rotated ? ' hh-rotated' : ''}`}>
+      <div className="hh-rotor">
       <div ref={stageRef} className="hh-stage" />
 
       {/* HUD */}
@@ -441,6 +492,7 @@ export default function HouseGame() {
           <button type="button" className={`hh-icon${showChores ? ' on' : ''}`} onClick={() => setShowChores((v) => !v)} aria-label="Chores and rewards" title="Chores and rewards (C)">📋</button>
           <button type="button" className="hh-icon" onClick={toggleView} aria-label={third ? 'First-person view' : 'Third-person view'} title="Switch view (V)">{third ? '👁' : '🎥'}</button>
           <button type="button" className="hh-icon" onClick={() => setMuted((m) => !m)} aria-label={muted ? 'Sound on' : 'Mute'}>{muted ? '🔇' : '🔊'}</button>
+          {touch && <button type="button" className={`hh-icon hh-rotate${rotated ? ' on' : ''}`} onClick={() => void rotate()} aria-label={rotated ? 'Turn the game back' : 'Rotate the screen (landscape / portrait)'} title="Rotate">🔄</button>}
           <button type="button" className="hh-icon" onClick={() => (full ? exitFull() : enterFull())} aria-label={full ? 'Exit full screen' : 'Full screen'}>{full ? '🗗' : '⛶'}</button>
         </div>
       </div>
@@ -520,7 +572,7 @@ export default function HouseGame() {
       })()}
 
       {phase === 'playing' && touch && engineRef.current && (
-        <TouchControls engine={engineRef.current} onPause={() => engineRef.current?.pause('manual')} onMap={toggleMap} onView={toggleView} />
+        <TouchControls engine={engineRef.current} onPause={() => engineRef.current?.pause('manual')} onMap={toggleMap} onView={toggleView} rotated={rotated} />
       )}
 
       {/* Start card */}
@@ -555,7 +607,7 @@ export default function HouseGame() {
                   <li><b>Left thumb</b> walk</li>
                   <li><b>Right thumb</b> look</li>
                   <li><b>✋</b> open doors, talk to the family</li>
-                  <li><b>🗺️</b> map · <b>📋</b> chores · <b>🎥</b> view · <b>✕</b> quit</li>
+                  <li><b>🗺️</b> map · <b>📋</b> chores · <b>🎥</b> view · <b>🔄</b> rotate · <b>✕</b> quit</li>
                 </>
               ) : (
                 <>
@@ -667,6 +719,7 @@ export default function HouseGame() {
         </div>
       )}
 
+      </div>
       <style>{HH_CSS}</style>
     </div>
   );
@@ -679,6 +732,13 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
 @media (orientation: landscape) { .hh-wrap.hh-is-touch { aspect-ratio: 16 / 9; } }
 .hh-wrap.hh-full { position: fixed; inset: 0; z-index: 1000; width: 100vw; height: 100vh; height: 100dvh; max-height: none; min-height: 0; aspect-ratio: auto; border-radius: 0; }
 .hh-stage { position: absolute; inset: 0; }
+.hh-rotor { position: absolute; inset: 0; }
+/* turned on its side: the game is as wide as the screen is tall, rotated a quarter turn clockwise */
+.hh-wrap.hh-rotated .hh-rotor { inset: auto; top: 0; left: 0; width: 100vh; width: 100dvh; height: 100vw; transform-origin: top left; transform: translateX(100vw) rotate(90deg); }
+.hh-rotate.on { background: #2563eb; }
+/* turned to landscape on a phone held upright: lay the corner buttons out along the top, left of the map, clear of the touch buttons */
+.hh-wrap.hh-rotated .hh-corner { top: 12px; bottom: auto; right: 144px; flex-direction: row; }
+.hh-wrap.hh-rotated .hh-pills { max-width: calc(100% - 420px); }
 .hh-hud { position: absolute; inset: 0; pointer-events: none; transition: opacity .3s; }
 .hh-hud-dim { opacity: 0.35; }
 .hh-pills { position: absolute; top: 12px; left: 12px; display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100% - 210px); }
