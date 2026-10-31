@@ -1,7 +1,7 @@
 // Solid walls and furniture for a first-person player, as circles against
 // boxes in plan. Pure functions, no three.js, so they can be unit-tested.
 
-import { WALLS, PROPS, DOORS, BARRIERS, TREES, wallSolidRects, barrierRect, barrierBlocksSight, heightAt, type Rect, type Door, type XZ } from './layout.ts';
+import { WALLS, PROPS, DOORS, TREES, wallSolidRects, barrierRect, barrierBlocksSight, barriersFor, heightAt, type Rect, type Door, type XZ, type GameMode } from './layout.ts';
 
 export interface Circle { x: number; z: number; r: number }
 
@@ -28,10 +28,10 @@ export interface StaticWorld { rects: Rect[]; circles: Circle[] }
  * Everything solid that never moves. With `crawl`, the world as a crawling
  * baby sees it: table skirts and anything raised off the floor don't block.
  */
-export function buildStaticWorld(opts: { crawl?: boolean } = {}): StaticWorld {
+export function buildStaticWorld(opts: { crawl?: boolean; mode?: GameMode } = {}): StaticWorld {
   const rects: Rect[] = [];
   for (const wall of WALLS) rects.push(...wallSolidRects(wall));
-  for (const b of BARRIERS) rects.push(barrierRect(b));
+  for (const b of barriersFor(opts.mode ?? 'hunt')) rects.push(barrierRect(b));
   const circles: Circle[] = [];
   for (const prim of PROPS) {
     if (prim.kind === 'box') {
@@ -72,10 +72,10 @@ export function buildStaticWorld(opts: { crawl?: boolean } = {}): StaticWorld {
  * What a third-person camera, floating above head height, has to stay clear of:
  * walls and anything taller than a person. Railings, fences and furniture pass under it.
  */
-export function buildCameraWorld(): StaticWorld {
+export function buildCameraWorld(mode: GameMode = 'hunt'): StaticWorld {
   const rects: Rect[] = [];
   for (const wall of WALLS) rects.push(...wallSolidRects(wall));
-  for (const b of BARRIERS) if (barrierBlocksSight(b)) rects.push(barrierRect(b));
+  for (const b of barriersFor(mode)) if (barrierBlocksSight(b)) rects.push(barrierRect(b));
   for (const prim of PROPS) {
     if (prim.kind !== 'box' || !prim.solid) continue;
     const floor = heightAt((prim.min[0] + prim.max[0]) / 2, (prim.min[2] + prim.max[2]) / 2);

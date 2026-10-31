@@ -31,6 +31,8 @@ export interface Room {
   floor: FloorKind;
   /** Floor height for a raised room that isn't at the house's level (the treehouse). */
   y?: number;
+  /** Only reachable when exploring the neighbourhood (the street). */
+  explore?: boolean;
   /** Rooms with a roof over them get a ceiling. */
   ceiling: boolean;
   /** Tile skin on the inside faces (the bathroom's white tiles and mosaic band). */
@@ -256,7 +258,8 @@ export const ROOMS: Room[] = [
   { id: 'sidepath', name: 'Side path', x0: -2.7, x1: -0.1, z0: -7.7, z1: 15.4, floor: 'concrete', ceiling: false, outside: true, ground: true, area: true },
   { id: 'frontyard', name: 'Front garden', x0: -2.7, x1: 12.3, z0: 15.4, z1: 21.9, floor: 'grass', ceiling: false, outside: true, ground: true, area: true },
   { id: 'backyard', name: 'Back yard', x0: -2.7, x1: 15.65, z0: -14, z1: -7.7, floor: 'grass', ceiling: false, outside: true, ground: true, area: true },
-  { id: 'road', name: 'Road', x0: -30, x1: 40, z0: 22.5, z1: 29, floor: 'road', ceiling: false, outside: true, ground: true },
+  { id: 'road', name: 'The street', x0: -30, x1: 40, z0: 22.5, z1: 29, floor: 'road', ceiling: false, outside: true, ground: true, area: true, explore: true },
+  { id: 'footpath', name: 'The shops', x0: -12, x1: 32, z0: 29, z1: 31.6, floor: 'concrete', ceiling: false, outside: true, ground: true, area: true, explore: true },
 ];
 
 // The house footprint (interior faces of the exterior walls sit 0.1 inside these).
@@ -579,8 +582,11 @@ export const PROPS: Prim[] = [
 // ── The compound ────────────────────────────────────────────────────────────
 // Walls, railings and fences outside, all axis-aligned. Each one is solid to
 // walk into; 'wall' and 'block' also block sight on the minimap.
-export type BarrierKind = 'wall' | 'block' | 'fence' | 'rail' | 'grille' | 'low' | 'invisible' | 'picket' | 'woven';
-export interface Barrier { a: XZ; b: XZ; kind: BarrierKind; h: number; t?: number; curb?: number }
+export type BarrierKind = 'wall' | 'block' | 'fence' | 'rail' | 'grille' | 'low' | 'invisible' | 'picket' | 'woven' | 'facade';
+export interface Barrier { a: XZ; b: XZ; kind: BarrierKind; h: number; t?: number; curb?: number; /** Only in this mode (the finish line in the hunt; the street's edges when exploring). */ mode?: GameMode }
+export type GameMode = 'hunt' | 'explore';
+/** Barriers that apply in a mode. */
+export const barriersFor = (mode: GameMode) => BARRIERS.filter((b) => !b.mode || b.mode === mode);
 
 export const BARRIERS: Barrier[] = [
   // front veranda: end wall, scroll-iron railing on the open sides
@@ -613,10 +619,16 @@ export const BARRIERS: Barrier[] = [
   { a: [15.5, 21.9], b: [15.7, 21.9], kind: 'block', h: 1.75, t: 0.3 },
   // low wall between the front garden and the driveway, open near the bottom
   { a: [12.3, 15.45], b: [12.3, 19.5], kind: 'low', h: 0.6, t: 0.2 },
-  // past the gate is the finish: keep runners in front of it
-  { a: [12.25, 21.9], b: [12.25, 23.8], kind: 'invisible', h: 1, t: 0.1 },
-  { a: [15.7, 21.9], b: [15.7, 23.8], kind: 'invisible', h: 1, t: 0.1 },
-  { a: [12.25, 23.8], b: [15.7, 23.8], kind: 'invisible', h: 1, t: 0.1 },
+  // past the gate is the finish: keep runners in front of it (the hunt)
+  { a: [12.25, 21.9], b: [12.25, 23.8], kind: 'invisible', h: 1, t: 0.1, mode: 'hunt' },
+  { a: [15.7, 21.9], b: [15.7, 23.8], kind: 'invisible', h: 1, t: 0.1, mode: 'hunt' },
+  { a: [12.25, 23.8], b: [15.7, 23.8], kind: 'invisible', h: 1, t: 0.1, mode: 'hunt' },
+  // exploring: out of the gate onto the street, which runs past the neighbours to the shops across the road
+  { a: [-12, 22.3], b: [-2.7, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // the neighbours' front yards
+  { a: [15.7, 22.3], b: [32, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
+  { a: [-12, 22.3], b: [-12, 31.6], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },    // the ends of the street (for now)
+  { a: [32, 22.3], b: [32, 31.6], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
+  { a: [-12, 31.6], b: [32, 31.6], kind: 'facade', h: 3, t: 0.12, mode: 'explore' },       // the shopfronts
 
   // ── places you unlock with stars from chores (each has one way in, shut by a lock until then) ──
   // vegetable garden behind the storeroom: a picket fence, the gate on the west side (z -12.9..-12.1)
@@ -639,7 +651,7 @@ export const BARRIERS: Barrier[] = [
   { a: [3.4, 19.4], b: [3.4, 20.8], kind: 'rail', h: 0.9, t: 0.08 },
 ];
 
-export const barrierBlocksSight = (b: Barrier) => b.kind === 'wall' || b.kind === 'block' || b.kind === 'woven';
+export const barrierBlocksSight = (b: Barrier) => b.kind === 'wall' || b.kind === 'block' || b.kind === 'woven' || b.kind === 'facade';
 
 /** The barrier's footprint in plan. */
 export function barrierRect(b: Barrier): Rect {
@@ -676,8 +688,6 @@ export const NEIGHBOURS: Neighbour[] = [
   { x0: -1, x1: 9, z0: -25, z1: -17, h: 4.8, wall: '#efe9dc', roof: '#9aa7b3' },
   { x0: 12, x1: 20, z0: -24, z1: -16.5, h: 4.4, wall: '#e8ecef', roof: '#5b8fbf' },
   { x0: 21, x1: 29, z0: -6, z1: 6, h: 5, wall: '#f1efe8', roof: '#c9cdd1' },
-  { x0: -6, x1: 4, z0: 31, z1: 39, h: 5, wall: '#f3e6c9', roof: '#d08a3a' },
-  { x0: 8, x1: 18, z0: 31, z1: 39, h: 5.4, wall: '#e3eef3', roof: '#7a8b99' },
 ];
 
 // Outdoor furniture and clutter, from the photos.
@@ -732,6 +742,9 @@ PROPS.push(
   lying('x', 15.3, B + 0.33, -8.3, 0.33, 0.22, '#1d1f22', true), lying('x', 15.3, B + 0.33, -8.3, 0.2, 0.23, '#b8bcc0'),
   box(13.38, B + 2.2, -9.02, 13.42, B + 2.3, -8.98, '#fff7cc', false, { emissive: true }),
   box(11.2, B + 2.5, -10.6, 15.6, B + 2.6, -7.4, '#5f6468'),
+
+  // the van parked across the road (you bump into it when exploring)
+  box(3.3, ROAD_Y, 26.55, 7.7, ROAD_Y + 2.2, 28.25, 'transparent', true),
 
   // the way out: a green sign on the gate pillar
   box(15.2, groundY(21.9) + 1.55, 21.72, 15.7, groundY(21.9) + 1.75, 21.74, '#16a34a', false, { emissive: true, tex: 'exit:-z' }),

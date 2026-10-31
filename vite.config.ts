@@ -14,11 +14,16 @@ export default defineConfig(({ mode }) => {
   const { bundle: housePrize, warnings } = encodePrizeCodes(rawCodes, randomBytes(12).toString('hex'))
   for (const w of warnings) console.warn(`[house-hunt] ${w}`)
   console.log(`[house-hunt] ${housePrize.entries.length} prize code(s) loaded${housePrize.until ? `, contest ends ${housePrize.until}` : ''}`)
+  // The neighbourhood server (workers/neighbourhood). Set NEIGHBOURHOOD_API to change it, or to 'off' for none.
+  const hoodRaw = process.env.NEIGHBOURHOOD_API ?? env.NEIGHBOURHOOD_API
+  const hood = hoodRaw === 'off' ? '' : hoodRaw || 'https://lvts-neighbourhood.lomavatatechfiji.workers.dev'
+  console.log(`[house-hunt] neighbourhood server: ${hood || 'off'}`)
 
   return {
     base: '/lvts/',
     define: {
       __HOUSE_PRIZE__: JSON.stringify(housePrize),
+      __NEIGHBOURHOOD_API__: JSON.stringify(hood),
     },
     plugins: [
       react(),

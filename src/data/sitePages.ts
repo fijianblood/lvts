@@ -29,7 +29,7 @@ export const SITE_PAGES: SitePage[] = [
   { id: 'play', label: 'Play', icon: IconDeviceGamepad2, color: '#ec4899',
     blurb: 'The Weave Playground — a custom coding language and game built from scratch, with two $50 FJD contests to win by solving levels.' },
   { id: 'house', label: 'House Hunt', icon: IconHomeSearch, color: '#f59e0b',
-    blurb: 'LvTS House Hunt — an interactive 3D walk-through of a Suva family home and its yard: play as a member of the family, find 12 hidden tech parts, hunt the Golden Chip and get out through the front gate. During prize rounds the win screen shows a secret code to claim a cash prize paid by M-PAiSA.' },
+    blurb: 'LvTS House Hunt — an interactive 3D walk-through of a Suva family home and its yard: play as a member of the family, find 12 hidden tech parts, hunt the Golden Chip and get out through the front gate. During prize rounds the win screen shows a secret code to claim a cash prize paid by M-PAiSA. Visitors can create their own character and explore the neighbourhood street, where local shops and offers are coming soon.' },
   { id: 'tools', label: 'Tools', icon: IconHammer, color: '#f97316',
     blurb: 'Free browser-based tools: an image-to-PDF converter, a PDF merger, and a photo-to-pencil-sketch maker — supports JPEG/HEIC/DNG uploads, and nothing is uploaded.' },
   { id: 'whiteboard', label: 'Whiteboard', icon: IconChalkboard, color: '#0891b2',

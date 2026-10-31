@@ -83,3 +83,42 @@ test('everyone is called the right thing', () => {
   ];
   for (const [a, b, want] of cases) assert.equal(address(by(a), by(b)), want, `${a} → ${b}`);
 });
+
+// ── visitors (your own character, and other people's) ─────────────────────
+import { visitorCharacter } from '../../src/game/house/neighbourhood.ts';
+import { isVisitor } from '../../src/game/house/talk.ts';
+
+const LOOKS = {
+  kid: { size: 'kid', skin: '#93603f', hair: '#16110e', hairStyle: 'bun', shirt: '#ec4899', pants: '#f8fafc', longPants: false, beard: false, earrings: true },
+  adult: { size: 'adult', skin: '#7a4b2f', hair: '#16110e', hairStyle: 'short', shirt: '#3b82f6', pants: '#1f2937', longPants: true, beard: true, earrings: false },
+} as const;
+const me = [visitorCharacter('Josie', LOOKS.kid, 'a', true), visitorCharacter('Tevita', LOOKS.adult, 'b', true)];
+const them = [visitorCharacter('Mere', LOOKS.kid, 'c', false), visitorCharacter('Ravin', LOOKS.adult, 'd', false)];
+
+test('visitors talk to everyone, greet with Bula, and never speak for the family\'s faith', () => {
+  for (const p of [...me, ...CHARACTERS]) for (const n of [...them, ...CHARACTERS, ...me]) {
+    if (p === n || (!isVisitor(p) && !isVisitor(n))) continue;
+    if (p.id === n.id) continue;
+    const who = [firstName(p), firstName(n)];
+    for (const k of [0, 1]) {
+      const where = `${p.name} → ${n.name}`;
+      const hello = opening(p, n, k);
+      clean(hello, who, where);
+      if (isVisitor(p)) assert.doesNotMatch(hello[0].text, /Assalamu/, `${where}: a visitor greeted with salaam`);
+      const qs = questions(p, n, 'kitchen', k);
+      assert.ok(qs.length >= 3, where);
+      for (const q of qs) clean(q.lines, who, `${where} ${q.id}`);
+      if (isVisitor(n)) {
+        // other people's characters only make small talk
+        for (const q of qs) for (const l of q.lines) assert.doesNotMatch(l.text, /Allah|declaration|Qur'an|Muhammad/, `${where}: a visitor's character spoke about faith`);
+      } else if (generation(n) !== 'baby') {
+        const d = qs.find((q) => q.id === 'declaration')!;
+        assert.match(d.label, /your family's declaration/, where);
+        assert.ok(d.lines.some((l) => l.who === firstName(n) && l.text.includes(DECLARATION)), `${where}: declaration not word for word`);
+      }
+      const back = quiz(p, n, 'kitchen', k);
+      if (back) { for (const c of back.choices) clean(c.lines, who, `${where} quiz`); for (const c of back.choices) for (const l of c.lines) assert.doesNotMatch(l.text, /Bismillah|Allah/, `${where}: faith quiz for a visitor`); }
+      clean(farewell(p, n), who, `${where} goodbye`);
+    }
+  }
+});

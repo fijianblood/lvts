@@ -1,10 +1,13 @@
 // The minimap: a plan of the house and compound hidden under fog, cleared by
 // what the player can actually see (rays stopped by walls and shut doors),
 // with a breadcrumb trail of the path walked.
-import { ROOMS, WALLS, BARRIERS, EXIT_ZONE, barrierRect, barrierBlocksSight, type WallRun, type Rect, type Room } from './layout.ts';
+import { ROOMS, WALLS, BARRIERS, EXIT_ZONE, barrierRect, barrierBlocksSight, type WallRun, type Rect, type Room, type GameMode } from './layout.ts';
+import { SHOP_SPOTS, shopBox } from './neighbourhood.ts';
 import type { OBB } from './collision.ts';
 
-const B = { x0: -4.0, x1: 17.0, z0: -15.0, z1: 24.5 };
+const B = { x0: -13.0, x1: 33.0, z0: -15.0, z1: 38.5 };
+/** The big map in the hunt shows just the compound. */
+const HUNT_FRAME = { x0: -4.0, x1: 17.0, z0: -15.0, z1: 24.5 };
 const PPM = 14;              // base-map pixels per metre
 const GRID = 0.1;            // sight-grid cell, metres
 const RAYS = 110;
@@ -65,6 +68,9 @@ export class Minimap {
   /** Show the exit from the start (a character who knows the way). */
   exitKnown = false;
   expanded = false;
+  /** Mark the way out (the hunt); not when exploring. */
+  showExit = true;
+  private mode: GameMode = 'hunt';
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -84,6 +90,9 @@ export class Minimap {
     this.drawBase();
     this.reset();
   }
+
+  /** Exploring zooms the big map out to take in the street; the hunt keeps to the compound. */
+  setMode(mode: GameMode) { this.mode = mode; }
 
   private markRect(r: Rect) {
     const i0 = Math.floor((r.x0 - B.x0) / GRID), i1 = Math.ceil((r.x1 - B.x0) / GRID);
@@ -128,6 +137,14 @@ export class Minimap {
           g.fillStyle = INK.wall;
         }
       }
+    }
+    // the shops across the road
+    for (const sp of SHOP_SPOTS) {
+      const b = shopBox(sp);
+      g.fillStyle = sp.wall;
+      g.fillRect(this.mx(b.x0), this.my(b.z0), (b.x1 - b.x0) * PPM, (b.z1 - b.z0) * PPM);
+      g.strokeStyle = INK.wall; g.lineWidth = 2;
+      g.strokeRect(this.mx(b.x0), this.my(b.z0), (b.x1 - b.x0) * PPM, (b.z1 - b.z0) * PPM);
     }
     g.fillStyle = 'rgba(22,163,74,0.35)';
     g.fillRect(this.mx(EXIT_ZONE.x0), this.my(EXIT_ZONE.z0), (EXIT_ZONE.x1 - EXIT_ZONE.x0) * PPM, (EXIT_ZONE.z1 - EXIT_ZONE.z0) * PPM);
@@ -221,10 +238,11 @@ export class Minimap {
     // world -> screen: centred on the player (small map) or the whole house (expanded)
     let scale: number, ox: number, oy: number;
     if (this.expanded) {
-      const fx = (B.x1 - B.x0) * PPM, fz = (B.z1 - B.z0) * PPM;
+      const F = this.mode === 'hunt' ? HUNT_FRAME : B;
+      const fx = (F.x1 - F.x0) * PPM, fz = (F.z1 - F.z0) * PPM;
       scale = Math.min(c.width / fx, c.height / fz) * 0.96;
-      ox = (c.width - fx * scale) / 2;
-      oy = (c.height - fz * scale) / 2;
+      ox = (c.width - fx * scale) / 2 - this.mx(F.x0) * scale;
+      oy = (c.height - fz * scale) / 2 - this.my(F.z0) * scale;
     } else {
       const view = 7.5; // metres from centre to edge
       scale = c.width / (view * 2 * PPM);
@@ -259,7 +277,7 @@ export class Minimap {
       g.beginPath(); g.arc(this.mx(golden[0]), this.my(golden[1]), 5 / scale * dpr, 0, Math.PI * 2); g.fill(); g.stroke();
     }
 
-    if (this.exitSeen || this.exitKnown) {
+    if (this.showExit && (this.exitSeen || this.exitKnown)) {
       const ex = this.mx((EXIT_ZONE.x0 + EXIT_ZONE.x1) / 2), ez = this.my((EXIT_ZONE.z0 + EXIT_ZONE.z1) / 2);
       g.fillStyle = INK.exit;
       g.beginPath(); g.arc(ex, ez, 5 / scale * dpr, 0, Math.PI * 2); g.fill();

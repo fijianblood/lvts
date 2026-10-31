@@ -10,11 +10,17 @@
 export type CharacterId =
   | 'hussein' | 'josese' | 'ronlyn' | 'zane' | 'mahala' | 'aisha'
   | 'nancy' | 'louzanne' | 'alicia' | 'maria' | 'zoya' | 'mira' | 'fawzia' | 'altaaf' | 'ravi' | 'malvin' | 'hakeem'
-  | 'mikhyle' | 'nabeeha' | 'emaana' | 'rohan' | 'kahaani' | 'yash' | 'maanvi' | 'sarah';
+  | 'mikhyle' | 'nabeeha' | 'emaana' | 'rohan' | 'kahaani' | 'yash' | 'maanvi' | 'sarah'
+  /** The visitor's own character, made in the character creator. */
+  | 'me'
+  /** Other visitors' characters, from the neighbourhood server. */
+  | `v:${string}`;
 
 /** Which tab of the picker a character sits on. */
-export type CharacterGroup = 'home' | 'aunties' | 'cousins';
+export type CharacterGroup = 'you' | 'home' | 'aunties' | 'cousins' | 'visitors';
+/** The picker's tabs ('visitors' aren't playable, so they have no tab). */
 export const GROUPS: { id: CharacterGroup; label: string }[] = [
+  { id: 'you', label: 'You' },
   { id: 'home', label: 'Home' },
   { id: 'aunties', label: 'Aunties & Uncles' },
   { id: 'cousins', label: 'Cousins' },
@@ -212,6 +218,11 @@ export const CHARACTERS: Character[] = [
     (room) => (room ? `Look in the ${room}, cousin!` : 'Go cousin, go! Out the gate!')),
 ];
 
-export const characterById = (id: string): Character => CHARACTERS.find((c) => c.id === id) ?? CHARACTERS[1];
+let mine: Character | null = null;
+/** Register the visitor's own character (or forget it), so it can be played as 'me'. */
+export function setMine(c: Character | null) { mine = c; }
+export const getMine = () => mine;
+
+export const characterById = (id: string): Character => (id === 'me' && mine) || CHARACTERS.find((c) => c.id === id) || CHARACTERS[1];
 
 export const firstName = (c: Character) => c.name.split(' ')[0];
