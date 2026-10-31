@@ -165,10 +165,11 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
     id: 'free-tools',
     keywords: [
       'pdf tool', 'pdf converter', 'merge pdf', 'image to pdf', 'heic', 'convert pdf',
+      'sketch', 'pencil sketch', 'photo to sketch', 'drawing',
     ],
     answer:
       "**Free browser tools**\n\n" +
-      "The **Tools** page has a free Image → PDF converter and a PDF merge tool — both run entirely in your browser, nothing gets uploaded anywhere.",
+      "The **Tools** page has a free Image → PDF converter, a PDF merge tool, and a Photo → Pencil Sketch maker — all run entirely in your browser, nothing gets uploaded anywhere.",
   },
   {
     id: 'laptop-wont-turn-on',

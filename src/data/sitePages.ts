@@ -31,7 +31,7 @@ export const SITE_PAGES: SitePage[] = [
   { id: 'house', label: 'House Hunt', icon: IconHomeSearch, color: '#f59e0b',
     blurb: 'LvTS House Hunt — an interactive 3D walk-through of a Suva family home and its yard: play as a member of the family, find 12 hidden tech parts, hunt the Golden Chip and get out through the front gate. During prize rounds the win screen shows a secret code to claim a cash prize paid by M-PAiSA.' },
   { id: 'tools', label: 'Tools', icon: IconHammer, color: '#f97316',
-    blurb: 'A free browser-based image-to-PDF converter and PDF merger — supports JPEG/HEIC/DNG uploads with page size, orientation, and quality options.' },
+    blurb: 'Free browser-based tools: an image-to-PDF converter, a PDF merger, and a photo-to-pencil-sketch maker — supports JPEG/HEIC/DNG uploads, and nothing is uploaded.' },
   { id: 'whiteboard', label: 'Whiteboard', icon: IconChalkboard, color: '#0891b2',
     blurb: 'A free embedded collaborative whiteboard (powered by Excalidraw) for sketching diagrams or jotting notes right in the browser.' },
   { id: 'meditrack', label: 'MediTrack', icon: IconHeartbeat, color: '#c1443b',
