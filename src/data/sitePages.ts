@@ -2,7 +2,7 @@ import type { ComponentType } from 'react';
 import {
   IconTool, IconWorld, IconGift, IconTruck,
   IconDeviceGamepad2, IconHammer, IconChalkboard, IconHeartbeat, IconSeo, IconMessageCircle, IconMail,
-  IconTopologyStar3, IconKey, IconHomeSearch,
+  IconTopologyStar3, IconKey, IconHomeSearch, IconVideo,
 } from '@tabler/icons-react';
 
 export interface SitePage {
@@ -32,6 +32,8 @@ export const SITE_PAGES: SitePage[] = [
     blurb: 'LvTS House Hunt — an interactive 3D walk-through of a Suva family home and its yard: play as a member of the family, find 12 hidden tech parts, hunt the Golden Chip and get out through the front gate. During prize rounds the win screen shows a secret code to claim a cash prize paid by M-PAiSA.' },
   { id: 'tools', label: 'Tools', icon: IconHammer, color: '#f97316',
     blurb: 'Free browser-based tools: an image-to-PDF converter, a PDF merger, and a photo-to-pencil-sketch maker — supports JPEG/HEIC/DNG uploads, and nothing is uploaded.' },
+  { id: 'videos', label: 'Save Videos', icon: IconVideo, color: '#ef4444',
+    blurb: 'A free step-by-step guide to saving the videos you posted on YouTube, TikTok, Facebook, Instagram and X, using each platform\'s official download and export tools.' },
   { id: 'whiteboard', label: 'Whiteboard', icon: IconChalkboard, color: '#0891b2',
     blurb: 'A free embedded collaborative whiteboard (powered by Excalidraw) for sketching diagrams or jotting notes right in the browser.' },
   { id: 'meditrack', label: 'MediTrack', icon: IconHeartbeat, color: '#c1443b',

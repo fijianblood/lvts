@@ -4,6 +4,9 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { encodePrizeCodes } from './src/game/house/prizeCodec.ts'
+import { GUIDE_PATH, videoGuideHtml } from './src/lib/videoGuideHtml.ts'
+
+const SITE_URL = 'https://fijianblood.github.io/lvts/'
 
 export default defineConfig(({ mode }) => {
   // House Hunt prize codes come from the HOUSE_PRIZE_CODES secret (GitHub Actions)
@@ -22,6 +25,13 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       react(),
+      {
+        // Standalone, search-indexable copy of the "save your own videos" guide.
+        name: 'lvts-video-guide',
+        generateBundle() {
+          this.emitFile({ type: 'asset', fileName: `${GUIDE_PATH}index.html`, source: videoGuideHtml('/lvts/', SITE_URL + GUIDE_PATH) })
+        },
+      },
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
@@ -54,7 +64,7 @@ export default defineConfig(({ mode }) => {
           // SPA shell for actual app routes. Without this, clicking a
           // target="_blank" link straight to e.g. /lvts/rammap.png gets
           // intercepted as a navigation and incorrectly redirected to index.html.
-          navigateFallbackDenylist: [/\.[a-zA-Z0-9]{2,5}$/],
+          navigateFallbackDenylist: [/\.[a-zA-Z0-9]{2,5}$/, /\/save-your-videos\//],
           runtimeCaching: [
             {
               // Any other hashed JS/CSS chunk (dynamic imports like jspdf,

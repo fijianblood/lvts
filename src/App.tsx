@@ -19,11 +19,12 @@ import MediTrackPage from './pages/MediTrackPage';
 import SeoToolsPage from './pages/SeoToolsPage';
 import NetworkDiagramPage from './pages/NetworkDiagramPage';
 import ActivationHelpPage from './pages/ActivationHelpPage';
+import SaveVideosPage from './pages/SaveVideosPage';
 
 // three.js is heavy, so the House Hunt loads only when someone opens it.
 const HouseHuntPage = lazy(() => import('./pages/HouseHuntPage'));
 
-const VALID_PAGES = ['home', 'services', 'website', 'rewards', 'ranger', 'play', 'house', 'tools', 'whiteboard', 'meditrack', 'seo', 'network', 'ask', 'contact', 'activation'];
+const VALID_PAGES = ['home', 'services', 'website', 'rewards', 'ranger', 'play', 'house', 'tools', 'videos', 'whiteboard', 'meditrack', 'seo', 'network', 'ask', 'contact', 'activation'];
 
 function initialPage() {
   const hash = window.location.hash.replace('#', '');
@@ -44,6 +45,7 @@ function renderPage(page: string, onNav: (p: string) => void) {
       </Suspense>
     );
     case 'tools':    return <ToolsPage />;
+    case 'videos':   return <SaveVideosPage onNav={onNav} />;
     case 'whiteboard': return <WhiteboardPage />;
     case 'meditrack': return <MediTrackPage onNav={onNav} />;
     case 'seo':      return <SeoToolsPage />;

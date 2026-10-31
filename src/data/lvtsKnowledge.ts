@@ -172,6 +172,17 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
       "The **Tools** page has a free Image → PDF converter, a PDF merge tool, and a Photo → Pencil Sketch maker — all run entirely in your browser, nothing gets uploaded anywhere.",
   },
   {
+    id: 'save-videos',
+    keywords: [
+      'download video', 'save video', 'video downloader', 'download my video', 'youtube download',
+      'tiktok download', 'facebook video', 'instagram reel', 'download your information', 'takeout',
+    ],
+    answer:
+      "**Saving your own videos**\n\n" +
+      "The **Save Videos** page is a free step-by-step guide to downloading videos you posted on YouTube, TikTok, Facebook, Instagram and X, using each platform's own official download and export tools.\n\n" +
+      "For someone else's video, ask them for the file — many \"paste a link\" downloader sites break the platforms' rules and are full of fake download buttons.",
+  },
+  {
     id: 'laptop-wont-turn-on',
     keywords: [
       "won't turn on", 'wont turn on', 'not turning on', 'no power', 'dead laptop', 'not booting',
