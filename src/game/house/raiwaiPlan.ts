@@ -11,6 +11,7 @@
 import { MCFARLANE, SIDE_ROAD, NEIGHBOURS, MASJID } from './layout.ts';
 import { SHOP_ROW } from './shops.ts';
 import { GARDEN_CITY } from './gardenCity.ts';
+import { USP, USP_BUILDINGS, USP_TREES, USP_SIGN } from './uspCampus.ts';
 
 export interface HouseSpec {
   w: number;
@@ -100,11 +101,11 @@ export const LANDMARKS: PlanItem[] = [
   { kind: 'field', x: 158, z: 61, face: 'n', w: 72, d: 50, label: 'Lomaiviti Training Ground' },
   // and after the training ground, on the same side: the Raiwai Jame Masjid
   { kind: 'masjid', x: MASJID.x, z: MASJID.z, face: 'n', w: MASJID.w, d: MASJID.d, label: 'Raiwai Jame Masjid' },
-  // the University of the South Pacific, along the north side and on past the end of McFarlane Road
-  { kind: 'campus', x: 190, z: 6, face: 's', w: 30, d: 14, floors: 3, far: true, label: 'USP' },
-  { kind: 'campus', x: 226, z: 10, face: 's', w: 26, d: 14, floors: 4, far: true },
-  { kind: 'campus', x: 232, z: 54, face: 'n', w: 30, d: 14, floors: 3, far: true },
-  { kind: 'campus', x: 254, z: 38, face: 'w', w: 24, d: 12, floors: 3, far: true },
+  // the University of the South Pacific: blocks along the north side of the road, and the campus you can
+  // walk round where McFarlane Road ends (uspCampus.ts), with a taller block behind its north wall
+  { kind: 'campus', x: 190, z: 6, face: 's', w: 30, d: 14, floors: 3, far: true },
+  { kind: 'campus', x: 232, z: 10, face: 's', w: 26, d: 14, floors: 4, far: true },
+  ...USP_BUILDINGS.map((b): PlanItem => ({ kind: 'campus', ...b, far: true })),
 ];
 
 /** Signs by the road (a logo makes it a big entrance sign). */
@@ -113,7 +114,7 @@ export const SIGNS: Sign[] = [
   { x: 103, z: 20.6, face: 's', title: 'METHODIST CHURCH', sub: 'Raiwai', color: '#7f1d1d' },
   { x: 125, z: 33.4, face: 'n', title: 'LOMAIVITI', sub: 'Training Ground', color: '#14532d' },
   // where McFarlane Road ends to the east: the way into the university
-  { x: MCFARLANE.x1 + 5, z: 25.8, face: 'w', title: 'USP', sub: 'The University of the South Pacific', color: '#1aa0a8', logo: 'usp.png', bg: '#ffffff' },
+  { x: USP_SIGN.x, z: USP_SIGN.z, face: 'w', title: 'USP', sub: 'The University of the South Pacific', color: '#1aa0a8', logo: 'usp.png', bg: '#ffffff' },
 ];
 
 /** Big-map labels for the roads. */
@@ -122,6 +123,7 @@ export const ROAD_LABELS = [
   { text: 'McFarlane Road', x: 70, z: 25.8 },
   { text: 'McFarlane Road', x: 170, z: 25.8 },
   ...(GARDEN_CITY ? [{ text: 'Garden City', x: (GARDEN_CITY.x0 + GARDEN_CITY.x1) / 2, z: 37 }] : []),
+  { text: 'USP', x: 246, z: 29.5 },
   { text: 'Side road', x: (SIDE_ROAD.x0 + SIDE_ROAD.x1) / 2, z: -14, vertical: true },
 ];
 
@@ -134,6 +136,7 @@ const taken: Box[] = [
   { x0: SHOP_ROW.x0 - 0.5, x1: SHOP_ROW.x1 + 0.5, z0: 31.6, z1: 46 },       // the shops (and their yards behind)
   ...(GARDEN_CITY ? [{ x0: GARDEN_CITY.x0 - 0.5, x1: GARDEN_CITY.x1 + 0.5, z0: 31.6, z1: GARDEN_CITY.z1 + 1 }] : []),   // Garden City, back to its rear wall
   { x0: MASJID.x - MASJID.w / 2, x1: MASJID.x + MASJID.w / 2, z0: 31.0, z1: MASJID.z + MASJID.d / 2 },    // the masjid and its steps
+  { x0: USP.x0, x1: USP.x1, z0: USP.z0, z1: USP.z1 },                                                      // the USP campus grounds
   { x0: SIDE_ROAD.x0 - 0.5, x1: SIDE_ROAD.x1 + 0.5, z0: SIDE_ROAD.z0 - 1, z1: 22.5 },
   { x0: 92, x1: 114, z0: -34, z1: 22 },                                      // the church grounds
 ];
@@ -227,8 +230,9 @@ export const RAIWAI_TREES: TreeSpot[] = [];
     if (x > SIDE_ROAD.x0 - 0.8 && x < SIDE_ROAD.x1 + 0.8 && z > SIDE_ROAD.z0 - 1 && z < 22.5) return;
     RAIWAI_TREES.push({ kind, x, z, s: kind === 'mango' ? 0.8 + r() * 0.5 : kind === 'palm' ? 5 + r() * 2.5 : 0.8 + r() * 0.5, far });
   };
-  // the tall coconut palm behind the masjid
+  // the tall coconut palm behind the masjid, and the USP campus's trees
   RAIWAI_TREES.push({ kind: 'palm', x: MASJID.x + 5.5, z: MASJID.z + 6, s: 7.5 });
+  for (const t of USP_TREES) RAIWAI_TREES.push({ ...t, far: true });
   for (let i = 0; i < 260; i++) {
     const x = -110 + r() * 340, z = -110 + r() * 200;
     tryTree(x, z, !(z > 0 && z < 45 && x > -70 && x < 170) && !(x > 25 && x < 50 && z > -45));

@@ -15,6 +15,7 @@
 
 import { SHOP_ROW } from './shops.ts';
 import { GARDEN_CITY, gardenCity } from './gardenCity.ts';
+import { uspCampus } from './uspCampus.ts';
 
 export type XZ = [number, number];
 export type XYZ = [number, number, number];
@@ -239,6 +240,8 @@ export const SIDE_ROAD = { x0: 34, x1: 40, z0: -40 };
 export const MASJID = { x: 204, z: 39.6, w: 16, d: 14 };
 /** Garden City, the shopping complex after Sardaar Complex (gardenCity.ts). */
 const GC = gardenCity(ROAD_Y);
+/** The USP campus, open to visitors where McFarlane Road ends (uspCampus.ts). */
+const CAMPUS = uspCampus(ROAD_Y);
 
 // ── Rooms and outdoor areas ─────────────────────────────────────────────────
 // Order matters: roomAt() returns the first match, so stairs and raised floors
@@ -272,13 +275,15 @@ export const ROOMS: Room[] = [
   { id: 'frontyard', name: 'Front garden', x0: -2.7, x1: 12.3, z0: 15.4, z1: 21.9, floor: 'grass', ceiling: false, outside: true, ground: true, area: true },
   { id: 'backyard', name: 'Back yard', x0: -2.7, x1: 15.65, z0: -14, z1: -7.7, floor: 'grass', ceiling: false, outside: true, ground: true, area: true },
   // Raiwai (exploring): McFarlane Road past the front gate, its footpath and the shops, and the side road beside the neighbours
-  { id: 'road', name: 'McFarlane Road', x0: -70, x1: MCFARLANE.x1 + 8, z0: 22.5, z1: 29, floor: 'road', ceiling: false, outside: true, ground: true, area: true, explore: true },
+  { id: 'road', name: 'McFarlane Road', x0: -70, x1: MCFARLANE.x1, z0: 22.5, z1: 29, floor: 'road', ceiling: false, outside: true, ground: true, area: true, explore: true },
   { id: 'footpath', name: 'The shops', x0: SHOP_ROW.x0 - 0.4, x1: SHOP_ROW.x1 + 0.4, z0: 29, z1: 31.6, floor: 'concrete', ceiling: false, outside: true, ground: true, area: true, explore: true },
   { id: 'footwest', name: 'McFarlane Road', x0: -70, x1: SHOP_ROW.x0 - 0.4, z0: 29, z1: 31.6, floor: 'concrete', ceiling: false, outside: true, ground: true, explore: true },
-  { id: 'footeast', name: 'McFarlane Road', x0: SHOP_ROW.x1 + 0.4, x1: MCFARLANE.x1 + 8, z0: 29, z1: 31.6, floor: 'concrete', ceiling: false, outside: true, ground: true, explore: true },
+  { id: 'footeast', name: 'McFarlane Road', x0: SHOP_ROW.x1 + 0.4, x1: MCFARLANE.x1, z0: 29, z1: 31.6, floor: 'concrete', ceiling: false, outside: true, ground: true, explore: true },
   { id: 'sideroad', name: 'Side road', x0: SIDE_ROAD.x0, x1: SIDE_ROAD.x1, z0: SIDE_ROAD.z0, z1: 22.5, floor: 'road', ceiling: false, outside: true, ground: true, area: true, explore: true },
   // Garden City: its car park, the covered walkway and the units being built
   ...GC.rooms,
+  // the USP campus: its drive, footpath, plaza, paths and lawns
+  ...CAMPUS.rooms,
 ];
 
 // The house footprint (interior faces of the exterior walls sit 0.1 inside these).
@@ -646,14 +651,14 @@ export const BARRIERS: Barrier[] = [
   { a: [MCFARLANE.x0, 22.3], b: [-2.7, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // the neighbours' front yards
   { a: [15.7, 22.3], b: [SIDE_ROAD.x0, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
   { a: [SIDE_ROAD.x1, 22.3], b: [MCFARLANE.x1, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
-  { a: [MCFARLANE.x0, 22.3], b: [MCFARLANE.x0, 31.6], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // the ends of McFarlane Road (for now)
-  { a: [MCFARLANE.x1, 22.3], b: [MCFARLANE.x1, 31.6], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
+  { a: [MCFARLANE.x0, 22.3], b: [MCFARLANE.x0, 31.6], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // the west end of McFarlane Road (for now); the east end goes into the USP campus
   { a: [SHOP_ROW.x0 - 0.4, 31.6], b: [GARDEN_CITY ? GARDEN_CITY.x0 : SHOP_ROW.x1 + 0.4, 31.6], kind: 'facade', h: 3, t: 0.12, mode: 'explore' },   // the shopfronts
   ...GC.barriers,                                                                                              // Garden City: in through its gate
   { a: [MCFARLANE.x0, 31.6], b: [SHOP_ROW.x0 - 0.4, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },   // front walls across the road
   { a: [SHOP_ROW.x1 + 0.4, 31.6], b: [MASJID.x - MASJID.w / 2, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
   { a: [MASJID.x - MASJID.w / 2, 31.6], b: [MASJID.x + MASJID.w / 2, 31.6], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // the masjid's steps and wall
   { a: [MASJID.x + MASJID.w / 2, 31.6], b: [MCFARLANE.x1, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
+  ...CAMPUS.barriers,                                                                                          // the road goes on into the USP campus
   { a: [SIDE_ROAD.x0, SIDE_ROAD.z0], b: [SIDE_ROAD.x0, 22.3], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },   // walls along the side road
   { a: [SIDE_ROAD.x1, SIDE_ROAD.z0], b: [SIDE_ROAD.x1, 22.3], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
   { a: [SIDE_ROAD.x0, SIDE_ROAD.z0], b: [SIDE_ROAD.x1, SIDE_ROAD.z0], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // its far end (for now)
@@ -795,6 +800,8 @@ PROPS.push(
   }),
   // Garden City: the fence, the sign, the building and the building site
   ...GC.props,
+  // the USP campus: the plaza's planter, shelter, benches and lamps, the covered walkway, solid tree trunks
+  ...CAMPUS.props,
 
   // the way out: a green sign on the gate pillar
   box(15.2, groundY(21.9) + 1.55, 21.72, 15.7, groundY(21.9) + 1.75, 21.74, '#16a34a', false, { emissive: true, tex: 'exit:-z' }),

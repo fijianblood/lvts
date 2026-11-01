@@ -3,16 +3,17 @@
 // with a breadcrumb trail of the path walked.
 import { ROOMS, WALLS, BARRIERS, EXIT_ZONE, MCFARLANE, barrierRect, barrierBlocksSight, type WallRun, type Rect, type Room, type GameMode } from './layout.ts';
 import { GARDEN_CITY } from './gardenCity.ts';
+import { USP } from './uspCampus.ts';
 import { SHOP_SPOTS, shopBox } from './neighbourhood.ts';
 import { PLAN, ROAD_LABELS, footprint } from './raiwaiPlan.ts';
 import { PARKED } from './layout.ts';
 import type { OBB } from './collision.ts';
 
-/** The map covers the compound and the part of Raiwai you can walk (McFarlane Road, the side road, Garden City). */
-const B = { x0: -64.0, x1: MCFARLANE.x1 + 6, z0: -44.0, z1: Math.max(42, (GARDEN_CITY?.z1 ?? 0) + 2) };
+/** The map covers the compound and the part of Raiwai you can walk (McFarlane Road, the side road, Garden City, the USP campus). */
+const B = { x0: -64.0, x1: Math.max(MCFARLANE.x1, USP.x1) + 4, z0: -44.0, z1: Math.max(42, (GARDEN_CITY?.z1 ?? 0) + 2, USP.z1 + 2) };
 /** The big map in the hunt shows just the compound. */
 const HUNT_FRAME = { x0: -4.0, x1: 17.0, z0: -15.0, z1: 24.5 };
-const PPM = 10;              // base-map pixels per metre
+const PPM = 8;               // base-map pixels per metre (the map is ~340 m by 110 m, so this keeps its canvases to ~2.4 Mpx)
 const GRID = 0.1;            // sight-grid cell, metres
 const RAYS = 110;
 const CELL = 0.5;            // 'have I seen this spot?' grid, metres (read back without touching the canvas)
@@ -143,7 +144,7 @@ export class Minimap {
       }
     }
     // Raiwai: houses, the church, the pool, the training ground (what's on the map's patch), and parked cars
-    const ink: Partial<Record<string, string>> = { church: '#f4f3ef', pool: '#7fcfe3', field: '#c8c08f', teal: '#2fbf9f', masjid: '#2a9d99' };
+    const ink: Partial<Record<string, string>> = { church: '#f4f3ef', pool: '#7fcfe3', field: '#c8c08f', teal: '#2fbf9f', masjid: '#2a9d99', campus: '#ecebe6' };
     for (const it of PLAN) {
       const f = footprint(it);
       if (f.x1 < B.x0 || f.x0 > B.x1 || f.z1 < B.z0 || f.z0 > B.z1) continue;
