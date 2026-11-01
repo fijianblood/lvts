@@ -145,7 +145,7 @@ export class Minimap {
       }
     }
     // Raiwai: houses, the church, the pool, the training ground (what's on the map's patch), and parked cars
-    const ink: Partial<Record<string, string>> = { church: '#f4f3ef', pool: '#7fcfe3', field: '#c8c08f', teal: '#2fbf9f', masjid: '#2a9d99', campus: '#ecebe6' };
+    const ink: Partial<Record<string, string>> = { church: '#f4f3ef', pool: '#7fcfe3', field: '#c8c08f', teal: '#2fbf9f', masjid: '#2a9d99', campus: '#ecebe6', temple: '#e8a33b' };
     for (const it of PLAN) {
       const f = footprint(it);
       if (f.x1 < B.x0 || f.x0 > B.x1 || f.z1 < B.z0 || f.z0 > B.z1) continue;

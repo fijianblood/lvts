@@ -237,6 +237,8 @@ export function heightAt(x: number, z: number): number {
 export const MCFARLANE = { x0: -62, x1: 216, z0: 22.3, z1: 31.6 };
 /** The side road off McFarlane Road, past the neighbours to the east of the house. It climbs with the ground. */
 export const SIDE_ROAD = { x0: 34, x1: 40, z0: -40 };
+/** The Howell Road Hindu Temple, to the right out of the gate (west), on the house's side of the road: its plot, its gate on the road's edge. */
+export const TEMPLE = { x: -21.5, z: 14.9, w: 13, d: 13.8 };
 /** The Raiwai Jame Masjid, across the road after the Lomaiviti Training Ground: its plot (the front wall is on z - d/2; its steps come down to the footpath). */
 export const MASJID = { x: 204, z: 39.6, w: 16, d: 14 };
 /** Garden City, the shopping complex after Sardaar Complex (gardenCity.ts). */
@@ -726,7 +728,7 @@ export interface Parked { x: number; z: number; kind: 'suv' | 'ute' | 'bus'; col
 export const PARKED: Parked[] = [
   { x: -46, z: 23.5, kind: 'suv', color: '#f2f2f0', facing: 1 },
   { x: -30, z: 28.0, kind: 'ute', color: '#1d1f22', facing: -1 },
-  { x: -20, z: 23.5, kind: 'suv', color: '#c9ccce', facing: 1 },
+  { x: -38, z: 23.5, kind: 'suv', color: '#c9ccce', facing: 1 },     // along from the temple's gate
   { x: 25, z: 23.5, kind: 'suv', color: '#f2f2f0', facing: 1 },
   { x: 66, z: 23.5, kind: 'ute', color: '#f2f2f0', facing: 1 },
   { x: 92, z: 27.8, kind: 'bus', color: '#36b45f', facing: -1 },     // the Nasese bus, at the stop by the pool

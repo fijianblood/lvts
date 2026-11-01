@@ -218,7 +218,14 @@ on them. Baby Aisha babbles, coos and reaches for cuddles instead of talking.
 In **Explore the neighbourhood** you leave through the front gate onto
 **McFarlane Road** in Raiwai, and can walk it both ways (x −62 to 216) and up the
 **side road** beside the neighbours to the east (x 34–40, it climbs with the
-ground). From the gate, the places along the road to the left (east) are:
+ground). To the right as you come out of the gate (west), on the house's side
+of the road, is the **Howell Road Hindu Temple**, from a photo of its
+entrance: the yellow arch with red "OM SHAKTHI · PARA SHAKTHI" lettering
+between two red-and-yellow tiered pillars, the metal gate, strings of
+coloured flags up to tall bamboo poles, and the temple up the slope behind
+(cream with red and saffron bands, a pillared porch, a tiered tower with a
+gold kalash). You can walk up to its gate, not into the grounds.
+From the gate, the places along the road to the left (east) are:
 
 - the **Methodist Church** (Raiwai branch), the big A-frame church, set back up the bank with its sign by the road;
 - across the road, the **pool** with its covered stand, the **teal two-storey building**, and the **Lomaiviti Training Ground** with rugby posts;
@@ -234,7 +241,7 @@ dishes) but made up from a seed. They are not copies of anyone's real home.
 The public places are modelled on drone photos of the area.
 
 - `raiwaiPlan.ts`: where everything goes (plain data: footprints, faces, which things only show when exploring), the signs, the road labels, trees and power poles.
-- `raiwai.ts`: the 3D pieces (houses, flats, church, pool, teal building, training ground, the masjid, sheds, bus, cars, poles, mango trees, bougainvillea).
+- `raiwai.ts`: the 3D pieces (houses, flats, church, pool, teal building, training ground, the masjid, the temple, sheds, bus, cars, poles, mango trees, bougainvillea).
 - `layout.ts`: `MCFARLANE`, `SIDE_ROAD`, `MASJID`, the walls along them, and `PARKED` (cars and the bus, with colliders).
 - `gardenCity.ts`: Garden City (see "Shops" above).
 
@@ -352,7 +359,7 @@ then `npm run dev` and open `http://localhost:5173/lvts/#house`.
 | `chores.ts`, `choreSystem.ts` | Chores, stars, the places they unlock, and the 3D side of them. |
 | `neighbourhood.ts` | The street, shop spots and offers, visitors' characters, and talking to the server. |
 | `raiwaiPlan.ts` | Where everything in Raiwai goes (plain data, used by the engine, the minimap and the tests). |
-| `raiwai.ts` | Raiwai's 3D pieces: houses, flats, the Methodist Church, the pool, the teal building, the Lomaiviti Training Ground, the Raiwai Jame Masjid, sheds, the Nasese bus, cars, power poles, trees. |
+| `raiwai.ts` | Raiwai's 3D pieces: houses, flats, the Methodist Church, the pool, the teal building, the Lomaiviti Training Ground, the Raiwai Jame Masjid, the Howell Road Hindu Temple, sheds, the Nasese bus, cars, power poles, trees. |
 | `gardenCity.ts` | Garden City, the shopping complex being built after Sardaar Complex: plain data for its fence, sign, car park, building, building site and the Westpac branch. |
 | `damodarCity.ts` | Damodar City, the centre across the road: its sign, car park, shops, the BSP branch and Damodar Cinemas. |
 | `portrait.tsx` | The little portraits on the picker, the HUD and the admin page. |

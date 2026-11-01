@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildStaticWorld, doorOBB, bodyOBB, blocked, PLAYER_R, type OBB, type StaticWorld } from '../../src/game/house/collision.ts';
-import { DOORS, SPAWN, RAMPS, heightAt, SIDE_ROAD, PARKED, MASJID, MCFARLANE, type GameMode } from '../../src/game/house/layout.ts';
+import { DOORS, SPAWN, RAMPS, heightAt, SIDE_ROAD, PARKED, MASJID, MCFARLANE, TEMPLE, type GameMode } from '../../src/game/house/layout.ts';
 import { USP, USP_BUILDINGS, uspFootprints } from '../../src/game/house/uspCampus.ts';
 import { GARDEN_CITY } from '../../src/game/house/gardenCity.ts';
 import { DAMODAR_CITY } from '../../src/game/house/damodarCity.ts';
@@ -155,6 +155,16 @@ test('Damodar City: in from the road, round the car park and along the shops, in
   assert.equal(map.any((x, z) => x > DC.x0 + 0.1 && x < DC.wing.x1 - 0.1 && z > DC.wing.z0 + 0.1 && z < DC.walk - 0.1), false, 'walked into the west wing');
   assert.equal(map.any((x, z) => z > DC.back + 0.05 && x > DC.x0 - 2 && x < DC.x1 + 2 && !inDamodar(x, z)), false, 'got out of Damodar City');
   for (const c of PARKED) assert.equal(map.near(c.x, c.z, 0.3), false, `walked through the parked car at ${c.x}, ${c.z}`);
+});
+
+test('the Howell Road Hindu Temple: to the right out of the gate, up to its gate on the road but not into its grounds, even jumping', () => {
+  assert.ok(TEMPLE.x < -2.7, 'the temple should be to the right (west) of the gate');
+  const inGrounds = (x: number, z: number) => x > TEMPLE.x - TEMPLE.w / 2 && x < TEMPLE.x + TEMPLE.w / 2 && z < 22.25;
+  const map = raiwaiMap();
+  assert.ok(map.near(TEMPLE.x, 22.7, 0.3), "can't walk up to the temple's gate");
+  assert.equal(map.any(inGrounds), false, "walked into the temple's grounds");
+  assert.equal(reach('explore', visitors, RAIWAI_G, [14, 25], true).any(inGrounds), false, "jumped into the temple's grounds");
+  for (const c of PARKED) assert.ok(c.z > 25 || Math.abs(c.x - TEMPLE.x) > 4, `a car is parked across the temple's gate at x ${c.x}`);
 });
 
 test('the Raiwai Jame Masjid: McFarlane Road goes on past the training ground to it, but not up its steps', () => {
