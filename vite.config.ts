@@ -6,6 +6,13 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { encodePrizeCodes } from './src/game/house/prizeCodec.ts'
 
 export default defineConfig(({ mode }) => {
+  // The site is hosted in two places from this repo:
+  //  - GitHub Pages (.github/workflows/deploy.yml) serves it at fijianblood.github.io/lvts/
+  //  - Cloudflare Workers Builds (wrangler.jsonc) serves it at the root of its address.
+  // Workers Builds sets WORKERS_CI=1, so the build picks the right base path by itself.
+  const base = process.env.WORKERS_CI === '1' ? '/' : '/lvts/'
+  console.log(`[site] base path: ${base}${base === '/' ? ' (Cloudflare)' : ' (GitHub Pages)'}`)
+
   // House Hunt prize codes come from the HOUSE_PRIZE_CODES secret (GitHub Actions)
   // or .env.local, never from the repo. They are scrambled with a fresh salt on
   // every build. See src/game/house/prizeCodec.ts.
@@ -20,7 +27,7 @@ export default defineConfig(({ mode }) => {
   console.log(`[house-hunt] neighbourhood server: ${hood || 'off'}`)
 
   return {
-    base: '/lvts/',
+    base,
     define: {
       __HOUSE_PRIZE__: JSON.stringify(housePrize),
       __NEIGHBOURHOOD_API__: JSON.stringify(hood),
@@ -38,8 +45,8 @@ export default defineConfig(({ mode }) => {
           theme_color: '#0f172a',
           background_color: '#0f172a',
           display: 'standalone',
-          start_url: '/lvts/',
-          scope: '/lvts/',
+          start_url: base,
+          scope: base,
           icons: [
             { src: 'pwa-192.png', sizes: '192x192', type: 'image/png' },
             { src: 'pwa-512.png', sizes: '512x512', type: 'image/png' },
@@ -53,7 +60,7 @@ export default defineConfig(({ mode }) => {
           // first time they're actually requested, so a first-time visitor
           // isn't forced to download megabytes of code/media they never use.
           globPatterns: ['index.html', 'favicon.png', 'pwa-192.png', 'pwa-512.png', 'apple-touch-icon.png', 'icons.svg', 'assets/index-*.js', 'assets/index-*.css'],
-          navigateFallback: '/lvts/index.html',
+          navigateFallback: `${base}index.html`,
           // Don't hijack direct navigations to real static files (images, videos,
           // pdfs, etc — anything with a file extension) — only fall back to the
           // SPA shell for actual app routes. Without this, clicking a
