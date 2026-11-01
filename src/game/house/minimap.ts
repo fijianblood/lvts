@@ -4,13 +4,14 @@
 import { ROOMS, WALLS, BARRIERS, EXIT_ZONE, MCFARLANE, barrierRect, barrierBlocksSight, type WallRun, type Rect, type Room, type GameMode } from './layout.ts';
 import { GARDEN_CITY } from './gardenCity.ts';
 import { USP } from './uspCampus.ts';
+import { DAMODAR_CITY } from './damodarCity.ts';
 import { SHOP_SPOTS, shopBox } from './neighbourhood.ts';
 import { PLAN, ROAD_LABELS, footprint } from './raiwaiPlan.ts';
 import { PARKED } from './layout.ts';
 import type { OBB } from './collision.ts';
 
 /** The map covers the compound and the part of Raiwai you can walk (McFarlane Road, the side road, Garden City, the USP campus). */
-const B = { x0: -64.0, x1: Math.max(MCFARLANE.x1, USP.x1) + 4, z0: -44.0, z1: Math.max(42, (GARDEN_CITY?.z1 ?? 0) + 2, USP.z1 + 2) };
+const B = { x0: -64.0, x1: Math.max(MCFARLANE.x1, USP.x1) + 4, z0: -44.0, z1: Math.max(42, (GARDEN_CITY?.z1 ?? 0) + 2, USP.z1 + 2, (DAMODAR_CITY?.z1 ?? 0) + 2) };
 /** The big map in the hunt shows just the compound. */
 const HUNT_FRAME = { x0: -4.0, x1: 17.0, z0: -15.0, z1: 24.5 };
 const PPM = 8;               // base-map pixels per metre (the map is ~340 m by 110 m, so this keeps its canvases to ~2.4 Mpx)

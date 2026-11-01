@@ -2,8 +2,9 @@
 // its own car park. The shops are coming soon; for now it's a building site
 // you can walk into: through the gate past the "Garden City" sign, across the
 // car park (the builders have fenced off a corner with red water barriers), and
-// into the ground-floor units, where their things are lying about. The last
-// unit is shut off behind barriers.
+// into the ground-floor units, where their things are lying about. The second
+// unit is already open: a Westpac bank. The last unit is shut off behind
+// barriers.
 //
 // Pure data, no three.js: layout.ts adds the rooms, barriers, props and parked
 // cars; the engine draws the props (the signs are textures named in `tex`).
@@ -22,6 +23,8 @@ export const GARDEN_CITY = front ? {
   /** The gateway between the two gate pillars. */
   gate: [front.x0 + 9.2, front.x0 + 14.8] as XZ,
   units: 5,
+  /** The unit that's already open: Westpac (0-based, from the west). */
+  westpac: 1,
 } : null;
 
 const BLACK = '#1d1f22';
@@ -148,6 +151,7 @@ export function gardenCity(y: number): { rooms: Room[]; barriers: Barrier[]; pro
 
   // ── inside the units: a "coming soon" board on each back wall and a work light; the builders' things ──
   for (let k = 0; k < P.units; k++) {
+    if (k === P.westpac) continue;
     const u = ux(k), mid = u + uw / 2;
     add(
       box(u + 1.4, y + 1.5, Bk - 0.26, u + uw - 1.4, y + 2.5, Bk - 0.2, '#ffffff', false, { tex: 'gcsoon:-z' }),
@@ -171,17 +175,41 @@ export function gardenCity(y: number): { rooms: Room[]; barriers: Barrier[]; pro
     );
   }
   {
-    // 2: wrapped panels against the wall, a trestle bench with tools, tins of paint
-    const u = ux(1);
-    for (let i = 0; i < 4; i++) {
-      const px = u + uw - 0.3 - i * 0.07, pz = 49.0 + i * 0.18;
-      add(box(px - 0.05, y, pz, px, y + 2.4, pz + 1.2, PANEL), box(px - 0.055, y + 1.2, pz + 0.35, px - 0.05, y + 1.6, pz + 0.85, MARK));
-    }
-    add(box(u + uw - 0.6, y, 48.9, u + uw - 0.15, y + 2.4, 50.8, 'transparent', true));
-    add(box(u + 1.0, y + 0.85, 51.5, u + 3.0, y + 0.9, 52.3, '#c49a6c', true));
-    for (const [lx, lz] of [[u + 1.15, 51.6], [u + 2.85, 51.6], [u + 1.15, 52.2], [u + 2.85, 52.2]]) add(box(lx - 0.03, y, lz - 0.03, lx + 0.03, y + 0.85, lz + 0.03, '#7d6a55'));
-    add(box(u + 1.3, y + 0.9, 51.7, u + 1.9, y + 0.91, 51.85, '#9aa0a6'), box(u + 2.3, y + 0.9, 51.8, u + 2.55, y + 1.05, 51.95, '#f2b705'));
-    for (const [i, lid] of [[0, '#2f6db5'], [1, '#d63a2f'], [2, '#f2f2ef']] as const) add(cyl(u + 1.2 + i * 0.36, y, 54.9, 0.14, 0.3, '#f2f2ef', true, 10), cyl(u + 1.2 + i * 0.36, y + 0.3, 54.9, 0.145, 0.02, lid, false, 10));
+    // 2: Westpac, open for business: a glass front with the door open, the logo over it and on a red back wall,
+    // a service counter, two ATMs, chairs to wait on and queue posts
+    const u = ux(P.westpac), u1 = u + uw, mid = u + uw / 2, RED_W = '#d5002b', fz = Bf + 0.5;
+    add(
+      box(u + 0.1, y + 0.002, fz, u1 - 0.1, y + 0.014, Bk - 0.2, '#ecebe8'),                                    // a finished floor
+      box(u + 0.1, y, fz, u + 0.14, y + 3.48, Bk - 0.2, '#f4f4f2'), box(u1 - 0.14, y, fz, u1 - 0.1, y + 3.48, Bk - 0.2, '#f4f4f2'),
+      box(u + 0.1, y, Bk - 0.24, u1 - 0.1, y + 3.48, Bk - 0.2, RED_W),                                          // red back wall
+      box(u + 1.0, y + 2.0, Bk - 0.27, u1 - 1.0, y + 2.9, Bk - 0.24, '#ffffff', false, { tex: 'logo/westpac.png:-z' }),
+      // the shopfront: glass either side of an open doorway, a white band with the logo
+      box(u + 0.25, y, fz, mid - 0.9, y + 2.7, fz + 0.06, '#bfe0ee', true), box(mid + 0.9, y, fz, u1 - 0.25, y + 2.7, fz + 0.06, '#bfe0ee', true),
+      box(mid - 0.9, y + 2.3, fz, mid + 0.9, y + 2.7, fz + 0.06, '#bfe0ee'),
+      box(mid - 0.95, y, fz - 0.02, mid - 0.85, y + 2.7, fz + 0.08, '#3b3f44'), box(mid + 0.85, y, fz - 0.02, mid + 0.95, y + 2.7, fz + 0.08, '#3b3f44'),
+      box(u + 0.25, y + 2.7, fz - 0.04, u1 - 0.25, y + 3.48, fz + 0.06, '#ffffff'),
+      box(u + 0.6, y + 2.76, fz - 0.07, u1 - 0.6, y + 3.42, fz - 0.04, '#ffffff', false, { tex: 'logo/westpac.png:-z' }),
+      box(u + 0.6, y + 3.42, W - 0.09, u1 - 0.6, y + 3.88, W - 0.06, '#ffffff', false, { tex: 'logo/westpac.png:-z' }),   // on the canopy's edge too
+      // the counter along the back, with a glass screen
+      box(u + 0.6, y, 53.6, u1 - 0.6, y + 1.05, 54.3, '#f4f4f2', true), box(u + 0.6, y + 0.25, 53.58, u1 - 0.6, y + 0.85, 53.6, RED_W),
+      box(u + 0.55, y + 1.05, 53.55, u1 - 0.55, y + 1.1, 54.35, '#3b3f44'), box(u + 0.6, y + 1.1, 53.9, u1 - 0.6, y + 1.6, 53.92, '#d6ecf3'),
+      box(u + 1.2, y + 1.1, 54.0, u + 1.6, y + 1.38, 54.05, '#1e2a30'), box(u1 - 1.6, y + 1.1, 54.0, u1 - 1.2, y + 1.38, 54.05, '#1e2a30'),
+      // two ATMs on the left wall, near the door
+      ...[47.3, 48.4].flatMap((z) => [
+        box(u + 0.14, y, z, u + 0.6, y + 1.7, z + 0.8, RED_W, true),
+        box(u + 0.6, y + 1.05, z + 0.15, u + 0.62, y + 1.4, z + 0.65, '#1e2a30'),
+        box(u + 0.6, y + 0.85, z + 0.25, u + 0.66, y + 0.95, z + 0.55, '#9aa0a6'),
+      ]),
+      // lights
+      box(mid - 0.8, y + 3.44, 49.0, mid + 0.8, y + 3.48, 49.4, '#fffdf5', false, { emissive: true }),
+      box(mid - 0.8, y + 3.44, 52.0, mid + 0.8, y + 3.48, 52.4, '#fffdf5', false, { emissive: true }),
+      // a plant by the door
+      cyl(u1 - 0.5, y, fz + 0.5, 0.22, 0.4, '#3c3f42', true, 10), cyl(u1 - 0.5, y + 0.4, fz + 0.5, 0.3, 0.8, '#3f8f3a', false, 7, 0),
+    );
+    // chairs along the right wall, queue posts with a red belt in front of the counter
+    for (const z of [49.4, 50.2, 51.0]) add(box(u1 - 0.65, y + 0.44, z, u1 - 0.2, y + 0.49, z + 0.55, '#3b3f44', true), box(u1 - 0.24, y + 0.49, z, u1 - 0.2, y + 0.95, z + 0.55, '#3b3f44'));
+    for (const x of [u + 1.2, mid, u1 - 1.8]) add(cyl(x, y, 52.4, 0.035, 0.95, '#c0c4c8', true, 8), cyl(x, y, 52.4, 0.15, 0.03, '#3b3f44', false, 10));
+    add(box(u + 1.2, y + 0.85, 52.39, u1 - 1.8, y + 0.9, 52.41, RED_W));
   }
   {
     // 3 (straight in from the gate): a sign at the door, a ladder, a tarpaulin

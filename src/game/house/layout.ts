@@ -16,6 +16,7 @@
 import { SHOP_ROW } from './shops.ts';
 import { GARDEN_CITY, gardenCity } from './gardenCity.ts';
 import { uspCampus } from './uspCampus.ts';
+import { DAMODAR_CITY, damodarCity } from './damodarCity.ts';
 
 export type XZ = [number, number];
 export type XYZ = [number, number, number];
@@ -242,6 +243,8 @@ export const MASJID = { x: 204, z: 39.6, w: 16, d: 14 };
 const GC = gardenCity(ROAD_Y);
 /** The USP campus, open to visitors where McFarlane Road ends (uspCampus.ts). */
 const CAMPUS = uspCampus(ROAD_Y);
+/** Damodar City, the shopping centre across the road from the gate (damodarCity.ts). */
+const DC = damodarCity(ROAD_Y);
 
 // ── Rooms and outdoor areas ─────────────────────────────────────────────────
 // Order matters: roomAt() returns the first match, so stairs and raised floors
@@ -284,6 +287,8 @@ export const ROOMS: Room[] = [
   ...GC.rooms,
   // the USP campus: its drive, footpath, plaza, paths and lawns
   ...CAMPUS.rooms,
+  // Damodar City: the way in, the car park, the walkway, inside BSP
+  ...DC.rooms,
 ];
 
 // The house footprint (interior faces of the exterior walls sit 0.1 inside these).
@@ -652,7 +657,10 @@ export const BARRIERS: Barrier[] = [
   { a: [15.7, 22.3], b: [SIDE_ROAD.x0, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
   { a: [SIDE_ROAD.x1, 22.3], b: [MCFARLANE.x1, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
   { a: [MCFARLANE.x0, 22.3], b: [MCFARLANE.x0, 31.6], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // the west end of McFarlane Road (for now); the east end goes into the USP campus
-  { a: [SHOP_ROW.x0 - 0.4, 31.6], b: [GARDEN_CITY ? GARDEN_CITY.x0 : SHOP_ROW.x1 + 0.4, 31.6], kind: 'facade', h: 3, t: 0.12, mode: 'explore' },   // the shopfronts
+  // the shopfronts, open where Damodar City's drive comes in and at Garden City's gate
+  { a: [SHOP_ROW.x0 - 0.4, 31.6], b: [DAMODAR_CITY ? DAMODAR_CITY.in0 : SHOP_ROW.x1 + 0.4, 31.6], kind: 'facade', h: 3, t: 0.12, mode: 'explore' },
+  ...(DAMODAR_CITY ? [{ a: [DAMODAR_CITY.in1, 31.6] as XZ, b: [GARDEN_CITY ? GARDEN_CITY.x0 : SHOP_ROW.x1 + 0.4, 31.6] as XZ, kind: 'facade' as const, h: 3, t: 0.12, mode: 'explore' as const }] : []),
+  ...DC.barriers,
   ...GC.barriers,                                                                                              // Garden City: in through its gate
   { a: [MCFARLANE.x0, 31.6], b: [SHOP_ROW.x0 - 0.4, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },   // front walls across the road
   { a: [SHOP_ROW.x1 + 0.4, 31.6], b: [MASJID.x - MASJID.w / 2, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
@@ -726,6 +734,7 @@ export const PARKED: Parked[] = [
   { x: 146, z: 28.0, kind: 'ute', color: '#8a8f94', facing: -1 },
   { x: 176, z: 28.0, kind: 'suv', color: '#4b5157', facing: -1 },     // by the training ground
   ...GC.parked,
+  ...DC.parked,
 ];
 
 /** Neighbouring houses, kept plain so they don't copy anyone's real home. */
@@ -802,6 +811,8 @@ PROPS.push(
   ...GC.props,
   // the USP campus: the plaza's planter, shelter, benches and lamps, the covered walkway, solid tree trunks
   ...CAMPUS.props,
+  // Damodar City: its sign, car park, shops, BSP and the cinema
+  ...DC.props,
 
   // the way out: a green sign on the gate pillar
   box(15.2, groundY(21.9) + 1.55, 21.72, 15.7, groundY(21.9) + 1.75, 21.74, '#16a34a', false, { emissive: true, tex: 'exit:-z' }),

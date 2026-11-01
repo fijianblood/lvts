@@ -77,9 +77,10 @@ const REACH = 1.8;
 const PICKUP = 0.85;
 const LOOK = 0.0022;
 const AREAS = ROOMS.filter((r) => r.area);
-/** Garden City's signs, by the name its props give in `tex`. */
-const GC_TEX: Record<string, () => THREE.Texture> = {
-  gcsign: T.gardenCitySign, gcboard: T.gardenCityBoard, gcbanner: T.comingSoonBanner, gcbuild: T.constructionSign, gcsoon: T.shopComingSoon,
+/** Signs drawn in code (Garden City, Damodar City), by the name their props give in `tex`. */
+const NAMED_TEX: Record<string, () => THREE.Texture> = {
+  gcsign: T.gardenCitySign, gcboard: T.gardenCityBoard, gcbanner: T.comingSoonBanner, gcbuild: T.constructionSign,
+  gcsoon: () => T.shopComingSoon('Garden City'), dcsoon: () => T.shopComingSoon('Damodar City'), dcname: T.damodarCitySign,
 };
 const DEFAULT_SIGHT = 5.5;
 /** Feet this far above the floor count as up on something (walking down stairs your feet trail the steps by a few cm). */
@@ -641,9 +642,27 @@ export class HouseEngine {
     return t;
   }
 
+  /**
+   * A business's logo on a sign board filling one face of a box (`tex: 'logo/file.png:-z'`, or
+   * 'logo/file.png@#070707:-z' for a board that isn't white). The box's colour is the board's frame.
+   */
+  private addLogoBox(prim: Extract<Prim, { kind: 'box' }>, spec: string, face: string) {
+    const [file, bg = '#ffffff'] = spec.split('@');
+    const [x0, y0, z0] = prim.min, [x1, y1, z1] = prim.max;
+    const w = face.endsWith('x') ? z1 - z0 : x1 - x0, h = y1 - y0;
+    const board = this.logoBoard(file, bg, prim.color, Math.max(0.1, w - 0.16), Math.max(0.1, h - 0.16));
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, cz = (z0 + z1) / 2;
+    if (face === '-z') board.position.set(cx, cy, z0 + 0.03);
+    if (face === '+z') { board.rotation.y = Math.PI; board.position.set(cx, cy, z1 - 0.03); }
+    if (face === '+x') { board.rotation.y = -Math.PI / 2; board.position.set(x1 - 0.03, cy, cz); }
+    if (face === '-x') { board.rotation.y = Math.PI / 2; board.position.set(x0 + 0.03, cy, cz); }
+    this.scene.add(board);
+  }
+
   private addTexturedBox(prim: Extract<Prim, { kind: 'box' }>) {
     const [x0, y0, z0] = prim.min, [x1, y1, z1] = prim.max;
     const [name, face] = (prim.tex ?? '').split(':');
+    if (name.startsWith('logo/')) { this.addLogoBox(prim, name.slice(5), face); return; }
     let tex: THREE.Texture;
     if (name === 'tv') {
       tex = this.tex(new THREE.TextureLoader().load(`${this.opts.baseUrl}logo.jpg`));
@@ -652,7 +671,7 @@ export class HouseEngine {
     else if (name === 'welcome') tex = this.tex(T.welcomeSign());
     else if (name === 'exit') tex = this.tex(T.exitSign());
     else if (name === 'clock') { this.clock = T.clockFace(); tex = this.tex(this.clock.tex); }
-    else if (name in GC_TEX) tex = this.namedTex(name, GC_TEX[name]);
+    else if (name in NAMED_TEX) tex = this.namedTex(name, NAMED_TEX[name]);
     else tex = this.tex(T.ceiling());
     const box = new THREE.Mesh(boxGeo(x0, y0, z0, x1, y1, z1), prim.emissive ? new THREE.MeshBasicMaterial({ color: prim.color }) : paint(prim.color));
     this.scene.add(box);
