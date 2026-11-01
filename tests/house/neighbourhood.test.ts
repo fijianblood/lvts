@@ -2,7 +2,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildStaticWorld, doorOBB, bodyOBB, blocked, PLAYER_R, type OBB } from '../../src/game/house/collision.ts';
-import { DOORS, SPAWN, RAMPS, heightAt, SIDE_ROAD, PARKED, MASJID, type GameMode } from '../../src/game/house/layout.ts';
+import { DOORS, SPAWN, RAMPS, heightAt, SIDE_ROAD, PARKED, MASJID, MCFARLANE, type GameMode } from '../../src/game/house/layout.ts';
+import { USP, USP_BUILDINGS, uspFootprints } from '../../src/game/house/uspCampus.ts';
 import { GARDEN_CITY } from '../../src/game/house/gardenCity.ts';
 import { SHOP_SPOTS, SHOP_LINE, STREET, VISITOR_SPOTS, visitorCharacter } from '../../src/game/house/neighbourhood.ts';
 import { handle, memoryStore, LIMITS, type Ctx } from '../../workers/neighbourhood/src/registry.ts';
@@ -14,8 +15,8 @@ const visitors: OBB[] = VISITOR_SPOTS.map((p) => bodyOBB(p[0], p[2]));
 // flood-fill the floor from the spawn point on a 10 cm grid, over the house and the street near the gate
 type Grid = { x0: number; z0: number; step: number; nx: number; nz: number };
 const FINE: Grid = { x0: -12.5, z0: -14.6, step: 0.1, nx: 450, nz: 470 };
-/** All of the walkable part of Raiwai (McFarlane Road end to end, the side road, Garden City), on a 20 cm grid. */
-const RAIWAI_G: Grid = { x0: -63, z0: -42, step: 0.2, nx: 1405, nz: 500 };
+/** All of the walkable part of Raiwai (McFarlane Road end to end, the side road, Garden City, the USP campus), on a 20 cm grid. */
+const RAIWAI_G: Grid = { x0: -63, z0: -42, step: 0.2, nx: 1685, nz: 545 };
 function reach(mode: GameMode, extra: OBB[] = [], G: Grid = FINE, start: [number, number] = [SPAWN.pos[0], SPAWN.pos[2]]) {
   const world = buildStaticWorld({ mode });
   const obstacles = [...doorsOpen, ...extra];
@@ -76,6 +77,7 @@ let raiwai: ReturnType<typeof reach> | undefined;
 const raiwaiMap = () => (raiwai ??= reach('explore', visitors, RAIWAI_G, [14, 25]));
 const GC = GARDEN_CITY!;
 const inGardenCity = (x: number, z: number) => x > GC.x0 - 0.05 && x < GC.x1 + 0.05 && z < GC.z1 + 0.05;
+const inCampus = (x: number, z: number) => x > USP.x0 - 0.05 && x < USP.x1 + 0.05 && z > USP.z0 - 0.05 && z < USP.z1 + 0.05;
 
 test('exploring Raiwai: McFarlane Road end to end, up the side road, and no further', () => {
   const map = raiwaiMap();
@@ -83,8 +85,8 @@ test('exploring Raiwai: McFarlane Road end to end, up the side road, and no furt
   const inCompound = (x: number) => x > -2.75 && x < 15.75;
   assert.ok(map.near(STREET.x0 + 0.6, 26, 0.6) && map.near(STREET.x1 - 0.6, 26, 0.6), "can't reach both ends of McFarlane Road");
   for (const sp of SHOP_SPOTS) assert.ok(map.near((sp.x0 + sp.x1) / 2, SHOP_LINE - 0.4, 0.6), `can't walk up to ${sp.name}`);
-  assert.equal(map.any((x) => x < STREET.x0 - 0.05 || x > STREET.x1 + 0.05), false, 'walked off the end of McFarlane Road');
-  assert.equal(map.any((x, z) => z > STREET.z1 + 0.05 && !inGardenCity(x, z)), false, 'got over the wall or into a shop across the road');
+  assert.equal(map.any((x, z) => x < STREET.x0 - 0.05 || (x > STREET.x1 + 0.05 && !inCampus(x, z))), false, 'walked off the end of McFarlane Road');
+  assert.equal(map.any((x, z) => z > STREET.z1 + 0.05 && !inGardenCity(x, z) && !inCampus(x, z)), false, 'got over the wall or into a shop across the road');
   assert.ok(map.near((SIDE_ROAD.x0 + SIDE_ROAD.x1) / 2, SIDE_ROAD.z0 + 0.8, 0.6), "can't walk up the side road to its end");
   assert.equal(map.any((_x, z) => z < SIDE_ROAD.z0 - 0.05), false, 'walked past the end of the side road');
   assert.equal(map.any((x, z) => z < 22.25 && !inSide(x) && !inCompound(x)), false, "left the side road or McFarlane Road into someone's yard");
@@ -109,6 +111,25 @@ test('the Raiwai Jame Masjid: McFarlane Road goes on past the training ground to
   const map = raiwaiMap();
   assert.ok(map.near(MASJID.x, SHOP_LINE - 0.5, 0.5), "can't walk along McFarlane Road to the masjid");
   assert.equal(map.any((x, z) => z > SHOP_LINE + 0.05 && x > MASJID.x - MASJID.w / 2 - 1 && x < MASJID.x + MASJID.w / 2 + 1), false, 'walked up the masjid steps');
+});
+
+test('the USP campus: in from the end of McFarlane Road, round the plaza and all round the buildings, not through them or over the wall', () => {
+  assert.equal(USP.x0, MCFARLANE.x1, "the campus doesn't start where McFarlane Road ends");
+  const map = raiwaiMap();
+  assert.ok(map.near(USP.x0 + 8, 26, 0.5), "can't walk from McFarlane Road into the campus");
+  assert.ok(map.near(246, 28, 0.5) && map.near(240, 39.5, 0.5), "can't reach the plaza or its shelter");
+  for (const b of USP_BUILDINGS) {
+    const { body } = uspFootprints(b);
+    // the front, and the far side: you can walk all the way round
+    const front = b.face === 'n' ? [b.x, body.z0 - 0.6] : b.face === 'w' ? [body.x0 - 0.6, b.z] : b.face === 's' ? [b.x, body.z1 + 0.6] : [body.x1 + 0.6, b.z];
+    const back = b.face === 'n' ? [b.x, body.z1 + 0.8] : b.face === 'w' ? [body.x1 + 0.8, b.z] : b.face === 's' ? [b.x, body.z0 - 0.8] : [body.x0 - 0.8, b.z];
+    assert.ok(map.near(front[0], front[1], 0.5), `can't walk up to the front of the block at ${b.x}, ${b.z}`);
+    assert.ok(map.near(back[0], back[1], 0.5), `can't walk round behind the block at ${b.x}, ${b.z}`);
+    for (const r of Object.values(uspFootprints(b))) {
+      assert.equal(map.any((x, z) => x > r.x0 + 0.1 && x < r.x1 - 0.1 && z > r.z0 + 0.1 && z < r.z1 - 0.1), false, `walked into the block at ${b.x}, ${b.z}`);
+    }
+  }
+  assert.equal(map.any((x, z) => x > STREET.x1 + 0.05 && !inCampus(x, z)), false, 'got over the campus wall');
 });
 
 test('visitors stand on the footpath, clear of everything, without blocking the shops', () => {
