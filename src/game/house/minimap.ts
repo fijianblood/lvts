@@ -3,12 +3,15 @@
 // with a breadcrumb trail of the path walked.
 import { ROOMS, WALLS, BARRIERS, EXIT_ZONE, barrierRect, barrierBlocksSight, type WallRun, type Rect, type Room, type GameMode } from './layout.ts';
 import { SHOP_SPOTS, shopBox } from './neighbourhood.ts';
+import { PLAN, ROAD_LABELS, footprint } from './raiwaiPlan.ts';
+import { PARKED } from './layout.ts';
 import type { OBB } from './collision.ts';
 
-const B = { x0: -13.0, x1: 33.0, z0: -15.0, z1: 38.5 };
+/** The map covers the compound and the part of Raiwai you can walk (McFarlane Road, the side road). */
+const B = { x0: -64.0, x1: 166.0, z0: -44.0, z1: 42.0 };
 /** The big map in the hunt shows just the compound. */
 const HUNT_FRAME = { x0: -4.0, x1: 17.0, z0: -15.0, z1: 24.5 };
-const PPM = 14;              // base-map pixels per metre
+const PPM = 10;              // base-map pixels per metre
 const GRID = 0.1;            // sight-grid cell, metres
 const RAYS = 110;
 const CELL = 0.5;            // 'have I seen this spot?' grid, metres (read back without touching the canvas)
@@ -138,6 +141,22 @@ export class Minimap {
         }
       }
     }
+    // Raiwai: houses, the church, the pool, the training ground (what's on the map's patch), and parked cars
+    const ink: Partial<Record<string, string>> = { church: '#f4f3ef', pool: '#7fcfe3', field: '#c8c08f', teal: '#2fbf9f' };
+    for (const it of PLAN) {
+      const f = footprint(it);
+      if (f.x1 < B.x0 || f.x0 > B.x1 || f.z1 < B.z0 || f.z0 > B.z1) continue;
+      g.fillStyle = ink[it.kind] ?? it.spec?.roof ?? '#c3c8cb';
+      g.fillRect(this.mx(f.x0), this.my(f.z0), (f.x1 - f.x0) * PPM, (f.z1 - f.z0) * PPM);
+      g.strokeStyle = 'rgba(15,23,42,0.35)'; g.lineWidth = 1;
+      g.strokeRect(this.mx(f.x0), this.my(f.z0), (f.x1 - f.x0) * PPM, (f.z1 - f.z0) * PPM);
+    }
+    g.fillStyle = 'rgba(15,23,42,0.6)';
+    for (const c of PARKED) {
+      const [l, w] = c.kind === 'bus' ? [10.5, 2.5] : [4.8, 1.85];
+      g.fillStyle = c.kind === 'bus' ? '#36b45f' : 'rgba(15,23,42,0.6)';
+      g.fillRect(this.mx(c.x - l / 2), this.my(c.z - w / 2), l * PPM, w * PPM);
+    }
     // the shops across the road
     for (const sp of SHOP_SPOTS) {
       const b = shopBox(sp);
@@ -238,7 +257,12 @@ export class Minimap {
     // world -> screen: centred on the player (small map) or the whole house (expanded)
     let scale: number, ox: number, oy: number;
     if (this.expanded) {
-      const F = this.mode === 'hunt' ? HUNT_FRAME : B;
+      // the hunt: the compound; exploring: about 90 m of Raiwai round where you are
+      const half = 45, aspect = c.height / Math.max(1, c.width);
+      const F = this.mode === 'hunt' ? HUNT_FRAME : {
+        x0: Math.min(Math.max(px - half, B.x0), B.x1 - half * 2), x1: Math.min(Math.max(px - half, B.x0), B.x1 - half * 2) + half * 2,
+        z0: Math.min(Math.max(pz - half * aspect, B.z0), B.z1 - half * 2 * aspect), z1: Math.min(Math.max(pz - half * aspect, B.z0), B.z1 - half * 2 * aspect) + half * 2 * aspect,
+      };
       const fx = (F.x1 - F.x0) * PPM, fz = (F.z1 - F.z0) * PPM;
       scale = Math.min(c.width / fx, c.height / fz) * 0.96;
       ox = (c.width - fx * scale) / 2 - this.mx(F.x0) * scale;
@@ -296,6 +320,35 @@ export class Minimap {
         if (!this.isRevealed(cx, cz)) continue;
         g.fillStyle = 'rgba(15,23,42,0.55)';
         g.fillText(room.name, this.mx(cx), this.my(cz));
+      }
+      if (this.mode === 'explore') {
+        // Raiwai's roads and places, so you know where you are
+        g.font = `700 ${9 / scale * dpr}px "Space Grotesk", sans-serif`;
+        // white with a dark outline, readable on the map and on the fog alike
+        const label = (text: string, x: number, y: number) => {
+          g.lineWidth = 3 / scale * dpr; g.strokeStyle = 'rgba(15,23,42,0.85)'; g.lineJoin = 'round';
+          g.strokeText(text, x, y);
+          g.fillStyle = '#ffffff'; g.fillText(text, x, y);
+        };
+        for (const l of ROAD_LABELS) {
+          g.save();
+          g.translate(this.mx(l.x), this.my(l.z));
+          if (l.vertical) g.rotate(-Math.PI / 2);
+          label(l.text, 0, 0);
+          g.restore();
+        }
+        for (const it of PLAN) {
+          if (!it.label) continue;
+          const f = footprint(it);
+          const lx = Math.min(Math.max((f.x0 + f.x1) / 2, B.x0 + 8), B.x1 - 8), lz = Math.min(Math.max((f.z0 + f.z1) / 2, B.z0 + 2), B.z1 - 2);
+          label(it.label, this.mx(lx), this.my(lz));
+        }
+        g.font = `800 ${12 / scale * dpr}px "Syne", "Space Grotesk", sans-serif`;
+        g.fillStyle = 'rgba(255,255,255,0.95)';
+        g.textAlign = 'left';
+        const corner = (c.width * 0.04 - ox) / scale, top = (c.height * 0.06 - oy) / scale;
+        g.fillText('RAIWAI', corner, top);
+        g.textAlign = 'center';
       }
     }
 

@@ -1,4 +1,4 @@
-// Prize codes for the House Hunt.
+// Prize codes for Vaqara Raiwai (the house game).
 //
 // The site's repo is public, so the real codes never live in the source. They
 // come from the HOUSE_PRIZE_CODES environment variable at build time (a GitHub

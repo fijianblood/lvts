@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildStaticWorld, doorOBB, bodyOBB, blocked, PLAYER_R, type OBB } from '../../src/game/house/collision.ts';
-import { DOORS, SPAWN, RAMPS, heightAt, type GameMode } from '../../src/game/house/layout.ts';
+import { DOORS, SPAWN, RAMPS, heightAt, SIDE_ROAD, PARKED, type GameMode } from '../../src/game/house/layout.ts';
 import { SHOP_SPOTS, SHOP_LINE, STREET, VISITOR_SPOTS, visitorCharacter } from '../../src/game/house/neighbourhood.ts';
 import { handle, memoryStore, LIMITS, type Ctx } from '../../workers/neighbourhood/src/registry.ts';
 import { cleanName, cleanLook } from '../../workers/neighbourhood/src/rules.ts';
@@ -10,14 +10,17 @@ import { cleanName, cleanLook } from '../../workers/neighbourhood/src/rules.ts';
 const doorsOpen: OBB[] = DOORS.map((d) => doorOBB(d, 1));
 const visitors: OBB[] = VISITOR_SPOTS.map((p) => bodyOBB(p[0], p[2]));
 
-// flood-fill the floor from the spawn point on a 10 cm grid, over the house and the street
-const G = { x0: -12.5, z0: -14.6, step: 0.1, nx: 450, nz: 470 };
-function reach(mode: GameMode, extra: OBB[] = []) {
+// flood-fill the floor from the spawn point on a 10 cm grid, over the house and the street near the gate
+type Grid = { x0: number; z0: number; step: number; nx: number; nz: number };
+const FINE: Grid = { x0: -12.5, z0: -14.6, step: 0.1, nx: 450, nz: 470 };
+/** All of the walkable part of Raiwai (McFarlane Road end to end, the side road), on a 20 cm grid. */
+const RAIWAI_G: Grid = { x0: -63, z0: -42, step: 0.2, nx: 1132, nz: 380 };
+function reach(mode: GameMode, extra: OBB[] = [], G: Grid = FINE, start: [number, number] = [SPAWN.pos[0], SPAWN.pos[2]]) {
   const world = buildStaticWorld({ mode });
   const obstacles = [...doorsOpen, ...extra];
   const seen = new Uint8Array(G.nx * G.nz);
   const free = (i: number, j: number) => !blocked([G.x0 + i * G.step, G.z0 + j * G.step], PLAYER_R, world, obstacles);
-  const si = Math.round((SPAWN.pos[0] - G.x0) / G.step), sj = Math.round((SPAWN.pos[2] - G.z0) / G.step);
+  const si = Math.round((start[0] - G.x0) / G.step), sj = Math.round((start[1] - G.z0) / G.step);
   const q = [[si, sj]];
   seen[si * G.nz + sj] = 1;
   while (q.length) {
@@ -60,14 +63,29 @@ test('the hunt keeps you in the compound: you never get out onto the street', ()
   assert.equal(hunt.any((_x, z) => z > 24.0), false, 'walked past the finish line in the hunt');
 });
 
-test('exploring: out of the gate, along the street, up to every shop, and no further', () => {
-  const map = reach('explore', visitors);
-  for (const sp of SHOP_SPOTS) assert.ok(map.near((sp.x0 + sp.x1) / 2, SHOP_LINE - 0.4, 0.6), `can't walk up to ${sp.name}`);
-  assert.ok(map.near(STREET.x0 + 0.5, 26, 0.5) && map.near(STREET.x1 - 0.5, 26, 0.5), "can't reach both ends of the street");
-  assert.equal(map.any((x, z) => z > 23 && (x < STREET.x0 - 0.05 || x > STREET.x1 + 0.05)), false, 'walked off the end of the street');
+test('exploring: from the house out of the gate onto McFarlane Road, and not into the yards', () => {
+  const map = reach('explore', visitors, FINE);
+  assert.ok(map.near(14, 26, 0.5), "can't get from the house out of the gate onto McFarlane Road");
   assert.equal(map.any((_x, z) => z > SHOP_LINE + 0.05), false, 'walked into a shop through the wall');
   assert.equal(map.any((x, z) => z > 21 && z < 22.25 && (x < -2.7 || x > 15.7)), false, "walked into the neighbours' front yards");
   assert.deepEqual(map.cliffs().slice(0, 6), [], 'a ledge on the way to the street');
+});
+
+test('exploring Raiwai: McFarlane Road end to end, up the side road, and no further', () => {
+  const map = reach('explore', visitors, RAIWAI_G, [14, 25]);
+  const inSide = (x: number) => x > SIDE_ROAD.x0 - 0.05 && x < SIDE_ROAD.x1 + 0.05;
+  const inCompound = (x: number) => x > -2.75 && x < 15.75;
+  assert.ok(map.near(STREET.x0 + 0.6, 26, 0.6) && map.near(STREET.x1 - 0.6, 26, 0.6), "can't reach both ends of McFarlane Road");
+  for (const sp of SHOP_SPOTS) assert.ok(map.near((sp.x0 + sp.x1) / 2, SHOP_LINE - 0.4, 0.6), `can't walk up to ${sp.name}`);
+  assert.equal(map.any((x) => x < STREET.x0 - 0.05 || x > STREET.x1 + 0.05), false, 'walked off the end of McFarlane Road');
+  assert.equal(map.any((_x, z) => z > STREET.z1 + 0.05), false, 'got over the wall or into a shop across the road');
+  assert.ok(map.near((SIDE_ROAD.x0 + SIDE_ROAD.x1) / 2, SIDE_ROAD.z0 + 0.8, 0.6), "can't walk up the side road to its end");
+  assert.equal(map.any((_x, z) => z < SIDE_ROAD.z0 - 0.05), false, 'walked past the end of the side road');
+  assert.equal(map.any((x, z) => z < 22.25 && !inSide(x) && !inCompound(x)), false, "left the side road or McFarlane Road into someone's yard");
+  for (const c of PARKED) assert.equal(map.near(c.x, c.z, 0.3), false, `walked through the parked ${c.kind} at x ${c.x}`);
+  // (the compound itself is checked on the fine grid above; this coarser grid only looks outside it)
+  const outside = map.cliffs().filter((m) => { const [x, z] = m.slice(1, m.indexOf(')')).split(',').map(Number); return !(inCompound(x) && z < 22.3); });
+  assert.deepEqual(outside.slice(0, 6), [], 'a ledge on McFarlane Road or the side road');
 });
 
 test('visitors stand on the footpath, clear of everything, without blocking the shops', () => {

@@ -20,7 +20,7 @@ export default function HouseHuntPage() {
           <Gamepad2 size={14} /> Interactive 3D Experience
         </div>
         <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(2rem,5vw,3.2rem)', color: '#0f172a', lineHeight: 1.1, marginBottom: '1rem' }}>
-          LvTS <span className="grad-text">House Hunt</span>
+          LvTS <span className="grad-text">Vaqara Raiwai</span>
         </h1>
         <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: 1.75, marginBottom: '0.9rem' }}>
           Take a first-person 3D walk-through of a Suva family home! Explore the house, discover the different rooms, find hidden technology parts and interact with the home environment.

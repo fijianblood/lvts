@@ -16,8 +16,8 @@ const MESSAGES: Record<ContestPhase, string> = {
   ended: `🎮 Play the Weave Playground — my custom coding language and game, free to try right now. ${CONTEST_DESC} ${TREASURE_TEASER}`,
 };
 
-// While a House Hunt prize round is live, the banner promotes it instead.
-const HOUSE_MSG = '🏠 The LvTS House Hunt is LIVE! Explore the house, find the hidden Golden Chip and get out the front gate to reveal this round’s secret code — winners are paid by M-PAiSA.';
+// While a Vaqara Raiwai prize round is live, the banner promotes it instead.
+const HOUSE_MSG = '🏠 Vaqara Raiwai is LIVE! Explore the house, find the hidden Golden Chip and get out the front gate to reveal this round’s secret code — winners are paid by M-PAiSA.';
 
 const FAST_SPEED = 9; // % of bar width per second — slow, easy to read
 const HOVER_SPEED = 0; // eases all the way to a stop while hovered, waiting for the click
@@ -36,7 +36,7 @@ export default function CompetitionBanner({ onNav }: CompetitionBannerProps) {
 
   const houseLive = prizeState().live;
   const message = houseLive ? HOUSE_MSG : MESSAGES[getContestPhase()];
-  const gameName = houseLive ? 'the House Hunt' : 'the Weave Playground';
+  const gameName = houseLive ? 'Vaqara Raiwai' : 'the Weave Playground';
   const fullText = `${message}  ·  Tap to play ${gameName} →`;
 
   useEffect(() => {

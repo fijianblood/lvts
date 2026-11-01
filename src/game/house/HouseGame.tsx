@@ -717,7 +717,7 @@ export default function HouseGame() {
         <div className="hh-overlay">
           <div className="hh-card">
             <div className="hh-eyebrow">LvTS · First-person 3D</div>
-            <h2 className="hh-title">House <span className="grad-text">Hunt</span></h2>
+            <h2 className="hh-title">Vaqara <span className="grad-text">Raiwai</span></h2>
             <p className="hh-lead">Explore the house and the yard, grab the {total} tech parts, hunt down the <strong>Golden Chip</strong> (it hides somewhere new every game), then get out through the front gate. Help with the chores to earn ⭐ stars and unlock new places.</p>
             <div className="hh-pick-label">Who do you want to play as?</div>
             <div className="hh-tabs" role="tablist" aria-label="Family groups">
@@ -873,7 +873,7 @@ export default function HouseGame() {
         <div className="hh-overlay">
           <div className="hh-card hh-card-sm">
             <h3 className="hh-title-sm">3D isn’t available here</h3>
-            <p className="hh-lead">This browser or device has WebGL turned off, which the House Hunt needs. Try an up-to-date Chrome, Safari or Firefox, or turn on hardware acceleration in your browser settings.</p>
+            <p className="hh-lead">This browser or device has WebGL turned off, which Vaqara Raiwai needs. Try an up-to-date Chrome, Safari or Firefox, or turn on hardware acceleration in your browser settings.</p>
           </div>
         </div>
       )}
