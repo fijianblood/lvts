@@ -111,22 +111,35 @@ on them. Baby Aisha babbles, coos and reaches for cuddles instead of talking.
   the same card (a new name goes back for approval). Until the server is
   deployed, characters stay on the visitor's own device; nothing breaks.
 - **Explore mode.** "Explore the neighbourhood" on the start card: no timer,
-  no parts or Golden Chip; the front gate leads out onto the street, which
-  runs past the neighbours to a row of five shop spots across the road. Chores
+  no parts or Golden Chip; the front gate leads out onto McFarlane Road in
+  Raiwai (see "Raiwai" below), with a row of shops across the road. Chores
   and stars work as in the hunt.
-- **Shop spots and offers.** `SHOP_SPOTS` in `neighbourhood.ts`. They are all
-  "Shop spot N — coming soon" until a real business agrees to be in the game.
-  To add one: set its `name`, `kind` ('shop', 'food', 'church', 'mosque',
-  'temple', 'mall', 'community'), a `blurb`, and a photo of the real shopfront
-  in `public/neighbourhood/` as `photo` (shown across the front of the
-  building). Offers go in `offers`:
+- **Shops.** The list is `SHOPS` in `shops.ts`; the row across the road grows
+  with it (buildings, footpath, walls and the map all follow). Each shop's
+  logo goes in `public/neighbourhood/logos/` and shows on a sign board above
+  its front, fitted without stretching. To add a shop:
 
   ```ts
-  offers: [{
-    id: 'pie-drink', title: 'Free soft drink with any pie', details: 'At the counter, any day.',
-    kind: 'free', unlock: { type: 'stars', stars: 10 }, code: 'LVTS-PIE',
-    terms: 'One per customer per day. While stocks last.', until: '2026-12-31',
-  }],
+  { id: 'my-shop', name: 'My Shop', kind: 'shop', width: 8.6, wall: '#f4f2ec', sign: '#1f8a3b',
+    logo: 'my-shop.png', blurb: 'What it sells.' },
+  ```
+
+  `kind` sets the front: 'supermarket' (long glass front), 'cinema' (tall dark
+  front with posters), 'complex' (two storeys, like Sardaar Complex), 'food',
+  'shop' or 'hardware' (window and door). A shop without a logo gets its name
+  in letters (`sub` for a second line). **The logos belong to their
+  businesses**, so get each business's OK before it goes live.
+- **Offers** go in `OFFERS` in `neighbourhood.ts`, by shop id, once the
+  business has agreed:
+
+  ```ts
+  export const OFFERS: Record<string, Offer[]> = {
+    'hot-bread-kitchen': [{
+      id: 'pie-drink', title: 'Free soft drink with any pie', details: 'At the counter, any day.',
+      kind: 'free', unlock: { type: 'stars', stars: 10 }, code: 'LVTS-PIE',
+      terms: 'One per customer per day. While stocks last.', until: '2026-12-31',
+    }],
+  };
   ```
 
   Unlocks: `{ type: 'visit' }` (walk up to the shop), `{ type: 'stars', stars: N }`
@@ -150,6 +163,7 @@ ground). From the gate, the places along the road to the left (east) are:
 - the **Methodist Church** (Raiwai branch), the big A-frame church, set back up the bank with its sign by the road;
 - across the road, the **pool** with its covered stand, the **teal two-storey building**, and the **Lomaiviti Training Ground** with rugby posts;
 - the green **Nasese bus** at the stop by the pool, and cars parked along both edges (you bump into them);
+- where McFarlane Road ends to the east, the entrance sign of **The University of the South Pacific** (USP) with the campus beyond;
 - beyond the training ground, the commercial sheds, the arena and stadium lights, and the sea with the reef's surf;
 - up the hill to the north and west, more houses, flats and an apartment block, and the hills behind.
 

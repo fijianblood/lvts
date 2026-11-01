@@ -818,6 +818,7 @@ export class HouseEngine {
     switch (it.kind) {
       case 'house': g = R.house({ ...it.spec!, base: (it.spec!.base ?? 0.3) + (hi - lo) }); break;
       case 'flats': g = R.flats({ floors: it.floors ?? 3, w: it.w, d: it.d }); break;
+      case 'campus': g = R.flats({ floors: it.floors ?? 3, w: it.w, d: it.d, wall: '#f4f3ef', trim: '#1aa0a8', roof: '#c9cdd0' }); break;
       case 'tower': g = R.tower(it.floors ?? 6); break;
       case 'church': g = R.aFrameChurch(); break;
       case 'pool': g = R.publicPool(); break;
@@ -877,6 +878,22 @@ export class HouseEngine {
 
     // signs by the road: the Methodist Church, the Lomaiviti Training Ground
     for (const sg of SIGNS) {
+      if (sg.logo) {
+        // a big entrance sign on a plinth, the logo on it (USP)
+        const y = heightAt(sg.x, sg.z);
+        const g = new THREE.Group();
+        const plinth = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.9, 0.9), lambert('#d9d5cb'));
+        plinth.position.y = 0.45;
+        g.add(plinth);
+        for (const sx of [-2.3, 2.3]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.25, 2.2, 0.25), lambert('#d9d5cb')); post.position.set(sx, 1.9, 0); g.add(post); }
+        const board = this.logoBoard(sg.logo, sg.bg ?? '#ffffff', sg.color, 4.8, 2.4);
+        board.position.set(0, 2.6, 0);
+        g.add(board);
+        g.position.set(sg.x, y, sg.z);
+        g.rotation.y = FACE_ANGLE[sg.face];
+        this.raiwaiNear.add(g);
+        continue;
+      }
       const g = new THREE.Group();
       const y = heightAt(sg.x, sg.z);
       for (const s of [-1, 1]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.6, 0.1), lambert('#3b3f44')); post.position.set(s * 1.35, 0.8, 0); g.add(post); }
@@ -929,21 +946,26 @@ export class HouseEngine {
     push(far, '#d9eef2', boxGeo(-1500, ROAD_Y - 0.28, 352, 1600, ROAD_Y - 0.26, 358));
   }
 
-  /** The shops across the road: a building per spot, its sign, an awning, and its photo once there is one. */
+  /**
+   * The shops across the road (shops.ts): a building per shop, the logo on a
+   * sign board above the front, a striped awning, and the front itself: glass
+   * for the supermarkets, a tall blank front for the cinema, two storeys for
+   * Sardaar Complex, a window and a door for the rest (or a photo of the real
+   * shopfront if there is one).
+   */
   private buildShops(out: Buckets) {
     for (const sp of SHOP_SPOTS) {
       const b = shopBox(sp);
       const mid = (b.x0 + b.x1) / 2, w = b.x1 - b.x0;
-      push(out, sp.wall, boxGeo(b.x0, b.y - 0.3, b.z0 + 0.06, b.x1, b.y + 4.2, b.z1));
-      push(out, '#e5e7eb', boxGeo(b.x0 - 0.05, b.y + 4.2, b.z0, b.x1 + 0.05, b.y + 4.45, b.z1 + 0.05));     // parapet
+      const tall = sp.kind === 'complex' ? 7.4 : sp.kind === 'cinema' ? 6.2 : sp.kind === 'supermarket' ? 5.2 : 4.2;
+      push(out, sp.wall, boxGeo(b.x0, b.y - 0.3, b.z0 + 0.06, b.x1, b.y + tall, b.z1));
+      push(out, '#e5e7eb', boxGeo(b.x0 - 0.05, b.y + tall, b.z0, b.x1 + 0.05, b.y + tall + 0.25, b.z1 + 0.05));     // parapet
+      if (sp.kind === 'complex') { this.buildComplex(sp, out); continue; }
       // awning in stripes
       for (let i = 0; i < 8; i++) {
         const x0 = b.x0 + (w * i) / 8, x1 = b.x0 + (w * (i + 1)) / 8;
-        const g = boxGeo(x0, b.y + 2.55, b.z0 - 1.1, x1, b.y + 2.62, b.z0 + 0.06);
-        g.rotateX(0);
-        push(out, i % 2 ? '#ffffff' : sp.sign, g);
+        push(out, i % 2 ? '#ffffff' : sp.sign, boxGeo(x0, b.y + 2.55, b.z0 - 1.1, x1, b.y + 2.62, b.z0 + 0.06));
       }
-      // the front: the shop's photo if it has one, otherwise a window and a door
       if (sp.photo) {
         const tex = this.tex(new THREE.TextureLoader().load(`${import.meta.env.BASE_URL}neighbourhood/${sp.photo}`));
         tex.colorSpace = THREE.SRGBColorSpace;
@@ -951,20 +973,104 @@ export class HouseEngine {
         front.rotation.y = Math.PI;
         front.position.set(mid, b.y + 1.27, b.z0 + 0.02);
         this.scene.add(front);
+      } else if (sp.kind === 'supermarket') {
+        // a long glass front with an entrance in the middle
+        push(out, '#bfe0ee', boxGeo(b.x0 + 0.4, b.y + 0.15, b.z0 + 0.03, b.x1 - 0.4, b.y + 2.4, b.z0 + 0.06));
+        for (let x = b.x0 + 1.6; x < b.x1 - 0.5; x += 1.6) push(out, '#9aa3aa', boxGeo(x - 0.04, b.y + 0.15, b.z0 + 0.01, x + 0.04, b.y + 2.4, b.z0 + 0.03));
+        push(out, '#3b4045', boxGeo(mid - 1.0, b.y, b.z0 + 0.0, mid + 1.0, b.y + 2.3, b.z0 + 0.02));
+      } else if (sp.kind === 'cinema') {
+        // a tall dark front: poster boxes either side of the doors
+        for (const sx of [-1, 1]) push(out, '#f3d36b', boxGeo(mid + sx * 3.2 - 0.9, b.y + 0.6, b.z0 + 0.02, mid + sx * 3.2 + 0.9, b.y + 2.9, b.z0 + 0.04));
+        push(out, '#c9ced2', boxGeo(mid - 1.4, b.y, b.z0 + 0.02, mid + 1.4, b.y + 2.4, b.z0 + 0.05));
       } else {
         push(out, '#cfe8f5', boxGeo(b.x0 + 0.5, b.y + 0.6, b.z0 + 0.03, mid - 0.7, b.y + 2.2, b.z0 + 0.06));
         push(out, '#cfe8f5', boxGeo(mid + 0.7, b.y + 0.6, b.z0 + 0.03, b.x1 - 0.5, b.y + 2.2, b.z0 + 0.06));
         push(out, '#6b4a2b', boxGeo(mid - 0.55, b.y, b.z0 + 0.02, mid + 0.55, b.y + 2.25, b.z0 + 0.06));
       }
-      // the sign board
-      const name = sp.kind === 'empty' ? sp.name : sp.name;
-      const sub = sp.kind === 'empty' ? 'COMING SOON' : sp.offers.length ? 'Offers inside!' : '';
-      const sign = this.tex(T.shopSign(name, sub, sp.sign));
-      const board = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(w - 0.6, 6.4), 1.1), new THREE.MeshBasicMaterial({ map: sign }));
-      board.rotation.y = Math.PI;
-      board.position.set(mid, b.y + 3.35, b.z0 - 0.002);
-      this.scene.add(board);
+      // the sign board: the logo if there is one, otherwise the name in letters
+      const signY = b.y + Math.min(tall - 0.85, 3.6);
+      const bw = Math.min(w - 0.6, 8), bh = 1.4;
+      if (sp.logo) {
+        const board = this.logoBoard(sp.logo, sp.logoBg ?? '#ffffff', sp.sign, bw, bh);
+        board.position.set(mid, signY, b.z0 - 0.04);
+        this.scene.add(board);
+      } else {
+        const sign = this.tex(T.shopSign(sp.name, sp.kind === 'empty' ? 'COMING SOON' : sp.sub ?? (sp.offers.length ? 'Offers inside!' : ''), sp.sign));
+        const board = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(w - 0.6, 6.4), 1.1), new THREE.MeshBasicMaterial({ map: sign }));
+        board.rotation.y = Math.PI;
+        board.position.set(mid, signY, b.z0 - 0.002);
+        this.scene.add(board);
+      }
     }
+  }
+
+  /** A sign board with a business's logo on it, fitted without stretching. Faces -z from its origin (the board's middle). */
+  private logoBoard(file: string, bg: string, edge: string, bw: number, bh: number): THREE.Group {
+    const g = new THREE.Group();
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(bw + 0.16, bh + 0.16, 0.08), lambert(edge));
+    frame.position.z = 0.02;
+    g.add(frame);
+    const panel = new THREE.Mesh(new THREE.PlaneGeometry(bw, bh), new THREE.MeshBasicMaterial({ color: bg }));
+    panel.rotation.y = Math.PI;
+    panel.position.z = -0.025;
+    g.add(panel);
+    const logo = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ transparent: true }));
+    logo.rotation.y = Math.PI;
+    logo.position.z = -0.03;
+    logo.visible = false;
+    g.add(logo);
+    new THREE.TextureLoader().load(`${import.meta.env.BASE_URL}neighbourhood/logos/${file}`, (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = 4;
+      this.tex(tex);
+      const img = tex.image as { width: number; height: number };
+      const aspect = img.width / Math.max(1, img.height);
+      const lw = Math.min(bw * 0.94, bh * 0.88 * aspect), lh = lw / aspect;
+      logo.scale.set(lw, lh, 1);
+      (logo.material as THREE.MeshBasicMaterial).map = tex;
+      (logo.material as THREE.MeshBasicMaterial).needsUpdate = true;
+      logo.visible = true;
+      this.kick();
+    });
+    return g;
+  }
+
+  /** Sardaar Complex: two storeys, roller shutters below, red sign bands, barred windows upstairs, its name on a white panel. */
+  private buildComplex(sp: ShopSpot, out: Buckets) {
+    const b = shopBox(sp);
+    const w = b.x1 - b.x0, z = b.z0;
+    const red = sp.sign;
+    // ground floor: shutters, and one shop open with posters in its window
+    const n = 4;
+    for (let i = 0; i < n; i++) {
+      const x0 = b.x0 + 0.3 + (i * (w - 0.6)) / n, x1 = b.x0 + 0.3 + ((i + 1) * (w - 0.6)) / n - 0.25;
+      if (i === n - 1) {
+        push(out, '#f3d36b', boxGeo(x0, b.y + 2.5, z - 0.04, x1, b.y + 2.85, z + 0.02));       // a yellow band over it
+        for (let k = 0; k < 3; k++) push(out, ['#6fa8dc', '#22313f', '#e8ecef'][k], boxGeo(x0 + 0.15 + k * (x1 - x0 - 0.3) / 3, b.y + 0.4, z + 0.02, x0 + 0.1 + (k + 1) * (x1 - x0 - 0.3) / 3, b.y + 2.3, z + 0.05));
+      } else {
+        push(out, '#c7cbcf', boxGeo(x0, b.y + 0.02, z + 0.02, x1, b.y + 2.6, z + 0.05));
+        for (let y = b.y + 0.2; y < b.y + 2.6; y += 0.18) push(out, '#a9aeb3', boxGeo(x0, y, z + 0.0, x1, y + 0.03, z + 0.02));
+      }
+    }
+    push(out, red, boxGeo(b.x0 - 0.1, b.y + 2.9, z - 0.25, b.x1 + 0.1, b.y + 3.8, z + 0.06));      // the first sign band
+    // upstairs: three barred windows between pillars
+    for (let i = 0; i < 3; i++) {
+      const cx = b.x0 + (w * (i + 0.5)) / 3;
+      push(out, '#2f3a42', boxGeo(cx - 1.2, b.y + 4.4, z - 0.02, cx + 1.2, b.y + 5.8, z + 0.04));
+      for (let k = -2; k <= 2; k++) push(out, '#d9d6cf', boxGeo(cx + k * 0.45 - 0.02, b.y + 4.4, z - 0.05, cx + k * 0.45 + 0.02, b.y + 5.8, z - 0.02));
+    }
+    for (let i = 0; i <= 3; i++) push(out, '#e9e3cf', boxGeo(b.x0 + (w * i) / 3 - 0.2, b.y + 3.8, z - 0.15, b.x0 + (w * i) / 3 + 0.2, b.y + 6.4, z + 0.05));
+    push(out, red, boxGeo(b.x0 + 3.4, b.y + 6.4, z - 0.25, b.x1 + 0.1, b.y + 7.5, z + 0.06));        // the top band
+    // the name: a white panel at the top left
+    const name = this.tex(T.canvasTexture(256, 84, (g, cw, ch) => {
+      g.fillStyle = '#f4f4f2'; g.fillRect(0, 0, cw, ch);
+      g.fillStyle = '#3a3d42'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = '700 30px "Space Grotesk", Arial, sans-serif';
+      g.fillText('SARDAAR', cw / 2, ch * 0.3); g.fillText('COMPLEX', cw / 2, ch * 0.72);
+    }));
+    const panel = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 1.1), new THREE.MeshBasicMaterial({ map: name }));
+    panel.rotation.y = Math.PI;
+    panel.position.set(b.x0 + 1.7, b.y + 6.95, z - 0.27);
+    this.scene.add(panel);
   }
 
   /** Draw one wall, railing or fence, sitting on whatever floor is on each side of it. */

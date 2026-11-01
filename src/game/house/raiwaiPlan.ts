@@ -7,6 +7,7 @@
 // The houses are Raiwai-style but made up from a seed: they aren't copies of
 // anyone's real home. Public places are modelled on drone photos of the area.
 import { MCFARLANE, SIDE_ROAD, NEIGHBOURS } from './layout.ts';
+import { SHOP_ROW } from './shops.ts';
 
 export interface HouseSpec {
   w: number;
@@ -57,7 +58,7 @@ export function houseSpec(seed: number, simple = false): HouseSpec {
 export type Face = 'n' | 's' | 'e' | 'w';
 export const FACE_ANGLE: Record<Face, number> = { n: 0, s: Math.PI, e: -Math.PI / 2, w: Math.PI / 2 };
 
-export type PlanKind = 'house' | 'flats' | 'tower' | 'church' | 'pool' | 'teal' | 'field' | 'shed' | 'arena' | 'floodlight';
+export type PlanKind = 'house' | 'flats' | 'campus' | 'tower' | 'church' | 'pool' | 'teal' | 'field' | 'shed' | 'arena' | 'floodlight';
 export interface PlanItem {
   kind: PlanKind;
   x: number;
@@ -94,12 +95,20 @@ export const LANDMARKS: PlanItem[] = [
   { kind: 'pool', x: 87, z: 45, face: 'n', w: 34, d: 22, label: 'Pool' },
   { kind: 'teal', x: 111.5, z: 38.6, face: 'n', w: 9, d: 7 },
   { kind: 'field', x: 158, z: 61, face: 'n', w: 72, d: 50, label: 'Lomaiviti Training Ground' },
+  // the University of the South Pacific, past the end of McFarlane Road
+  { kind: 'campus', x: 190, z: 6, face: 's', w: 30, d: 14, floors: 3, far: true, label: 'USP' },
+  { kind: 'campus', x: 226, z: 10, face: 's', w: 26, d: 14, floors: 4, far: true },
+  { kind: 'campus', x: 222, z: 52, face: 'n', w: 30, d: 14, floors: 3, far: true },
+  { kind: 'campus', x: 254, z: 38, face: 'w', w: 24, d: 12, floors: 3, far: true },
 ];
 
-/** Signs by the road. */
-export const SIGNS = [
-  { x: 103, z: 20.6, face: 's' as Face, title: 'METHODIST CHURCH', sub: 'Raiwai', color: '#7f1d1d' },
-  { x: 125, z: 33.4, face: 'n' as Face, title: 'LOMAIVITI', sub: 'Training Ground', color: '#14532d' },
+/** Signs by the road (a logo makes it a big entrance sign). */
+export interface Sign { x: number; z: number; face: Face; title: string; sub: string; color: string; logo?: string; bg?: string }
+export const SIGNS: Sign[] = [
+  { x: 103, z: 20.6, face: 's', title: 'METHODIST CHURCH', sub: 'Raiwai', color: '#7f1d1d' },
+  { x: 125, z: 33.4, face: 'n', title: 'LOMAIVITI', sub: 'Training Ground', color: '#14532d' },
+  // where McFarlane Road ends to the east: the way into the university
+  { x: 167, z: 25.8, face: 'w', title: 'USP', sub: 'The University of the South Pacific', color: '#1aa0a8', logo: 'usp.png', bg: '#ffffff' },
 ];
 
 /** Big-map labels for the roads. */
@@ -115,7 +124,7 @@ const taken: Box[] = [
   ...items.map(footprint),
   ...NEIGHBOURS.map((n) => ({ x0: n.x0, x1: n.x1, z0: n.z0, z1: n.z1 })),
   { x0: -3.2, x1: 16.2, z0: -14.5, z1: 22.3 },                               // the compound
-  { x0: -12.5, x1: 32.5, z0: 31.6, z1: 38 },                                 // the shops
+  { x0: SHOP_ROW.x0 - 0.5, x1: SHOP_ROW.x1 + 0.5, z0: 31.6, z1: 46 },       // the shops (and their yards behind)
   { x0: SIDE_ROAD.x0 - 0.5, x1: SIDE_ROAD.x1 + 0.5, z0: SIDE_ROAD.z0 - 1, z1: 22.5 },
   { x0: 92, x1: 114, z0: -34, z1: 22 },                                      // the church grounds
 ];
@@ -156,8 +165,8 @@ function row(line: number, from: number, to: number, face: Face, far = false) {
 row(18.6, MCFARLANE.x0 - 40, -15, 's', false);
 row(18.6, 40.5, MCFARLANE.x1 + 40, 's', false);
 // south side, fronts behind the low wall across the road
-row(33.8, MCFARLANE.x0 - 40, -13, 'n', false);
-row(33.8, 33.5, 69, 'n', false);
+row(33.8, MCFARLANE.x0 - 40, SHOP_ROW.x0 - 1.5, 'n', false);
+row(33.8, SHOP_ROW.x1 + 1.5, 69, 'n', false);
 // the side road: west side faces east, east side faces west
 row(SIDE_ROAD.x0 - 1.4, SIDE_ROAD.z0 + 2, -8.5, 'e', false);
 row(SIDE_ROAD.x1 + 1.4, SIDE_ROAD.z0 + 2, 6, 'w', false);

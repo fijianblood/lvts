@@ -13,6 +13,8 @@
 // floor and the driveway falls about 3 m to the road, where the front gate is
 // the way out.
 
+import { SHOP_ROW } from './shops.ts';
+
 export type XZ = [number, number];
 export type XYZ = [number, number, number];
 
@@ -266,9 +268,9 @@ export const ROOMS: Room[] = [
   { id: 'backyard', name: 'Back yard', x0: -2.7, x1: 15.65, z0: -14, z1: -7.7, floor: 'grass', ceiling: false, outside: true, ground: true, area: true },
   // Raiwai (exploring): McFarlane Road past the front gate, its footpath and the shops, and the side road beside the neighbours
   { id: 'road', name: 'McFarlane Road', x0: -70, x1: 170, z0: 22.5, z1: 29, floor: 'road', ceiling: false, outside: true, ground: true, area: true, explore: true },
-  { id: 'footpath', name: 'The shops', x0: -12, x1: 32, z0: 29, z1: 31.6, floor: 'concrete', ceiling: false, outside: true, ground: true, area: true, explore: true },
-  { id: 'footwest', name: 'McFarlane Road', x0: -70, x1: -12, z0: 29, z1: 31.6, floor: 'concrete', ceiling: false, outside: true, ground: true, explore: true },
-  { id: 'footeast', name: 'McFarlane Road', x0: 32, x1: 170, z0: 29, z1: 31.6, floor: 'concrete', ceiling: false, outside: true, ground: true, explore: true },
+  { id: 'footpath', name: 'The shops', x0: SHOP_ROW.x0 - 0.4, x1: SHOP_ROW.x1 + 0.4, z0: 29, z1: 31.6, floor: 'concrete', ceiling: false, outside: true, ground: true, area: true, explore: true },
+  { id: 'footwest', name: 'McFarlane Road', x0: -70, x1: SHOP_ROW.x0 - 0.4, z0: 29, z1: 31.6, floor: 'concrete', ceiling: false, outside: true, ground: true, explore: true },
+  { id: 'footeast', name: 'McFarlane Road', x0: SHOP_ROW.x1 + 0.4, x1: 170, z0: 29, z1: 31.6, floor: 'concrete', ceiling: false, outside: true, ground: true, explore: true },
   { id: 'sideroad', name: 'Side road', x0: SIDE_ROAD.x0, x1: SIDE_ROAD.x1, z0: SIDE_ROAD.z0, z1: 22.5, floor: 'road', ceiling: false, outside: true, ground: true, area: true, explore: true },
 ];
 
@@ -639,9 +641,9 @@ export const BARRIERS: Barrier[] = [
   { a: [SIDE_ROAD.x1, 22.3], b: [MCFARLANE.x1, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
   { a: [MCFARLANE.x0, 22.3], b: [MCFARLANE.x0, 31.6], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // the ends of McFarlane Road (for now)
   { a: [MCFARLANE.x1, 22.3], b: [MCFARLANE.x1, 31.6], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
-  { a: [-12, 31.6], b: [32, 31.6], kind: 'facade', h: 3, t: 0.12, mode: 'explore' },       // the shopfronts
-  { a: [MCFARLANE.x0, 31.6], b: [-12, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },   // front walls across the road
-  { a: [32, 31.6], b: [MCFARLANE.x1, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
+  { a: [SHOP_ROW.x0 - 0.4, 31.6], b: [SHOP_ROW.x1 + 0.4, 31.6], kind: 'facade', h: 3, t: 0.12, mode: 'explore' },       // the shopfronts
+  { a: [MCFARLANE.x0, 31.6], b: [SHOP_ROW.x0 - 0.4, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },   // front walls across the road
+  { a: [SHOP_ROW.x1 + 0.4, 31.6], b: [MCFARLANE.x1, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
   { a: [SIDE_ROAD.x0, SIDE_ROAD.z0], b: [SIDE_ROAD.x0, 22.3], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },   // walls along the side road
   { a: [SIDE_ROAD.x1, SIDE_ROAD.z0], b: [SIDE_ROAD.x1, 22.3], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
   { a: [SIDE_ROAD.x0, SIDE_ROAD.z0], b: [SIDE_ROAD.x1, SIDE_ROAD.z0], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // its far end (for now)

@@ -63,9 +63,9 @@ test('the hunt keeps you in the compound: you never get out onto the street', ()
   assert.equal(hunt.any((_x, z) => z > 24.0), false, 'walked past the finish line in the hunt');
 });
 
-test('exploring: from the house out of the gate, up to every shop, and not into the yards', () => {
+test('exploring: from the house out of the gate onto McFarlane Road, and not into the yards', () => {
   const map = reach('explore', visitors, FINE);
-  for (const sp of SHOP_SPOTS) assert.ok(map.near((sp.x0 + sp.x1) / 2, SHOP_LINE - 0.4, 0.6), `can't walk up to ${sp.name}`);
+  assert.ok(map.near(14, 26, 0.5), "can't get from the house out of the gate onto McFarlane Road");
   assert.equal(map.any((_x, z) => z > SHOP_LINE + 0.05), false, 'walked into a shop through the wall');
   assert.equal(map.any((x, z) => z > 21 && z < 22.25 && (x < -2.7 || x > 15.7)), false, "walked into the neighbours' front yards");
   assert.deepEqual(map.cliffs().slice(0, 6), [], 'a ledge on the way to the street');
@@ -76,6 +76,7 @@ test('exploring Raiwai: McFarlane Road end to end, up the side road, and no furt
   const inSide = (x: number) => x > SIDE_ROAD.x0 - 0.05 && x < SIDE_ROAD.x1 + 0.05;
   const inCompound = (x: number) => x > -2.75 && x < 15.75;
   assert.ok(map.near(STREET.x0 + 0.6, 26, 0.6) && map.near(STREET.x1 - 0.6, 26, 0.6), "can't reach both ends of McFarlane Road");
+  for (const sp of SHOP_SPOTS) assert.ok(map.near((sp.x0 + sp.x1) / 2, SHOP_LINE - 0.4, 0.6), `can't walk up to ${sp.name}`);
   assert.equal(map.any((x) => x < STREET.x0 - 0.05 || x > STREET.x1 + 0.05), false, 'walked off the end of McFarlane Road');
   assert.equal(map.any((_x, z) => z > STREET.z1 + 0.05), false, 'got over the wall or into a shop across the road');
   assert.ok(map.near((SIDE_ROAD.x0 + SIDE_ROAD.x1) / 2, SIDE_ROAD.z0 + 0.8, 0.6), "can't walk up the side road to its end");
