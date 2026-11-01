@@ -17,6 +17,7 @@ import { SHOP_ROW } from './shops.ts';
 import { GARDEN_CITY, gardenCity } from './gardenCity.ts';
 import { uspCampus } from './uspCampus.ts';
 import { DAMODAR_CITY, damodarCity } from './damodarCity.ts';
+import { shopInsides, SHOP_DOOR_GAPS } from './shopInsides.ts';
 
 export type XZ = [number, number];
 export type XYZ = [number, number, number];
@@ -89,8 +90,8 @@ export interface HingedDoor {
   exterior?: boolean;
   /** Floor height under the hinge (defaults to the house floor, 0). */
   base?: number;
-  /** 'wood' is a solid door; 'grille' the white scroll ironwork; 'bars' a plain steel gate. */
-  style?: 'wood' | 'grille' | 'bars';
+  /** 'wood' is a solid door; 'grille' the white scroll ironwork; 'bars' a plain steel gate; 'glass' a shop's glass door in a dark frame. */
+  style?: 'wood' | 'grille' | 'bars' | 'glass';
   /** Panel height (defaults to a door height). */
   height?: number;
   /** Another door that opens and shuts with this one (the two leaves of the front gate). */
@@ -217,7 +218,8 @@ export const PLATFORMS: Platform[] = [
 ];
 
 /** Stairs, walked as ramps: height runs linearly from y0 at z0 to y1 at z1. */
-export interface Ramp { x0: number; x1: number; z0: number; z1: number; y0: number; y1: number; style: 'tile' | 'concrete' | 'wood' }
+/** `style` 'drawn' when something else draws the steps (the masjid's, by its builder). */
+export interface Ramp { x0: number; x1: number; z0: number; z1: number; y0: number; y1: number; style: 'tile' | 'concrete' | 'wood' | 'drawn' }
 export const RAMPS: Ramp[] = [
   { x0: 11.1, x1: 12.28, z0: 9.6, z1: 13.0, y0: groundY(9.6), y1: 0, style: 'tile' },        // veranda stairs
   { x0: -2.65, x1: -1.52, z0: 3.25, z1: 5.25, y0: 0, y1: groundY(5.25), style: 'concrete' }, // side stairs
@@ -241,12 +243,73 @@ export const SIDE_ROAD = { x0: 34, x1: 40, z0: -40 };
 export const TEMPLE = { x: -21.5, z: 14.9, w: 13, d: 13.8 };
 /** The Raiwai Jame Masjid, across the road after the Lomaiviti Training Ground: its plot (the front wall is on z - d/2; its steps come down to the footpath). */
 export const MASJID = { x: 204, z: 39.6, w: 16, d: 14 };
+/** The masjid's raised yard, its walls and the steps up from the footpath, in the masjid's own frame (front toward -z); raiwai.ts draws them from this. */
+export const MASJID_YARD = { lift: 1.2, wallZ: -6.9, sideX: 7.85, backZ: 6.95, steps: { x0: -4.1, x1: -2.5, z0: -8.0, z1: -6.75 } };
+/** The temple's gate: its line (the arch and pillars, just inside the plot's front) and half its width between the pillars. */
+export const TEMPLE_GATE = { z: TEMPLE.z + TEMPLE.d / 2 - 0.3, half: 1.75 };
+// the masjid's steps (walked as stairs; its builder draws them) and its raised yard
+{
+  const M = MASJID_YARD, st = M.steps;
+  RAMPS.push({ x0: MASJID.x + st.x0, x1: MASJID.x + st.x1, z0: MASJID.z + st.z0, z1: MASJID.z + st.z1, y0: ROAD_Y, y1: ROAD_Y + M.lift, style: 'drawn' });
+  PLATFORMS.push({ x0: MASJID.x - M.sideX + 0.15, x1: MASJID.x + M.sideX - 0.15, z0: MASJID.z + st.z1, z1: MASJID.z + M.backZ - 0.15, y: ROAD_Y + M.lift });
+}
+/** The temple's grounds and the masjid's steps and yard: rooms, walls, gates (the buildings themselves stay shut). */
+const WORSHIP = (() => {
+  const tx0 = TEMPLE.x - TEMPLE.w / 2, tx1 = TEMPLE.x + TEMPLE.w / 2, tz0 = TEMPLE.z - TEMPLE.d / 2, gz = TEMPLE_GATE.z, gh = TEMPLE_GATE.half;
+  const M = MASJID_YARD, st = M.steps, sx0 = MASJID.x + st.x0, sx1 = MASJID.x + st.x1, wz = MASJID.z + M.wallZ, bz = MASJID.z + M.backZ;
+  const mx0 = MASJID.x - M.sideX, mx1 = MASJID.x + M.sideX;
+  const f = (a: XZ, b: XZ): Barrier => ({ a, b, kind: 'facade', h: 2, t: 0.15, mode: 'explore' });
+  const rect = (x0: number, z0: number, x1: number, z1: number) => [f([x0, z0], [x1, z0]), f([x0, z1], [x1, z1]), f([x0, z0], [x0, z1]), f([x1, z0], [x1, z1])];
+  const barriers: Barrier[] = [
+    // the temple: its sides and back, its front either side of the gate, and the raised base with its steps
+    f([tx0, 22.3], [tx0, tz0]), f([tx1, 22.3], [tx1, tz0]), f([tx0, tz0], [tx1, tz0]),
+    f([tx0, gz], [TEMPLE.x - gh, gz]), f([TEMPLE.x + gh, gz], [tx1, gz]),
+    ...rect(TEMPLE.x - 4.65, TEMPLE.z - 6.75, TEMPLE.x + 4.65, TEMPLE.z + 1.35),
+    // the masjid: the footpath's edge either side of the steps, rails up the steps, the yard's walls, the buildings
+    { a: [MASJID.x - MASJID.w / 2, 31.6], b: [sx0, 31.6], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
+    { a: [sx1, 31.6], b: [MASJID.x + MASJID.w / 2, 31.6], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
+    { a: [sx0, 31.6], b: [sx0, wz - 0.15], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
+    { a: [sx1, 31.6], b: [sx1, wz - 0.15], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
+    f([mx0, wz], [sx0, wz]), f([sx1, wz], [mx1, wz]), f([mx0, wz], [mx0, bz]), f([mx1, wz], [mx1, bz]), f([mx0, bz], [mx1, bz]),
+    ...rect(MASJID.x - 1.6, MASJID.z - 2.6, MASJID.x + 6.6, MASJID.z + 5.4),
+    ...rect(MASJID.x - 7.0, MASJID.z - 0.6, MASJID.x - 1.6, MASJID.z + 5.4),
+  ];
+  const props: Prim[] = [
+    ...[-5.6, 5.6].map((sx): Prim => ({ kind: 'box', min: [TEMPLE.x + sx - 0.08, ROAD_Y - 2, gz - 0.88], max: [TEMPLE.x + sx + 0.08, ROAD_Y + 6, gz - 0.72], color: 'transparent', solid: true })),
+    ...[-6.9, -1.7].map((lx): Prim => ({ kind: 'box', min: [MASJID.x + lx - 0.12, ROAD_Y, MASJID.z - 2.47], max: [MASJID.x + lx + 0.12, ROAD_Y + 3, MASJID.z - 2.23], color: 'transparent', solid: true })),
+  ];
+  const rooms: Room[] = [
+    { id: 'temple', name: 'Howell Road Hindu Temple', x0: tx0, x1: tx1, z0: tz0, z1: gz, floor: 'grass', ceiling: false, outside: true, ground: true, area: true, explore: true },
+    { id: 'masjidsteps', name: 'Raiwai Jame Masjid', x0: sx0, x1: sx1, z0: MASJID.z + st.z0, z1: MASJID.z + st.z1, floor: 'stairs', ceiling: false, outside: true, explore: true },
+    { id: 'masjid', name: 'Raiwai Jame Masjid', x0: mx0 + 0.15, x1: mx1 - 0.15, z0: MASJID.z + st.z1, z1: bz - 0.15, y: ROAD_Y + M.lift, floor: 'grass', ceiling: false, outside: true, area: true, explore: true },
+  ];
+  const doors: Door[] = [
+    { kind: 'hinged', id: 'temple-gate-l', label: 'temple gate', hinge: [TEMPLE.x - gh, gz], width: gh, closed: 0, swing: -Math.PI / 2, color: '#b8bcc0', exterior: true, style: 'bars', height: 1.8, base: groundY(gz), pair: 'temple-gate-r' },
+    { kind: 'hinged', id: 'temple-gate-r', label: 'temple gate', hinge: [TEMPLE.x + gh, gz], width: gh, closed: Math.PI, swing: Math.PI / 2, color: '#b8bcc0', exterior: true, style: 'bars', height: 1.8, base: groundY(gz), pair: 'temple-gate-l' },
+    { kind: 'hinged', id: 'masjid-gate', label: 'masjid gate', hinge: [sx0, wz], width: sx1 - sx0, closed: 0, swing: Math.PI / 2, color: '#1f8f8c', exterior: true, style: 'bars', height: 1.0, base: ROAD_Y + M.lift },
+  ];
+  return { barriers, props, rooms, doors };
+})();
 /** Garden City, the shopping complex after Sardaar Complex (gardenCity.ts). */
 const GC = gardenCity(ROAD_Y);
 /** The USP campus, open to visitors where McFarlane Road ends (uspCampus.ts). */
-const CAMPUS = uspCampus(ROAD_Y);
+const CAMPUS = uspCampus(ROAD_Y, heightAt);
 /** Damodar City, the shopping centre across the road from the gate (damodarCity.ts). */
 const DC = damodarCity(ROAD_Y);
+/** The shops along McFarlane Road, open to walk into (shopInsides.ts). */
+const SHOPS_IN = shopInsides(ROAD_Y);
+
+/** A wall line along x at height-less z from x0 to x1, left open at the gaps (doorways, ways in). */
+function lineWithGaps(x0: number, x1: number, z: number, gaps: { x0: number; x1: number }[]): Barrier[] {
+  const out: Barrier[] = [];
+  let at = x0;
+  for (const g of gaps.filter((q) => q.x1 > x0 && q.x0 < x1).sort((p, q) => p.x0 - q.x0)) {
+    if (g.x0 > at) out.push({ a: [at, z], b: [g.x0, z], kind: 'facade', h: 3, t: 0.12, mode: 'explore' });
+    at = Math.max(at, g.x1);
+  }
+  if (x1 > at) out.push({ a: [at, z], b: [x1, z], kind: 'facade', h: 3, t: 0.12, mode: 'explore' });
+  return out;
+}
 
 // ── Rooms and outdoor areas ─────────────────────────────────────────────────
 // Order matters: roomAt() returns the first match, so stairs and raised floors
@@ -291,6 +354,10 @@ export const ROOMS: Room[] = [
   ...CAMPUS.rooms,
   // Damodar City: the way in, the car park, the walkway, inside BSP
   ...DC.rooms,
+  // inside the shops along McFarlane Road
+  ...SHOPS_IN.rooms,
+  // the temple's grounds, the masjid's steps and yard
+  ...WORSHIP.rooms,
 ];
 
 // The house footprint (interior faces of the exterior walls sit 0.1 inside these).
@@ -361,6 +428,12 @@ export const DOORS: Door[] = [
   { kind: 'hinged', id: 'cdoor', label: 'storeroom door', hinge: [14.2, -7.4], width: 0.8, closed: 0, swing: HALF_PI, color: '#e9e6de', exterior: true, base: BACK_Y },
   { kind: 'hinged', id: 'gateL', label: 'front gate', hinge: [12.47, 21.95], width: 1.5, closed: 0, swing: -HALF_PI, color: C.grille, exterior: true, style: 'grille', height: 1.5, base: groundY(21.95), pair: 'gateR' , bothWays: true },
   { kind: 'hinged', id: 'gateR', label: 'front gate', hinge: [15.48, 21.95], width: 1.5, closed: Math.PI, swing: HALF_PI, color: C.grille, exterior: true, style: 'grille', height: 1.5, base: groundY(21.95), pair: 'gateL' , bothWays: true },
+  // Raiwai (exploring): the shops' doors along McFarlane Road, Damodar City's and Garden City's doors and gate
+  ...SHOPS_IN.doors,
+  ...DC.doors,
+  ...GC.doors,
+  // the temple's gate, and the gate at the top of the masjid's steps
+  ...WORSHIP.doors,
 ];
 
 // ── Windows (every window opening on an exterior wall) ─────────────────────
@@ -655,18 +728,19 @@ export const BARRIERS: Barrier[] = [
   { a: [15.7, 21.9], b: [15.7, 23.8], kind: 'invisible', h: 1, t: 0.1, mode: 'hunt' },
   { a: [12.25, 23.8], b: [15.7, 23.8], kind: 'invisible', h: 1, t: 0.1, mode: 'hunt' },
   // exploring Raiwai: out of the gate onto McFarlane Road, along it both ways, and up the side road
-  { a: [MCFARLANE.x0, 22.3], b: [-2.7, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // the neighbours' front yards
+  { a: [MCFARLANE.x0, 22.3], b: [TEMPLE.x - TEMPLE.w / 2, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // the neighbours' front yards (the temple's walls take over in front of it)
+  { a: [TEMPLE.x + TEMPLE.w / 2, 22.3], b: [-2.7, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
   { a: [15.7, 22.3], b: [SIDE_ROAD.x0, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
   { a: [SIDE_ROAD.x1, 22.3], b: [MCFARLANE.x1, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
   { a: [MCFARLANE.x0, 22.3], b: [MCFARLANE.x0, 31.6], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // the west end of McFarlane Road (for now); the east end goes into the USP campus
-  // the shopfronts, open where Damodar City's drive comes in and at Garden City's gate
-  { a: [SHOP_ROW.x0 - 0.4, 31.6], b: [DAMODAR_CITY ? DAMODAR_CITY.in0 : SHOP_ROW.x1 + 0.4, 31.6], kind: 'facade', h: 3, t: 0.12, mode: 'explore' },
-  ...(DAMODAR_CITY ? [{ a: [DAMODAR_CITY.in1, 31.6] as XZ, b: [GARDEN_CITY ? GARDEN_CITY.x0 : SHOP_ROW.x1 + 0.4, 31.6] as XZ, kind: 'facade' as const, h: 3, t: 0.12, mode: 'explore' as const }] : []),
+  // the shopfronts, open at each shop's door, where Damodar City's drive comes in, and at Garden City's gate
+  ...lineWithGaps(SHOP_ROW.x0 - 0.4, GARDEN_CITY ? GARDEN_CITY.x0 : SHOP_ROW.x1 + 0.4, 31.6, [...SHOP_DOOR_GAPS, ...(DAMODAR_CITY ? [{ x0: DAMODAR_CITY.in0, x1: DAMODAR_CITY.in1 }] : [])]),
+  ...SHOPS_IN.barriers,
   ...DC.barriers,
   ...GC.barriers,                                                                                              // Garden City: in through its gate
   { a: [MCFARLANE.x0, 31.6], b: [SHOP_ROW.x0 - 0.4, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },   // front walls across the road
   { a: [SHOP_ROW.x1 + 0.4, 31.6], b: [MASJID.x - MASJID.w / 2, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
-  { a: [MASJID.x - MASJID.w / 2, 31.6], b: [MASJID.x + MASJID.w / 2, 31.6], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // the masjid's steps and wall
+  ...WORSHIP.barriers,                                                                                         // the temple's and the masjid's walls (gates open with E)
   { a: [MASJID.x + MASJID.w / 2, 31.6], b: [MCFARLANE.x1, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
   ...CAMPUS.barriers,                                                                                          // the road goes on into the USP campus
   { a: [SIDE_ROAD.x0, SIDE_ROAD.z0], b: [SIDE_ROAD.x0, 22.3], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },   // walls along the side road
@@ -815,6 +889,10 @@ PROPS.push(
   ...CAMPUS.props,
   // Damodar City: its sign, car park, shops, BSP and the cinema
   ...DC.props,
+  // the shops along McFarlane Road: their walls, windows, insides and LvTS plaques
+  ...SHOPS_IN.props,
+  // the temple's flag poles and the masjid's veranda posts (you bump into them)
+  ...WORSHIP.props,
 
   // the way out: a green sign on the gate pillar
   box(15.2, groundY(21.9) + 1.55, 21.72, 15.7, groundY(21.9) + 1.75, 21.74, '#16a34a', false, { emissive: true, tex: 'exit:-z' }),

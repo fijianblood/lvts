@@ -23,6 +23,11 @@ export const USP_BUILDINGS: { x: number; z: number; face: Face; w: number; d: nu
   { x: 244, z: 56, face: 'n', w: 28, d: 12, floors: 3 },     // facing the plaza across the covered walkway
   { x: 264, z: 38, face: 'w', w: 22, d: 12, floors: 3 },     // along the east side, facing the plaza
 ];
+/** USP's blocks along the north side of McFarlane Road and behind the campus's north wall (seen, not walked round). */
+export const USP_NORTH: { x: number; z: number; face: Face; w: number; d: number; floors: number }[] = [
+  { x: 190, z: 6, face: 's', w: 30, d: 14, floors: 3 },
+  { x: 232, z: 10, face: 's', w: 26, d: 14, floors: 4 },
+];
 /** Trees on the lawns (drawn by the engine; their trunks are solid). */
 export const USP_TREES: { kind: 'mango' | 'palm'; x: number; z: number; s: number }[] = [
   { kind: 'palm', x: 246, z: 34, s: 8 },                     // in the planter in the plaza
@@ -50,11 +55,34 @@ const box = (x0: number, y0: number, z0: number, x1: number, y1: number, z1: num
 const cyl = (x: number, y: number, z: number, r: number, h: number, color: string, solid = false, seg = 12, top?: number): Prim =>
   ({ kind: 'cyl', base: [x, y, z], r, h, color, solid, seg, top });
 
-/** The campus's rooms, barriers and props, on ground at height `y` (the road). */
-export function uspCampus(y: number): { rooms: Room[]; barriers: Barrier[]; props: Prim[] } {
+/**
+ * The small LvTS plaque (logo and number) on a block's front, at ground level on the
+ * stretch of wall between a door and the next window in its middle bay (as flats() lays them out).
+ */
+function blockPlaque(b: { x: number; z: number; face: Face; w: number; d: number }, floor: number): Prim {
+  const bays = Math.floor(b.w / 3.6), bw = b.w / bays, lx = -b.w / 2 + bw * (Math.floor(bays / 2) + 0.5);
+  const s0 = lx + 1.3, s1 = lx + 2.2, y0 = floor + 1.2, y1 = floor + 1.62;
+  const tex = (face: string) => ({ tex: `lvts:${face}` });
+  if (b.face === 'n') { const z = b.z - b.d / 2; return box(b.x + s0, y0, z - 0.03, b.x + s1, y1, z, '#ffffff', false, tex('-z')); }
+  if (b.face === 's') { const z = b.z + b.d / 2; return box(b.x - s1, y0, z, b.x - s0, y1, z + 0.03, '#ffffff', false, tex('+z')); }
+  if (b.face === 'w') { const x = b.x - b.d / 2; return box(x - 0.03, y0, b.z - s1, x, y1, b.z - s0, '#ffffff', false, tex('-x')); }
+  const x = b.x + b.d / 2;
+  return box(x, y0, b.z + s0, x + 0.03, y1, b.z + s1, '#ffffff', false, tex('+x'));
+}
+
+/** The campus's rooms, barriers and props, on ground at height `y` (the road); `heightAt` for the blocks on the slope. */
+export function uspCampus(y: number, heightAt: (x: number, z: number) => number): { rooms: Room[]; barriers: Barrier[]; props: Prim[] } {
   const props: Prim[] = [];
   const add = (...p: Prim[]) => { props.push(...p); };
   const sign = USP_SIGN;
+
+  // an LvTS plaque on every USP block (the ones on the slope stand on their highest ground, as the engine sets them)
+  for (const b of USP_BUILDINGS) add(blockPlaque(b, y));
+  for (const b of USP_NORTH) {
+    const f = uspFootprints(b).body;
+    const hi = Math.max(heightAt(f.x0, f.z0), heightAt(f.x1, f.z0), heightAt(f.x0, f.z1), heightAt(f.x1, f.z1), heightAt(b.x, b.z));
+    add(blockPlaque(b, hi));
+  }
 
   // the entrance sign's plinth (the sign itself is raiwaiPlan.ts SIGNS), facing the road
   add(box(sign.x - 0.45, y, sign.z - 2.8, sign.x + 0.45, y + 3.6, sign.z + 2.8, 'transparent', true));

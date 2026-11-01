@@ -12,6 +12,7 @@ import * as THREE from 'three';
 import { paint as basePaint } from './models.ts';
 import { canvasTexture } from './textures.ts';
 import { rng, houseSpec, type HouseSpec } from './raiwaiPlan.ts';
+import { MASJID_YARD } from './layout.ts';
 export type { HouseSpec } from './raiwaiPlan.ts';
 
 type G = THREE.Object3D;
@@ -303,8 +304,8 @@ let masjidSign: THREE.CanvasTexture | undefined;
 export function jameMasjid(): THREE.Group {
   const g = new THREE.Group();
   const TEAL = '#1f8f8c', TEAL_DARK = '#17706d', WHITE = '#f4f5f2';
-  const LIFT = 1.2, FZ = -6.9;            // the yard's height behind the front wall, and the wall's line
-  const SX0 = -4.1, SX1 = -2.5;           // the steps, in a gap in the wall
+  const LIFT = MASJID_YARD.lift, FZ = MASJID_YARD.wallZ;          // the yard's height behind the front wall, and the wall's line
+  const SX0 = MASJID_YARD.steps.x0, SX1 = MASJID_YARD.steps.x1;    // the steps, in a gap in the wall (the gate at the top is a door: layout.ts)
   const wallH = LIFT + 0.15;
 
   // the raised yard, and the teal walls round it
@@ -335,7 +336,7 @@ export function jameMasjid(): THREE.Group {
     cyl(g, 0, 0.05, 0.2, WHITE, x, 3.5, FZ, 8);
   }
   // the steps up from the footpath, with teal handrails, and a path to the door
-  const STEPS = 6, s0 = -8.0, s1 = -6.75;
+  const STEPS = 6, s0 = MASJID_YARD.steps.z0, s1 = MASJID_YARD.steps.z1;
   for (let i = 0; i < STEPS; i++) {
     const zf = s0 + (i * (s1 - s0)) / STEPS, h = (LIFT * (i + 1)) / STEPS;
     box(g, SX1 - SX0, h, s1 - zf, '#b9b6ae', (SX0 + SX1) / 2, h / 2, (zf + s1) / 2);
@@ -609,9 +610,7 @@ export function hinduTemple(lift: number, d = 13.8): THREE.Group {
   words.rotation.y = Math.PI;
   words.position.set(0, 3.45, GZ - 0.12);
   g.add(words);
-  // the gate: two metal leaves, shut
-  for (let x = -1.7; x <= 1.7001; x += 0.17) box(g, 0.03, 1.8, 0.03, '#b8bcc0', x, 1.0, GZ + 0.05);
-  for (const y of [0.15, 1.0, 1.85]) box(g, 3.5, 0.05, 0.05, '#b8bcc0', 0, y, GZ + 0.05);
+  // (the gate's two leaves are doors: layout.ts, opened with E)
 
   // tall bamboo poles with a red flag on top, and strings of little flags from the arch
   const flagColours = ['#e8742b', '#c8322a', '#f2b632', '#2f9e44', '#f6f1e3', '#2f6db5'];

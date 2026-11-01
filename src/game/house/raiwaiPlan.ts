@@ -12,7 +12,7 @@
 import { MCFARLANE, SIDE_ROAD, NEIGHBOURS, MASJID, TEMPLE } from './layout.ts';
 import { SHOP_ROW } from './shops.ts';
 import { GARDEN_CITY } from './gardenCity.ts';
-import { USP, USP_BUILDINGS, USP_TREES, USP_SIGN } from './uspCampus.ts';
+import { USP, USP_BUILDINGS, USP_NORTH, USP_TREES, USP_SIGN } from './uspCampus.ts';
 import { DAMODAR_CITY, DAMODAR_PALMS } from './damodarCity.ts';
 
 export interface HouseSpec {
@@ -107,8 +107,7 @@ export const LANDMARKS: PlanItem[] = [
   { kind: 'masjid', x: MASJID.x, z: MASJID.z, face: 'n', w: MASJID.w, d: MASJID.d, label: 'Raiwai Jame Masjid' },
   // the University of the South Pacific: blocks along the north side of the road, and the campus you can
   // walk round where McFarlane Road ends (uspCampus.ts), with a taller block behind its north wall
-  { kind: 'campus', x: 190, z: 6, face: 's', w: 30, d: 14, floors: 3, far: true },
-  { kind: 'campus', x: 232, z: 10, face: 's', w: 26, d: 14, floors: 4, far: true },
+  ...USP_NORTH.map((b): PlanItem => ({ kind: 'campus', ...b, far: true })),
   ...USP_BUILDINGS.map((b): PlanItem => ({ kind: 'campus', ...b, far: true })),
 ];
 
