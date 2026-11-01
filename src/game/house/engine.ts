@@ -892,7 +892,7 @@ export class HouseEngine {
     });
     // the shops across the road, and the centre line all along McFarlane Road
     this.buildShops(out);
-    for (let x = -68; x < MCFARLANE.x1 + 6; x += 3) push(out, '#f1f1ec', boxGeo(x, ROAD_Y + 0.006, 25.7, x + 1.5, ROAD_Y + 0.012, 25.8));
+    for (let x = -68; x < MCFARLANE.x1 - 1; x += 3) push(out, '#f1f1ec', boxGeo(x, ROAD_Y + 0.006, 25.7, x + 1.5, ROAD_Y + 0.012, 25.8));
     const v = van();
     v.position.set(5.5, ROAD_Y, 27.4);
     bake(v, out, this.scene);
@@ -919,6 +919,13 @@ export class HouseEngine {
       case 'shed': g = R.shed(it.w, it.d, it.roof); break;
       case 'arena': g = R.arena(); break;
       default: g = R.floodlight();
+    }
+    // blocks on the slope stand on a concrete base down to the lowest ground under them
+    if ((it.kind === 'flats' || it.kind === 'campus' || it.kind === 'tower') && hi - lo > 0.05) {
+      const h = hi - lo + 0.3;
+      const base = new THREE.Mesh(new THREE.BoxGeometry(it.w + 0.2, h, it.d + 0.2), paint('#bdb9b0'));
+      base.position.y = -h / 2;
+      g.add(base);
     }
     g.position.set(it.x, it.kind === 'house' ? lo : hi, it.z);
     g.rotation.y = FACE_ANGLE[it.face];
