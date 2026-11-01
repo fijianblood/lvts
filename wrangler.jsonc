@@ -1,0 +1,19 @@
+// The LvTS website on Cloudflare. Workers Builds (connected to this repo in the
+// Cloudflare dashboard as the "lvts" Worker) runs `npm run build`, then:
+//   main branch     -> `npx wrangler deploy`  (the live Cloudflare copy)
+//   other branches  -> `npx wrangler preview` (a preview link per branch)
+// The same site is also on GitHub Pages (.github/workflows/deploy.yml).
+// vite.config.ts builds for the root address when WORKERS_CI=1 (set by Workers Builds).
+{
+  // Must match the Worker's name in the Cloudflare dashboard.
+  "name": "lvts",
+  "compatibility_date": "2026-10-01",
+  // Static site only: no Worker code, Cloudflare serves the built files.
+  "assets": {
+    "directory": "./dist",
+    // The site's pages are #hash links on one page, so any unknown path gets the app.
+    "not_found_handling": "single-page-application"
+  },
+  // Required by `wrangler preview`; previews use the same settings as above.
+  "previews": {}
+}
