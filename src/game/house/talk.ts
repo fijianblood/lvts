@@ -1,6 +1,7 @@
 // What the family say to each other. Anyone can talk to anyone: press E next
-// to someone and you greet each other (the younger one with respect and
-// thanks, the elder with a blessing, in whichever direction), then you pick
+// to someone and you greet each other with a Fijian "Bula!" (the younger one
+// with respect and thanks, the elder with a blessing, in whichever direction),
+// then you pick
 // questions to ask them: how they are, where the Golden Chip is, the beauty of
 // nature, how Allah created us, the family's declaration, and one that fits
 // the two of you. After a couple of questions they ask you one back and you
@@ -33,7 +34,7 @@ export function generation(c: Character): Generation {
   return 'parent';
 }
 
-/** What `speaker` calls `listener`, or '' where a plain salaam is better than guessing a title. */
+/** What `speaker` calls `listener`, or '' where a plain "Bula!" is better than guessing a title. */
 export function address(speaker: Character, listener: Character): string {
   const young = RANK[generation(speaker)] <= RANK.child;
   const name = firstName(listener);
@@ -49,7 +50,7 @@ export function address(speaker: Character, listener: Character): string {
 export const isVisitor = (c: Character) => c.group === 'you' || c.group === 'visitors';
 
 /**
- * Visitors meet the family and each other with a Fijian "Bula!". They never
+ * Visitors meet the family and each other with "Bula!" too. They never
  * speak for the family's faith: the family shares it when a visitor asks them,
  * and another visitor's character only says neighbourly things.
  */
@@ -80,8 +81,9 @@ function neighbourOpening(player: Character, npc: Character, n: number): Step {
   return [{ who: P, text: `Bula, ${N}!` }, { who: N, text: pick([`Bula vinaka, ${P}! Nice to meet you.`, `Bula, ${P}! Are you exploring too?`], n) }];
 }
 
-const salaam = (to: string) => `Assalamu alaikum${to ? `, ${to}` : ''}!`;
-const answer = (to: string) => `Wa alaikum assalam${to ? `, ${to}` : ''}!`;
+// Everyone greets with "Bula!" and answers "Bula vinaka!"
+const bula = (to: string) => `Bula${to ? `, ${to}` : ''}!`;
+const bulaBack = (to: string) => `Bula vinaka${to ? `, ${to}` : ''}!`;
 const pick = <T,>(list: readonly T[], n: number): T => list[((n % list.length) + list.length) % list.length];
 
 // ── Greetings ────────────────────────────────────────────────────────────
@@ -150,7 +152,7 @@ export const NATURE: Omit<Say, 'who'>[] = [
   { text: 'SubhanAllah, look at the hibiscus in the front garden. Every petal is just as Allah made it.' },
 ];
 
-/** The salaam both ways, with good words in the right direction for the two of you. */
+/** "Bula!" both ways, with good words in the right direction for the two of you. */
 export function opening(player: Character, npc: Character, n: number): Step {
   if (isVisitor(player) || isVisitor(npc)) return neighbourOpening(player, npc, n);
   const P = firstName(player), N = firstName(npc);
@@ -163,7 +165,7 @@ export function opening(player: Character, npc: Character, n: number): Step {
     return [{ who: P, text: `(Aisha babbles happily and reaches out to ${toNpc})` }, { who: N, text: reply }];
   }
   if (gn === 'baby') {
-    return [{ who: P, text: `${salaam(toNpc)} MashaAllah, what a blessing from Allah you are.` }, { who: N, text: pick(['(Aisha smiles and coos)', '(Aisha giggles and grabs your finger)'], n) }];
+    return [{ who: P, text: `${bula(toNpc)} MashaAllah, what a blessing from Allah you are.` }, { who: N, text: pick(['(Aisha smiles and coos)', '(Aisha giggles and grabs your finger)'], n) }];
   }
   if (gp === 'grand' || gn === 'grand') {
     const grand = gp === 'grand' ? player : npc, other = grand === player ? npc : player;
@@ -173,22 +175,22 @@ export function opening(player: Character, npc: Character, n: number): Step {
     if (grand === player) {
       // Grandpa speaks first
       const first = otherYoung ? pick(ELDER_TO_YOUNG, n) : { text: pick(GRAND_TO_GROWN, n) };
-      return [{ who: P, text: `${salaam(toOther)} ${first.text}`, ref: first.ref }, { who: N, text: `${answer(toGrand)} ${otherYoung ? pick(YOUNG_THANKS, n) : pick(GROWN_TO_GRAND_REPLY, n)}` }];
+      return [{ who: P, text: `${bula(toOther)} ${first.text}`, ref: first.ref }, { who: N, text: `${bulaBack(toGrand)} ${otherYoung ? pick(YOUNG_THANKS, n) : pick(GROWN_TO_GRAND_REPLY, n)}` }];
     }
     const first = otherYoung ? pick(YOUNG_TO_ELDER, n) : pick(GROWN_TO_GRAND, n);
-    return [{ who: P, text: `${salaam(toGrand)} ${first}` }, { who: N, text: `${answer(toOther)} ${grandLine}` }];
+    return [{ who: P, text: `${bula(toGrand)} ${first}` }, { who: N, text: `${bulaBack(toOther)} ${grandLine}` }];
   }
   if (RANK[gp] < RANK[gn]) {
     // a nephew, niece or child greets an elder; the elder answers with a blessing
-    return [{ who: P, text: `${salaam(toNpc)} ${pick(YOUNG_TO_ELDER, n)}` }, { who: N, text: `${answer(toPlayer)} ${pick(ELDER_BLESSING, n)}` }];
+    return [{ who: P, text: `${bula(toNpc)} ${pick(YOUNG_TO_ELDER, n)}` }, { who: N, text: `${bulaBack(toPlayer)} ${pick(ELDER_BLESSING, n)}` }];
   }
   if (RANK[gp] > RANK[gn]) {
     // an elder greets a youngster with a blessing; the youngster thanks them
     const first = pick(ELDER_TO_YOUNG, n);
-    return [{ who: P, text: `${salaam(toNpc)} ${first.text}`, ref: first.ref }, { who: N, text: `${answer(toPlayer)} ${pick(YOUNG_THANKS, n)}` }];
+    return [{ who: P, text: `${bula(toNpc)} ${first.text}`, ref: first.ref }, { who: N, text: `${bulaBack(toPlayer)} ${pick(YOUNG_THANKS, n)}` }];
   }
   const [a, b] = pick(gp === 'child' ? KID_PEERS : GROWN_PEERS, n);
-  return [{ who: P, text: `${salaam(toNpc)} ${a}` }, { who: N, text: `${answer(toPlayer)} ${b}` }];
+  return [{ who: P, text: `${bula(toNpc)} ${a}` }, { who: N, text: `${bulaBack(toPlayer)} ${b}` }];
 }
 
 // ── Questions you can ask ───────────────────────────────────────────────────

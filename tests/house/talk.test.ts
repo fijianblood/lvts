@@ -67,12 +67,22 @@ test('asking about the declaration gets it word for word, from anyone old enough
 
 test('the young greet their elders with respect, and the elders answer with a blessing (and the other way round)', () => {
   const [kid, aunty] = opening(by('kahaani'), by('louzanne'), 0);
-  assert.match(kid.text, /^Assalamu alaikum, Aunty Louzanne!/);
-  assert.match(aunty.text, /^Wa alaikum assalam, Kahaani!/);
+  assert.match(kid.text, /^Bula, Aunty Louzanne!/);
+  assert.match(aunty.text, /^Bula vinaka, Kahaani!/);
   assert.match(aunty.text, /Allah|MashaAllah|Bismillah/);
   const [uncle, nephew] = opening(by('hakeem'), by('yash'), 1);
-  assert.match(uncle.text, /^Assalamu alaikum, Yash!/);
-  assert.match(nephew.text, /^Wa alaikum assalam, Uncle Hakeem!/);
+  assert.match(uncle.text, /^Bula, Yash!/);
+  assert.match(nephew.text, /^Bula vinaka, Uncle Hakeem!/);
+});
+
+test('everyone in the family greets with Bula, and answers Bula vinaka', () => {
+  for (const [p, n] of pairs) for (const k of [0, 1, 2, 3]) {
+    const [hello, back] = opening(p, n, k);
+    const where = `${p.id} → ${n.id} #${k}`;
+    assert.doesNotMatch(`${hello.text} ${back.text}`, /Assalamu|alaikum/, `${where}: still a salaam`);
+    if (generation(p) !== 'baby') assert.match(hello.text, /^Bula\b/, `${where}: ${hello.text}`);
+    if (generation(p) !== 'baby' && generation(n) !== 'baby') assert.match(back.text, /^Bula vinaka\b/, `${where}: ${back.text}`);
+  }
 });
 
 test('everyone is called the right thing', () => {
