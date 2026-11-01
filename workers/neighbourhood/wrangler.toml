@@ -12,6 +12,19 @@ class_name = "Registry"
 tag = "v1"
 new_sqlite_classes = ["Registry"]
 
+# Logs you can read in the Cloudflare dashboard (Workers → lvts-neighbourhood → Observability).
+# Free plan: 200,000 log events a day, kept for 3 days.
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+invocation_logs = true
+persist = true
+
+[observability.traces]
+enabled = false
+head_sampling_rate = 1
+persist = true
+
 # Secrets (set by the deploy workflow, never committed):
 #   ADMIN_TOKEN   - the key for approving characters (at least 16 characters)
 #   VISITOR_SALT  - salt for hashing visitors' IP addresses for the daily limit
