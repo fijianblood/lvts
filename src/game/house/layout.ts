@@ -411,7 +411,7 @@ function bed(x0: number, z0: number, x1: number, z1: number, head: 'n' | 'e' | '
   return out;
 }
 
-/** A low-poly sofa facing `face`. */
+/** A sofa facing `face`. */
 function sofa(x0: number, z0: number, x1: number, z1: number, face: 'n' | 's' | 'e' | 'w', color: string): P {
   const out: P = [box(x0, 0, z0, x1, 0.42, z1, color, true)];
   const t = 0.22;

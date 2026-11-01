@@ -1,9 +1,15 @@
-// The Vaqara Raiwai engine: builds the low-poly house and compound from
+// The Vaqara Raiwai engine: builds the house, the compound and Raiwai from
 // layout.ts, runs the first- or third-person controller against collision.ts
 // (with floor heights for slopes and stairs), animates doors, gates, windows,
 // collectibles and the family, keeps the clock, and draws the minimap.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import {
   C, ROOMS, WALLS, DOORS, WINDOWS, PROPS, COLLECTIBLES, GOLDEN_SPOTS, SPAWN, EXIT_ZONE, POSTER,
   BARRIERS, TREES, NEIGHBOURS, RAMPS, NPC_SPOTS, CAT_SPOT, BACK_Y, ROAD_Y, GROUND_BREAKS, PARKED,
@@ -22,7 +28,7 @@ import { Sfx } from './audio.ts';
 import * as T from './textures.ts';
 import * as R from './raiwai.ts';
 import { PLAN, SIGNS, RAIWAI_TREES, POLE_RUNS, FACE_ANGLE, footprint, houseSpec, rng, type PlanItem } from './raiwaiPlan.ts';
-import { partModel, goldenChip, ranger, palm, bushTree, banana, breadfruit, van, lambert } from './models.ts';
+import { partModel, goldenChip, ranger, palm, bushTree, banana, breadfruit, van, paint, type Finish, type Detail } from './models.ts';
 
 export type GameState = 'intro' | 'playing' | 'paused' | 'won';
 
@@ -82,8 +88,39 @@ function boxGeo(x0: number, y0: number, z0: number, x1: number, y1: number, z1: 
   return g;
 }
 
+/** Furniture: a box with softly rounded edges that catch the light (thin parts stay sharp). */
+function furnBox(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number) {
+  const w = x1 - x0, h = y1 - y0, d = z1 - z0;
+  const min = Math.min(w, h, d);
+  if (min < 0.04) return boxGeo(x0, y0, z0, x1, y1, z1);
+  const g = new RoundedBoxGeometry(w, h, d, 2, Math.min(0.022, min * 0.18));
+  g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+  return g;
+}
+
+/** What each colour in the house is made of: its sheen, and wood grain, fabric weave or plaster. */
+const WOOD = { finish: 'satin', detail: 'wood' } as const;
+const FABRIC = { finish: 'cloth', detail: 'fabric' } as const;
+const PLASTER = { finish: 'matte', detail: 'plaster' } as const;
+const SURFACES: Record<string, { finish: Finish; detail?: Detail }> = {
+  [C.doorWood]: WOOD, [C.frameWood]: WOOD, [C.darkWood]: WOOD, [C.counter]: WOOD, [C.oak]: WOOD,
+  [C.sofa]: FABRIC, [C.sofa2]: FABRIC, [C.greyChair]: FABRIC, [C.sheetBeige]: FABRIC, [C.sheetWhite]: FABRIC, [C.quilt]: FABRIC,
+  [C.wall]: PLASTER, [C.wallOut]: PLASTER, [C.plaster]: PLASTER,
+  [C.steel]: { finish: 'metal' }, [C.fridge]: { finish: 'gloss' }, [C.black]: { finish: 'satin' },
+  [C.stepTile]: { finish: 'matte' }, [C.tile]: { finish: 'matte' },
+};
+const hsl = { h: 0, s: 0, l: 0 };
+function surfaceFor(color: string): { finish: Finish; detail?: Detail } {
+  const known = SURFACES[color.toLowerCase()];
+  if (known) return known;
+  // other browns are wooden furniture
+  new THREE.Color(color).getHSL(hsl, THREE.SRGBColorSpace);
+  if (hsl.h > 0.03 && hsl.h < 0.12 && hsl.s > 0.25 && hsl.l > 0.12 && hsl.l < 0.6) return WOOD;
+  return { finish: 'matte' };
+}
+
 function push(b: Buckets, key: string, g: THREE.BufferGeometry) {
-  // merging needs every piece alike: unindexed, with position, normal and uv (roof shapes come without some)
+  // merging needs every piece alike: unindexed (rounded boxes come that way), with position, normal and uv (roof shapes come without some)
   if (g.index) g = g.toNonIndexed();
   if (!g.getAttribute('normal')) g.computeVertexNormals();
   if (!g.getAttribute('uv')) g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(g.getAttribute('position').count * 2), 2));
@@ -208,7 +245,8 @@ function onWall(w: WallRun, a0: number, a1: number, y0: number, y1: number, n0: 
 
 /**
  * Fold a static group into the colour buckets (one draw call per colour instead
- * of one per part). Only Lambert meshes are baked; anything else stays as is.
+ * of one per part). Only plain painted meshes are baked (keeping their finish);
+ * anything textured or see-through stays as is.
  */
 function bake(group: THREE.Object3D, buckets: Buckets, scene: THREE.Object3D) {
   group.updateMatrixWorld(true);
@@ -216,10 +254,11 @@ function bake(group: THREE.Object3D, buckets: Buckets, scene: THREE.Object3D) {
   group.traverse((o) => {
     const m = o as THREE.Mesh;
     if (!m.isMesh) return;
-    const mat = m.material as THREE.MeshLambertMaterial;
-    if (!(mat instanceof THREE.MeshLambertMaterial) || mat.transparent || mat.map) { keep.push(m); return; }
+    const mat = m.material as THREE.MeshStandardMaterial;
+    if (!(mat instanceof THREE.MeshStandardMaterial) || mat.transparent || mat.map) { keep.push(m); return; }
     const g = m.geometry.clone().applyMatrix4(m.matrixWorld);
-    const key = `#${mat.color.getHexString(THREE.SRGBColorSpace)}${mat.emissive.getHex() ? `|e${mat.emissive.getHexString(THREE.SRGBColorSpace)}` : ''}`;
+    const finish = (mat.userData.finish as Finish | undefined) ?? 'matte';
+    const key = `#${mat.color.getHexString(THREE.SRGBColorSpace)}${mat.emissive.getHex() ? `|e${mat.emissive.getHexString(THREE.SRGBColorSpace)}` : ''}${finish !== 'matte' ? `|f${finish}` : ''}`;
     push(buckets, key, g);
   });
   for (const k of keep) { k.updateMatrixWorld(true); const c = k.clone(); c.matrix.copy(k.matrixWorld); c.matrixAutoUpdate = false; scene.add(c); }
@@ -306,6 +345,16 @@ export class HouseEngine {
   private ro?: ResizeObserver;
   private time = 0;
   private perf = { step: 0, hud: 0, render: 0, calls: 0, tris: 0 };
+  /** Soft shading where surfaces meet (computers only; switched off if the frame rate drops). */
+  private composer?: EffectComposer;
+  private ao?: GTAOPass;
+  private frameAvg = 1 / 60;
+  private slowFor = 0;
+  /** Testing only: never switch the soft shading off. */
+  private aoPinned = false;
+  private sun!: THREE.DirectionalLight;
+  /** Where the sun's shadows are centred: the compound, or (exploring) wherever in Raiwai you've walked to. */
+  private sunAt: [number, number] = [10, 11];
 
   constructor(container: HTMLElement, hud: EngineHud, cb: EngineCallbacks, opts: EngineOptions) {
     this.container = container;
@@ -315,6 +364,9 @@ export class HouseEngine {
     this.renderer = new THREE.WebGLRenderer({ antialias: !opts.touch, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, opts.touch ? 1.25 : 1.5));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    // film-like response to light, keeping the family's clothes their true colours
+    this.renderer.toneMapping = THREE.NeutralToneMapping;
+    this.renderer.toneMappingExposure = 1.0;
     this.renderer.domElement.style.display = 'block';
     this.renderer.domElement.style.width = '100%';
     this.renderer.domElement.style.height = '100%';
@@ -328,11 +380,32 @@ export class HouseEngine {
     const horizon = new THREE.Color('#a9dcff');
     this.scene.background = this.tex(T.skyGradient());
     this.scene.fog = new THREE.Fog(horizon, 34, 110);
-    this.scene.add(new THREE.HemisphereLight('#ffffff', '#cfc6b8', 2.0));
-    const sun = new THREE.DirectionalLight('#fff3dc', 1.25);
-    sun.position.set(-6, 12, 8);
-    this.scene.add(sun);
-    this.scene.add(new THREE.AmbientLight('#ffffff', 0.5));
+    // soft light bouncing round a room: gives every surface gentle shading and reflections
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    const room = new RoomEnvironment();
+    this.scene.environment = pmrem.fromScene(room, 0.04).texture;
+    this.scene.environmentIntensity = 0.45;
+    room.dispose();
+    pmrem.dispose();
+    this.scene.add(new THREE.HemisphereLight('#f4f8ff', '#b9ab98', 0.6));
+    // an afternoon sun from the west, strong as real sunshine is next to the sky's light
+    const sun = new THREE.DirectionalLight('#fff0d4', 6.5);
+    this.sun = sun;
+    this.aimSun(10, 11);
+    this.scene.add(sun, sun.target);
+    // sun shadows: the roof and walls keep the sun out, so it only reaches indoors
+    // through the windows and doors. Drawn once, and again only when something moves
+    // (a door, who's standing where), so they cost almost nothing per frame.
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    Object.assign(sun.shadow.camera, { left: -34, right: 34, top: 34, bottom: -34, near: 1, far: 100 });
+    sun.shadow.camera.updateProjectionMatrix();
+    sun.shadow.bias = -0.0004;
+    sun.shadow.normalBias = 0.03;
+    sun.shadow.radius = opts.touch ? 1.5 : 3;
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    this.renderer.shadowMap.autoUpdate = false;
 
     this.buildHouse();
     this.buildCompound();
@@ -348,6 +421,8 @@ export class HouseEngine {
     this.minimap = new Minimap(hud.minimap);   // before the family: picking a character sets up the map
     this.buildFamily();
     this.reset();
+    this.setupShadows();
+    if (!opts.touch) this.setupAO();
 
     this.bindInput();
     this.ro = new ResizeObserver(() => this.resize());
@@ -388,10 +463,10 @@ export class HouseEngine {
       if (room.ceiling) ceilings.push(worldPlane(room.x0, room.z0, room.x1, room.z1, CEIL_H, 1.2, true));
     }
     for (const [kind, list] of floors) {
-      const mesh = new THREE.Mesh(mergeGeometries(list), new THREE.MeshLambertMaterial({ map: floorTex[kind].tex }));
+      const mesh = new THREE.Mesh(mergeGeometries(list), new THREE.MeshStandardMaterial({ map: floorTex[kind].tex }));
       this.scene.add(mesh);
     }
-    const ceilMat = new THREE.MeshLambertMaterial({ map: this.tex(T.ceiling()), color: '#ffffff' });
+    const ceilMat = new THREE.MeshStandardMaterial({ map: this.tex(T.ceiling()), color: '#ffffff' });
     this.scene.add(new THREE.Mesh(mergeGeometries(ceilings), ceilMat));
 
     // walls, door frames and window frames
@@ -419,8 +494,8 @@ export class HouseEngine {
     const tileSkins: THREE.BufferGeometry[] = [];
     const mosaicBand: THREE.BufferGeometry[] = [];
     for (const room of ROOMS.filter((r) => r.tiled)) this.skinRoom(room, tileSkins, mosaicBand);
-    if (tileSkins.length) this.scene.add(new THREE.Mesh(mergeGeometries(tileSkins), new THREE.MeshLambertMaterial({ map: this.tex(T.bathTile()) })));
-    if (mosaicBand.length) this.scene.add(new THREE.Mesh(mergeGeometries(mosaicBand), new THREE.MeshLambertMaterial({ map: this.tex(T.mosaic()) })));
+    if (tileSkins.length) this.scene.add(new THREE.Mesh(mergeGeometries(tileSkins), new THREE.MeshStandardMaterial({ map: this.tex(T.bathTile()) })));
+    if (mosaicBand.length) this.scene.add(new THREE.Mesh(mergeGeometries(mosaicBand), new THREE.MeshStandardMaterial({ map: this.tex(T.mosaic()) })));
 
     // furniture
     const glow: THREE.BufferGeometry[] = [];
@@ -430,16 +505,16 @@ export class HouseEngine {
     // the bedroom-3 fan head, animated
     const fan = new THREE.Group();
     fan.position.set(7.9, 1.15, -2.45);
-    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.12, 10), lambert(C.black));
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.12, 10), paint(C.black));
     hub.rotation.x = Math.PI / 2;
     fan.add(hub);
-    const cage = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.012, 4, 20), lambert('#6b7076'));
+    const cage = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.012, 4, 20), paint('#6b7076'));
     cage.position.z = 0.08;
     fan.add(cage);
     const blades = new THREE.Group();
     blades.position.z = 0.08;
     for (let i = 0; i < 3; i++) {
-      const b = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.07, 0.01), lambert('#9aa0a6'));
+      const b = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.07, 0.01), paint('#9aa0a6'));
       b.position.set(Math.cos((i / 3) * Math.PI * 2) * 0.1, Math.sin((i / 3) * Math.PI * 2) * 0.1, 0);
       b.rotation.z = (i / 3) * Math.PI * 2;
       blades.add(b);
@@ -456,12 +531,12 @@ export class HouseEngine {
     this.flush(solid);
 
     // roof over the house and the veranda
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(1, 2.1, 4, 1), lambert(C.roof));
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(1, 2.1, 4, 1), paint(C.roof));
     roof.rotation.y = Math.PI / 4;
     roof.scale.set(6.2 / Math.SQRT1_2, 1, 10.9 / Math.SQRT1_2);
     roof.position.set(5.5, WALL_H + 1.05, 2.7);
     this.scene.add(roof);
-    const eave = new THREE.Mesh(boxGeo(-0.15, WALL_H, 13, 12.5, WALL_H + 0.12, 15.6), lambert(C.roof));
+    const eave = new THREE.Mesh(boxGeo(-0.15, WALL_H, 13, 12.5, WALL_H + 0.12, 15.6), paint(C.roof));
     this.scene.add(eave);
   }
 
@@ -469,8 +544,11 @@ export class HouseEngine {
   private flush(buckets: Buckets, parent: THREE.Object3D = this.scene) {
     for (const [key, list] of buckets) {
       if (key === 'transparent' || !list.length) continue;
-      const [color, em] = key.split('|e');
-      parent.add(new THREE.Mesh(mergeGeometries(list), lambert(color, { emissive: em ? `#${em}` : undefined })));
+      const [color, ...rest] = key.split('|');
+      const em = rest.find((r) => r.startsWith('e'))?.slice(1);
+      const finish = rest.find((r) => r.startsWith('f'))?.slice(1) as Finish | undefined;
+      const surface = finish ? { finish } : em ? { finish: 'matte' as Finish } : surfaceFor(color);
+      parent.add(new THREE.Mesh(mergeGeometries(list), paint(color, { emissive: em ? `#${em}` : undefined, ...surface })));
     }
   }
 
@@ -523,7 +601,7 @@ export class HouseEngine {
       const [x0, y0, z0] = prim.min, [x1, y1, z1] = prim.max;
       if (prim.tex) { this.addTexturedBox(prim); return; }
       if (prim.emissive) { glow.push(boxGeo(x0, y0, z0, x1, y1, z1)); return; }
-      push(solid, prim.color, boxGeo(x0, y0, z0, x1, y1, z1));
+      push(solid, prim.color, furnBox(x0, y0, z0, x1, y1, z1));
       return;
     }
     if (prim.kind === 'cyl') {
@@ -538,8 +616,8 @@ export class HouseEngine {
     const cone = new THREE.Mesh(
       new THREE.ConeGeometry(prim.r, prim.h, prim.seg ?? 8, 1, prim.opacity !== undefined),
       prim.opacity !== undefined
-        ? new THREE.MeshLambertMaterial({ color: prim.color, transparent: true, opacity: prim.opacity, side: THREE.DoubleSide, depthWrite: false })
-        : lambert(prim.color),
+        ? new THREE.MeshStandardMaterial({ color: prim.color, transparent: true, opacity: prim.opacity, side: THREE.DoubleSide, depthWrite: false })
+        : paint(prim.color),
     );
     cone.position.set(prim.base[0], prim.base[1] + prim.h / 2, prim.base[2]);
     this.scene.add(cone);
@@ -557,14 +635,14 @@ export class HouseEngine {
     else if (name === 'exit') tex = this.tex(T.exitSign());
     else if (name === 'clock') { this.clock = T.clockFace(); tex = this.tex(this.clock.tex); }
     else tex = this.tex(T.ceiling());
-    const box = new THREE.Mesh(boxGeo(x0, y0, z0, x1, y1, z1), prim.emissive ? new THREE.MeshBasicMaterial({ color: prim.color }) : lambert(prim.color));
+    const box = new THREE.Mesh(boxGeo(x0, y0, z0, x1, y1, z1), prim.emissive ? new THREE.MeshBasicMaterial({ color: prim.color }) : paint(prim.color));
     this.scene.add(box);
     const w = face.endsWith('x') ? z1 - z0 : x1 - x0;
     const h = face.endsWith('y') ? z1 - z0 : y1 - y0;
     const inset = name === 'tv' ? 0.92 : 1;
     const plane = new THREE.Mesh(
       new THREE.PlaneGeometry(w * inset, h * (name === 'tv' ? 0.9 : 1)),
-      name === 'tv' || prim.emissive ? new THREE.MeshBasicMaterial({ map: tex }) : new THREE.MeshLambertMaterial({ map: tex }),
+      name === 'tv' || prim.emissive ? new THREE.MeshBasicMaterial({ map: tex }) : new THREE.MeshStandardMaterial({ map: tex }),
     );
     const e = 0.004;
     const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, cz = (z0 + z1) / 2;
@@ -577,8 +655,8 @@ export class HouseEngine {
   }
 
   private buildWindows(solid: Buckets) {
-    const glassMat = new THREE.MeshLambertMaterial({ color: C.glass, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide });
-    const sashMat = lambert(C.trim);
+    const glassMat = new THREE.MeshStandardMaterial({ color: C.glass, transparent: true, opacity: 0.16, roughness: 0.08, envMapIntensity: 0.35, depthWrite: false, side: THREE.DoubleSide });
+    const sashMat = paint(C.trim);
     const curtainTex: Partial<Record<NonNullable<WindowSpec['curtain']>, THREE.Texture>> = {};
     for (const spec of WINDOWS) {
       const wall = WALLS.find((w) => w.at === spec.at && w.line === spec.line && w.exterior)!;
@@ -644,7 +722,7 @@ export class HouseEngine {
       // curtains and rod on the room side
       if (spec.curtain) {
         const tex = curtainTex[spec.curtain] ?? (curtainTex[spec.curtain] = this.tex(T.curtain(spec.curtain)));
-        const mat = new THREE.MeshLambertMaterial({ map: tex, transparent: spec.curtain === 'sheer', opacity: spec.curtain === 'sheer' ? 0.75 : 1, side: THREE.DoubleSide });
+        const mat = new THREE.MeshStandardMaterial({ map: tex, transparent: spec.curtain === 'sheer', opacity: spec.curtain === 'sheer' ? 0.75 : 1, side: THREE.DoubleSide });
         const face = inside * (wall.t / 2 + 0.07);
         const rodY = spec.top + 0.1;
         const rod = new THREE.CylinderGeometry(0.014, 0.014, width + 0.5, 6);
@@ -667,7 +745,7 @@ export class HouseEngine {
   }
 
   private buildDoors(solid: Buckets) {
-    const handle = lambert('#c9cdd1');
+    const handle = paint('#c9cdd1');
     for (const door of DOORS) {
       if (door.kind === 'slide') {
         const alu = '#c9ccce';
@@ -677,7 +755,7 @@ export class HouseEngine {
         push(solid, alu, boxGeo(door.from, 0, z - 0.09, door.from + 0.04, 2.1, z + 0.09));
         push(solid, alu, boxGeo(door.to - 0.04, 0, z - 0.09, door.to, 2.1, z + 0.09));
         const mid = (door.from + door.to) / 2;
-        const glass = new THREE.MeshLambertMaterial({ color: C.glass, transparent: true, opacity: 0.25, depthWrite: false, side: THREE.DoubleSide });
+        const glass = new THREE.MeshStandardMaterial({ color: C.glass, transparent: true, opacity: 0.15, roughness: 0.08, envMapIntensity: 0.35, depthWrite: false, side: THREE.DoubleSide });
         // fixed half
         push(solid, alu, boxGeo(mid - 0.04, 0, z + 0.01, mid, 2.06, z + 0.05));
         const fixed = new THREE.Mesh(boxGeo(door.from, 0.04, z + 0.025, mid, 2.06, z + 0.035), glass);
@@ -686,7 +764,7 @@ export class HouseEngine {
         const pivot = new THREE.Group();
         const hw = (door.to - door.from) / 4;
         const panel = new THREE.Group();
-        const frame = lambert(alu);
+        const frame = paint(alu);
         for (const [x0, y0, x1, y1] of [[-hw, 0.04, hw, 0.08], [-hw, 2.02, hw, 2.06], [-hw, 0.04, -hw + 0.05, 2.06], [hw - 0.05, 0.04, hw, 2.06]]) {
           const m = new THREE.Mesh(boxGeo(x0, y0, -0.02, x1, y1, 0.02), frame);
           panel.add(m);
@@ -704,15 +782,15 @@ export class HouseEngine {
       pivot.position.set(door.hinge[0], door.base ?? 0, door.hinge[1]);
       const top = door.height ?? DOOR_TOP;
       if (door.style === 'grille' || door.style === 'bars') {
-        pivot.add(new THREE.Mesh(gateGeo(door.width, top, door.style), lambert(door.color)));
+        pivot.add(new THREE.Mesh(gateGeo(door.width, top, door.style), paint(door.color)));
       } else {
-        pivot.add(new THREE.Mesh(boxGeo(0.02, 0.01, -0.02, door.width - 0.02, top - 0.02, 0.02), lambert(door.color)));
+        pivot.add(new THREE.Mesh(boxGeo(0.02, 0.01, -0.02, door.width - 0.02, top - 0.02, 0.02), paint(door.color, surfaceFor(door.color))));
         const knobs = [-1, 1].map((side) => new THREE.SphereGeometry(0.03, 8, 6).translate(door.width - 0.09, 1.0, side * 0.045));
         pivot.add(new THREE.Mesh(mergeGeometries(knobs), handle));
         // a recessed panel on each face, for a bit of detail
         const insets = [-1, 1].map((side) => boxGeo(0.12, 0.25, side * 0.021 - 0.002, door.width - 0.12, top - 0.3, side * 0.021 + 0.002));
         const panelColor = door.color === C.doorWood ? '#a65726' : door.color === '#e9e6de' ? '#d9d5cb' : '#7a3f1f';
-        pivot.add(new THREE.Mesh(mergeGeometries(insets), lambert(panelColor)));
+        pivot.add(new THREE.Mesh(mergeGeometries(insets), paint(panelColor)));
       }
       this.scene.add(pivot);
       // gates that can swing either way get their own copy, so the swing can flip at run time
@@ -734,7 +812,7 @@ export class HouseEngine {
   }
 
   private buildCompound() {
-    this.scene.add(new THREE.Mesh(terrain(), new THREE.MeshLambertMaterial({ map: this.tex(T.grass()) })));
+    this.scene.add(new THREE.Mesh(terrain(), new THREE.MeshStandardMaterial({ map: this.tex(T.grass()) })));
     const out: Buckets = new Map();
     const deep = (z0: number, z1: number) => Math.min(groundY(z0), groundY(z1)) - 0.35;
 
@@ -768,7 +846,7 @@ export class HouseEngine {
     const chain: THREE.BufferGeometry[] = [];
     for (const b of BARRIERS) this.addBarrier(b, out, chain);
     if (chain.length) {
-      const mat = new THREE.MeshLambertMaterial({ map: this.tex(T.chainLink()), transparent: true, alphaTest: 0.3, side: THREE.DoubleSide });
+      const mat = new THREE.MeshStandardMaterial({ map: this.tex(T.chainLink()), transparent: true, alphaTest: 0.3, side: THREE.DoubleSide });
       this.scene.add(new THREE.Mesh(mergeGeometries(chain), mat));
     }
 
@@ -776,7 +854,7 @@ export class HouseEngine {
     for (const z of [-6.2, -3.6, -1.0, 1.6]) push(out, '#5b4532', boxGeo(11.1, BACK_Y + 2.38, z - 0.06, 15.6, BACK_Y + 2.52, z + 0.06));
     const roofTex = this.tex(T.corrugated());
     roofTex.repeat.set(30, 1);
-    const roof = new THREE.Mesh(new THREE.PlaneGeometry(4.7, 10.2), new THREE.MeshLambertMaterial({ map: roofTex, side: THREE.DoubleSide }));
+    const roof = new THREE.Mesh(new THREE.PlaneGeometry(4.7, 10.2), new THREE.MeshStandardMaterial({ map: roofTex, side: THREE.DoubleSide }));
     roof.rotation.set(-Math.PI / 2, -0.05, 0);
     roof.position.set(13.35, BACK_Y + 2.62, -2.5);
     this.scene.add(roof);
@@ -882,10 +960,10 @@ export class HouseEngine {
         // a big entrance sign on a plinth, the logo on it (USP)
         const y = heightAt(sg.x, sg.z);
         const g = new THREE.Group();
-        const plinth = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.9, 0.9), lambert('#d9d5cb'));
+        const plinth = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.9, 0.9), paint('#d9d5cb'));
         plinth.position.y = 0.45;
         g.add(plinth);
-        for (const sx of [-2.3, 2.3]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.25, 2.2, 0.25), lambert('#d9d5cb')); post.position.set(sx, 1.9, 0); g.add(post); }
+        for (const sx of [-2.3, 2.3]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.25, 2.2, 0.25), paint('#d9d5cb')); post.position.set(sx, 1.9, 0); g.add(post); }
         const board = this.logoBoard(sg.logo, sg.bg ?? '#ffffff', sg.color, 4.8, 2.4);
         board.position.set(0, 2.6, 0);
         g.add(board);
@@ -896,8 +974,8 @@ export class HouseEngine {
       }
       const g = new THREE.Group();
       const y = heightAt(sg.x, sg.z);
-      for (const s of [-1, 1]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.6, 0.1), lambert('#3b3f44')); post.position.set(s * 1.35, 0.8, 0); g.add(post); }
-      const board = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.62, 0.08), lambert(sg.color));
+      for (const s of [-1, 1]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.6, 0.1), paint('#3b3f44')); post.position.set(s * 1.35, 0.8, 0); g.add(post); }
+      const board = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.62, 0.08), paint(sg.color));
       board.position.y = 1.75;
       g.add(board);
       const face = new THREE.Mesh(new THREE.PlaneGeometry(2.9, 0.52), new THREE.MeshBasicMaterial({ map: this.tex(T.shopSign(sg.title, sg.sub, sg.color)) }));
@@ -939,7 +1017,7 @@ export class HouseEngine {
       }
     });
     // the sea, with the reef's line of surf
-    const sea = new THREE.Mesh(new THREE.PlaneGeometry(3200, 1400), lambert('#2e6da4'));
+    const sea = new THREE.Mesh(new THREE.PlaneGeometry(3200, 1400), paint('#2e6da4'));
     sea.rotation.x = -Math.PI / 2;
     sea.position.set(60, ROAD_Y - 0.3, SHORE - 6 + 700);
     this.raiwaiFar.add(sea);
@@ -1007,7 +1085,7 @@ export class HouseEngine {
   /** A sign board with a business's logo on it, fitted without stretching. Faces -z from its origin (the board's middle). */
   private logoBoard(file: string, bg: string, edge: string, bw: number, bh: number): THREE.Group {
     const g = new THREE.Group();
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(bw + 0.16, bh + 0.16, 0.08), lambert(edge));
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(bw + 0.16, bh + 0.16, 0.08), paint(edge));
     frame.position.z = 0.02;
     g.add(frame);
     const panel = new THREE.Mesh(new THREE.PlaneGeometry(bw, bh), new THREE.MeshBasicMaterial({ color: bg }));
@@ -1208,6 +1286,8 @@ export class HouseEngine {
     this.player = buildFigure(this.char.look, this.char.crawl ? 'crawl' : 'stand');
     this.player.root.visible = this.third;
     this.scene.add(this.player.root);
+    this.markPlayerShadow();
+    this.refreshShadows();
     this.perkKey = undefined;
     this.minimap.exitKnown = !!this.char.knowsWay;
     this.chores?.setBaby(!!this.char.crawl);
@@ -1256,6 +1336,8 @@ export class HouseEngine {
     fog.far = explore ? 700 : 110;
     this.camera.far = explore ? 1600 : 160;
     this.camera.updateProjectionMatrix();
+    this.followSun();
+    this.refreshShadows();
     this.minimap.showExit = mode === 'hunt';
     this.minimap.setMode(mode);
   }
@@ -1278,8 +1360,10 @@ export class HouseEngine {
       rig.root.position.set(pos[0], pos[1], pos[2]);
       rig.root.rotation.y = spot.yaw;
       this.scene.add(rig.root);
+      rig.root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
       this.npcs.push({ id: c.id, char: c, rig, spot, obb: bodyOBB(pos[0], pos[2]), baseQuat: rig.head.quaternion.clone(), visitor: true });
     });
+    this.refreshShadows();
     this.kick();
   }
 
@@ -1528,6 +1612,103 @@ export class HouseEngine {
     this.cb.onTalk?.(null);
   }
 
+  /** Everything solid casts and catches shadows, except the moving bits (the player, the spinning parts). */
+  private setupShadows() {
+    const skip = new Set<THREE.Object3D>();
+    for (const it of this.items) it.group.traverse((o) => skip.add(o));
+    this.scene.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh || skip.has(m)) return;
+      const mat = m.material as THREE.Material;
+      const solid = mat instanceof THREE.MeshStandardMaterial && !mat.transparent;
+      m.castShadow = solid;
+      m.receiveShadow = solid;
+    });
+    this.markPlayerShadow();
+    this.renderer.shadowMap.needsUpdate = true;
+  }
+
+  /** The player's figure never casts (it moves every frame), but catches shadows. */
+  private markPlayerShadow() {
+    this.player?.root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.castShadow = false; m.receiveShadow = true; } });
+  }
+
+  /**
+   * Ambient occlusion: corners, the floor under furniture and the ground round
+   * people's feet get the soft shade they have in real life. Glass and other
+   * see-through things are left out.
+   */
+  private setupAO() {
+    const size = this.renderer.getDrawingBufferSize(new THREE.Vector2());
+    const target = new THREE.WebGLRenderTarget(Math.max(1, size.x), Math.max(1, size.y), { type: THREE.HalfFloatType, samples: 4 });
+    const composer = new EffectComposer(this.renderer, target);
+    composer.addPass(new RenderPass(this.scene, this.camera));
+    const ao = new GTAOPass(this.scene, this.camera, Math.max(1, size.x), Math.max(1, size.y));
+    ao.output = GTAOPass.OUTPUT.Default;
+    ao.blendIntensity = 1;
+    ao.updateGtaoMaterial({ radius: 0.35, distanceExponent: 1.3, thickness: 1.2, scale: 1.1, samples: 16 });
+    // smoothing that stops at edges (otherwise corners get a fuzzy fringe)
+    ao.updatePdMaterial({ lumaPhi: 10, depthPhi: 10, normalPhi: 8, radius: 6, rings: 2, samples: 16 });
+    // leave see-through things (glass, the item rings, floating labels) out of the depth the shading is worked out from
+    const pass = ao as unknown as { _overrideVisibility: () => void; _visibilityCache: THREE.Object3D[] };
+    const hideBase = pass._overrideVisibility.bind(pass);
+    pass._overrideVisibility = () => {
+      hideBase();
+      this.scene.traverse((o) => {
+        const m = o as THREE.Mesh;
+        const seeThrough = (m.isMesh && (m.material as THREE.Material).transparent) || (o as THREE.Sprite).isSprite;
+        if (seeThrough && o.visible) { o.visible = false; pass._visibilityCache.push(o); }
+      });
+    };
+    composer.addPass(ao);
+    composer.addPass(new OutputPass());
+    this.composer = composer;
+    this.ao = ao;
+    this.sizeAO();
+  }
+
+  private sizeAO() {
+    if (!this.composer || !this.ao) return;
+    const w = this.container.clientWidth, h = this.container.clientHeight;
+    if (!w || !h) return;
+    this.composer.setPixelRatio(this.renderer.getPixelRatio());
+    this.composer.setSize(w, h);
+  }
+
+  /** If frames are slow with the soft shading on, turn it off for the rest of the visit. */
+  private watchFrameRate(dt: number) {
+    if (!this.composer || this.state !== 'playing' || this.aoPinned) return;
+    this.frameAvg += (dt - this.frameAvg) * 0.05;
+    this.slowFor = this.frameAvg > 1 / 36 ? this.slowFor + dt : 0;
+    if (this.slowFor > 2.5) {
+      this.composer.dispose();
+      this.ao?.dispose();
+      this.composer = undefined;
+      this.ao = undefined;
+      console.info('[house-hunt] soft shading switched off to keep the game smooth');
+    }
+  }
+
+  /** Redraw the sun's shadows on the next frame (after a door moves or someone appears). */
+  private refreshShadows() { this.renderer.shadowMap.needsUpdate = true; }
+
+  /** Centre the sun's shadow area (about 68 m across) on a spot. */
+  private aimSun(x: number, z: number) {
+    const centre = new THREE.Vector3(x, 0, z);
+    this.sun.position.copy(centre).add(new THREE.Vector3(-10, 9, 4).normalize().multiplyScalar(45));
+    this.sun.target.position.copy(centre);
+    this.sun.target.updateMatrixWorld();
+    this.sunAt = [x, z];
+  }
+
+  /** Exploring: when you've walked well away from where the shadows are drawn, draw them round you instead. */
+  private followSun() {
+    const [x, z] = this.mode === 'explore' ? this.pos : [10, 11];
+    if (Math.hypot(x - this.sunAt[0], z - this.sunAt[1]) < (this.mode === 'explore' ? 18 : 0.5)) return;
+    this.aimSun(x, z);
+    this.refreshShadows();
+  }
+
   private applyDoors() {
     for (const d of this.doors) {
       if (d.door.kind === 'slide') {
@@ -1558,6 +1739,7 @@ export class HouseEngine {
     // doors and windows ease toward their targets; a door that would swing into you waits
     const me: [number, number] = this.pos;
     const r = this.char.radius;
+    let doorMoved = false;
     for (const d of this.doors) {
       if (d.open === d.target) continue;
       const dir = Math.sign(d.target - d.open);
@@ -1566,8 +1748,10 @@ export class HouseEngine {
       const blockedNext = circleHitsOBB(me, r, doorOBB(d.door, next));
       if (blockedNext && !blockedNow) continue;
       d.open = next;
+      doorMoved = true;
     }
     this.applyDoors();
+    if (doorMoved) this.refreshShadows();
     for (const w of this.windows) {
       if (w.open === w.target) continue;
       w.open = Math.max(0, Math.min(1, w.open + Math.sign(w.target - w.open) * dt * 2.2));
@@ -1791,6 +1975,7 @@ export class HouseEngine {
       this.player.root.rotation.y = this.yaw;
       animate(this.player, this.bob * (this.char.crawl ? 2.2 : 1.6), moving);
     }
+    this.followSun();
     // the family turn their heads to look at you when you come close
     for (const n of this.npcs) {
       if (!n.rig.root.visible || n.spot.pose === 'lie') continue;
@@ -1835,7 +2020,8 @@ export class HouseEngine {
 
     this.updatePerk();
     const t2 = performance.now();
-    this.renderer.render(this.scene, this.camera);
+    if (this.composer) this.composer.render(dt); else this.renderer.render(this.scene, this.camera);
+    this.watchFrameRate(dt);
     const t3 = performance.now();
     this.perf = { step: t1 - t0, hud: t2 - t1, render: t3 - t2, calls: this.renderer.info.render.calls, tris: this.renderer.info.render.triangles };
     if (this.visible) this.kick();
@@ -1868,6 +2054,7 @@ export class HouseEngine {
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    this.sizeAO();
     this.kick();
   }
 
@@ -1878,7 +2065,7 @@ export class HouseEngine {
       character: (id: string) => this.setCharacter(id),
       view: () => this.toggleView(),
       floor: () => this.floorY,
-      openAll: () => { for (const d of this.doors) { d.open = 1; d.target = 1; } this.applyDoors(); },
+      openAll: () => { for (const d of this.doors) { d.open = 1; d.target = 1; } this.applyDoors(); this.refreshShadows(); },
       state: () => ({ pos: this.pos, yaw: this.yaw, pitch: this.pitch, state: this.state, items: this.collected, golden: this.golden, goldenSpot: this.goldenIndex, goldenPos: GOLDEN_SPOTS[this.goldenIndex].pos, elapsed: this.elapsed, focus: this.focus, prompt: this.promptText, doors: this.doors.map((d) => [d.door.id, d.open]) }),
       setLook: (yaw: number, pitch: number) => { this.yaw = yaw; this.pitch = pitch; },
       press: (code: string, down: boolean) => { if (down) this.keys.add(code); else this.keys.delete(code); },
@@ -1889,6 +2076,15 @@ export class HouseEngine {
       neighbours: (list: VisitorCharacter[]) => this.setNeighbours(list),
       mode: () => this.mode,
       raiwaiLayers: (near: boolean, far: boolean) => { this.raiwaiNear.visible = near; this.raiwaiFar.visible = far; },
+      refreshShadows: () => this.refreshShadows(),
+      ao: () => !!this.composer,
+      keepAO: () => { this.aoPinned = true; },
+      shadows: () => {
+        let casters = 0, receivers = 0;
+        this.scene.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { if (m.castShadow) casters++; if (m.receiveShadow) receivers++; } });
+        const sun = this.scene.children.find((c) => (c as THREE.DirectionalLight).isDirectionalLight) as THREE.DirectionalLight | undefined;
+        return { enabled: this.renderer.shadowMap.enabled, casters, receivers, map: sun?.shadow.map?.width ?? null, cast: sun?.castShadow };
+      },
     };
   }
 
@@ -1912,6 +2108,8 @@ export class HouseEngine {
       if (Array.isArray(mat)) mat.forEach((x) => x.dispose()); else mat?.dispose();
     });
     for (const t of this.textures) t.dispose();
+    this.composer?.dispose();
+    this.ao?.dispose();
     this.renderer.dispose();
     this.renderer.domElement.remove();
   }

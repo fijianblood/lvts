@@ -23,7 +23,7 @@ export default function HouseHuntPage() {
           LvTS <span className="grad-text">Vaqara Raiwai</span>
         </h1>
         <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: 1.75, marginBottom: '0.9rem' }}>
-          Take a first-person, low-poly walk-through of a Suva family home! Explore the house, discover the different rooms, find hidden technology parts and interact with the home environment.
+          Take a first-person 3D walk-through of a Suva family home! Explore the house, discover the different rooms, find hidden technology parts and interact with the home environment.
         </p>
         <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: 1.75, marginBottom: '1.1rem' }}>
           Step inside, explore the family’s home, uncover its technology secrets and connect with the family along the way. Every corner has something to discover!

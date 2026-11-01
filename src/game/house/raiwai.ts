@@ -9,22 +9,26 @@
 // its footprint, facing -z (the front faces the street at -z). Colours are
 // plain so the engine can fold them into its colour buckets.
 import * as THREE from 'three';
-import { lambert } from './models.ts';
+import { paint as basePaint } from './models.ts';
 import { canvasTexture } from './textures.ts';
 import { rng, houseSpec, type HouseSpec } from './raiwaiPlan.ts';
 export type { HouseSpec } from './raiwaiPlan.ts';
 
 type G = THREE.Object3D;
 
+const GLASS = '#2b3a44';
+/** Physically based paint; window glass is glossy. */
+const paint = (color: string) => basePaint(color, { finish: color === GLASS || color === '#1e2a30' ? 'gloss' : 'matte' });
+
 function box(g: G, w: number, h: number, d: number, color: string, x = 0, y = 0, z = 0) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.005, w), Math.max(0.005, h), Math.max(0.005, d)), lambert(color));
+  const m = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.005, w), Math.max(0.005, h), Math.max(0.005, d)), paint(color));
   m.position.set(x, y, z);
   g.add(m);
   return m;
 }
 
 function cyl(g: G, rTop: number, rBot: number, h: number, color: string, x = 0, y = 0, z = 0, seg = 10) {
-  const m = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBot, h, seg), lambert(color));
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBot, h, seg), paint(color));
   m.position.set(x, y, z);
   g.add(m);
   return m;
@@ -45,7 +49,7 @@ function gable(g: G, half: number, rise: number, t: number, color: string, x: nu
   const geo = new THREE.ExtrudeGeometry(s, { depth: t, bevelEnabled: false });
   geo.translate(0, 0, -t / 2);
   geo.rotateY(Math.PI / 2);                 // shape's x becomes z
-  const m = new THREE.Mesh(geo, lambert(color));
+  const m = new THREE.Mesh(geo, paint(color));
   m.position.set(x, y, z);
   g.add(m);
   return m;
@@ -145,7 +149,7 @@ export function house(spec: HouseSpec): THREE.Group {
     for (const s of [-1, 1]) gable(g, d / 2, rise, 0.1, spec.wall, s * (w / 2 - 0.05), top);
     box(g, w + o * 2 + 0.05, 0.08, 0.16, spec.roof, 0, top + rise + 0.05, 0);    // ridge cap
   } else if (spec.roofStyle === 'hip') {
-    const m = new THREE.Mesh(hipGeometry(w + o * 2, d + o * 2, Math.min(w, d) * 0.22), lambert(spec.roof));
+    const m = new THREE.Mesh(hipGeometry(w + o * 2, d + o * 2, Math.min(w, d) * 0.22), paint(spec.roof));
     m.position.y = top;
     g.add(m);
   } else if (spec.roofStyle === 'skillion') {
@@ -208,7 +212,7 @@ export function flats(opts: { floors?: number; w?: number; d?: number; wall?: st
     }
   }
   box(g, w + 0.1, 0.25, d + 0.1, trim, 0, H + 0.12, 0);
-  const m = new THREE.Mesh(hipGeometry(w + 0.6, d + 0.6, 1.2), lambert(roof));
+  const m = new THREE.Mesh(hipGeometry(w + 0.6, d + 0.6, 1.2), paint(roof));
   m.position.y = H + 0.24;
   g.add(m);
   box(g, 3, H + 0.9, 3.2, wall, w / 2 + 1.5, (H + 0.9) / 2, 0);      // stair tower
@@ -233,7 +237,7 @@ export function aFrameChurch(): THREE.Group {
     // tall triangular windows in the gable
     const s = new THREE.Shape();
     s.moveTo(-2.4, 0); s.lineTo(2.4, 0); s.lineTo(0, 7.5); s.closePath();
-    const win = new THREE.Mesh(new THREE.ShapeGeometry(s), lambert(glass));
+    const win = new THREE.Mesh(new THREE.ShapeGeometry(s), paint(glass));
     win.position.set(0, eave + 1.2, z + (z < 0 ? -0.14 : 0.14));
     if (z < 0) win.rotation.y = Math.PI;     // face outwards (front faces -z)
     g.add(win);
@@ -346,7 +350,7 @@ export function greenBus(): THREE.Group {
   box(g, 0.06, 0.95, W - 0.3, '#2b3a44', L / 2 + 0.01, 2.2, 0);   // windscreen
   const tex = busTextures();
   for (const s of [-1, 1]) {
-    const side = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 0.65), new THREE.MeshLambertMaterial({ map: tex.sides }));
+    const side = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 0.65), new THREE.MeshStandardMaterial({ map: tex.sides, roughness: 0.5 }));
     side.position.set(-0.6, 1.15, s * (W / 2 + 0.006));
     if (s < 0) side.rotation.y = Math.PI;
     g.add(side);
@@ -406,12 +410,12 @@ export function mangoTree(size = 1, seed = 3): THREE.Group {
   const greens = ['#2c5a27', '#356b2e', '#2f622a', '#3d7333'];
   for (let i = 0; i < 6; i++) {
     const rad = (1.7 + r() * 1.3) * size;
-    const m = new THREE.Mesh(new THREE.IcosahedronGeometry(rad, 1), lambert(greens[i % greens.length]));
+    const m = new THREE.Mesh(new THREE.IcosahedronGeometry(rad, 1), paint(greens[i % greens.length]));
     const a = (i / 6) * Math.PI * 2;
     m.position.set(Math.cos(a) * 1.6 * size, (3.8 + r() * 1.6) * size, Math.sin(a) * 1.6 * size);
     g.add(m);
   }
-  const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(2.4 * size, 1), lambert('#336628'));
+  const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(2.4 * size, 1), paint('#336628'));
   crown.position.y = 5.6 * size;
   g.add(crown);
   return g;
@@ -422,7 +426,7 @@ export function bougainvillea(size = 1, seed = 4): THREE.Group {
   const g = new THREE.Group();
   const r = rng(seed);
   for (let i = 0; i < 6; i++) {
-    const m = new THREE.Mesh(new THREE.IcosahedronGeometry((0.5 + r() * 0.5) * size, 0), lambert(i % 3 === 0 ? '#4d8a3c' : r() > 0.5 ? '#e0408f' : '#f06aa8'));
+    const m = new THREE.Mesh(new THREE.IcosahedronGeometry((0.5 + r() * 0.5) * size, 0), paint(i % 3 === 0 ? '#4d8a3c' : r() > 0.5 ? '#e0408f' : '#f06aa8'));
     m.position.set((r() - 0.5) * 1.6 * size, (0.6 + r() * 1.2) * size, (r() - 0.5) * 1.2 * size);
     g.add(m);
   }
@@ -453,7 +457,7 @@ export function wires(points: THREE.Vector3[][], color = '#2a2c2f'): THREE.LineS
 export function arena(): THREE.Group {
   const g = new THREE.Group();
   cyl(g, 34, 34, 10, '#e9e7e1', 0, 5, 0, 32);
-  const dome = new THREE.Mesh(new THREE.SphereGeometry(36, 32, 10, 0, Math.PI * 2, 0, Math.PI * 0.28), lambert('#2fb3a6'));
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(36, 32, 10, 0, Math.PI * 2, 0, Math.PI * 0.28), paint('#2fb3a6'));
   dome.scale.set(1, 0.55, 1);
   dome.position.y = 10 - 36 * 0.55 * Math.cos(Math.PI * 0.28);
   g.add(dome);

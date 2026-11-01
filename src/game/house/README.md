@@ -3,7 +3,7 @@
 The game was called the House Hunt; it's now **Vaqara Raiwai** (Fijian, roughly
 "search Raiwai"). The page is still at `#house`, so links already shared keep working.
 
-A first-person, low-poly 3D walk through the house and the compound around it,
+A first-person 3D walk through the house and the compound around it,
 at `#house` on the site. Pick a family member to play as, find the 12 tech
 parts, hunt the Golden Chip (it hides in one of 12 spots, picked at random each
 game), and leave through the front gate at the bottom of the driveway. If you
@@ -154,7 +154,27 @@ on them. Baby Aisha babbles, coos and reaches for cuddles instead of talking.
 - **Talking.** Visitors greet with "Bula!" and the family welcomes them. A
   visitor can ask the family about their declaration, but other visitors'
   characters only make small talk and never speak about faith.
-- **The look.** Brighter: a deep-blue sky gradient and chunky pixel grass.
+- **The look.** See "How it looks" below.
+
+## How it looks (and keeping it fast)
+
+- **People** are built from smooth shapes: rounded heads with eyes, brows,
+  nose, lips and ears, shaped hair, elbows and knees, hands with fingers,
+  shoes. They follow each person's look in `characters.ts`; they aren't
+  likenesses. Each is baked into two meshes (~7,000 triangles).
+- **Materials** are physically based (`paint()` in `models.ts`): matte paint,
+  satin wood, cloth, skin, glossy and metal surfaces. Wood gets a grain,
+  sofas and chairs a fabric weave and walls a faint plaster texture, laid on
+  by world position so the grain is the same size on every piece.
+- **Light**: an afternoon sun from the west, sky light and soft reflected room
+  light, with film-like tone mapping. **Sun shadows** are drawn once (and
+  again only when a door moves or who's standing where changes), so they cost
+  almost nothing per frame. The roof and walls keep the sun out, so it only
+  comes in through windows and doors.
+- **Soft corner shading** (ambient occlusion, `GTAOPass`) on computers only.
+  If frames get slow (under about 36 a second for a few seconds) it switches
+  itself off for the rest of the visit. Phones never use it.
+- **Furniture** has rounded edges that catch the light; thin parts stay sharp.
 
 ## Raiwai (exploring)
 
@@ -297,7 +317,7 @@ then `npm run dev` and open `http://localhost:5173/lvts/#house`.
 | `portrait.tsx` | The little portraits on the picker, the HUD and the admin page. |
 | `../../../workers/neighbourhood/` | The Neighbourhood server (Cloudflare Worker); its own README has the setup steps. |
 | `../../pages/NeighbourhoodAdminPage.tsx` | The hidden page for approving characters. |
-| `figures.ts` | The low-poly people (poses, walk and crawl cycles) and the cat. Everyone you aren't playing is baked into two meshes (body, and head on its own pivot) so a full house stays cheap to draw. |
+| `figures.ts` | The people (rounded heads with eyes, brows, nose, lips and ears; shaped hair; elbows, knees, hands with fingers; poses, walk and crawl cycles) and the cat. Everyone you aren't playing is baked into two meshes (body, and head on its own pivot), with colour and shininess on the vertices, so a full house stays cheap to draw (about 7,000 triangles a person). |
 | `minimap.ts` | Fog-of-war minimap revealed by line of sight, with a breadcrumb trail. |
 | `HouseGame.tsx` | HUD, start/pause/win cards, touch controls, fullscreen. |
 | `contest.ts`, `prizeCodec.ts` | Contest settings and the code scrambling. |
