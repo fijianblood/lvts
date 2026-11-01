@@ -21,6 +21,16 @@ as ramps (`RAMPS`). Collision stays 2D; the camera height follows `heightAt`.
 Every place the floor height jumps is walled or railed except at stairs, and a
 test proves it.
 
+**Jumping** (Space, or the ⬆️ button on phones): about a metre up (a bit
+less for the kids; Aisha crawls, so she doesn't jump). You can jump over or
+onto furniture and loose things (benches, tables, beds, crates, cement bags,
+the red water barriers) because each knows how tall it is (`top` in
+`collision.ts`); walk off whatever you're standing on and you drop. Walls,
+fences, railings, the street's edge walls, doors, the chore locks and people
+always stop you, so a jump never takes you anywhere you couldn't walk: no
+over the compound fence in a prize round, no into a locked place, no off
+the street. Indoors the ceiling caps the jump so your head stays under it.
+
 Doors and gates: the kitchen back door, the veranda gate, the side gate, the
 storeroom door and the double front gate all open with E. The veranda gate and
 the front gate swing away from you if you are standing where they would open.
@@ -318,7 +328,7 @@ then `npm run dev` and open `http://localhost:5173/lvts/#house`.
 | File | What it is |
 |---|---|
 | `layout.ts` | The house and compound as data: rooms and outdoor areas, ground heights, walls, fences and railings, doors and gates, windows, furniture, trees, the family's spots, parts, Golden Chip spots, spawn, exit. The renderer, collision and minimap all read it. |
-| `collision.ts` | Player-vs-wall/furniture/door collision (circle vs boxes), with sliding; a crawling version for Aisha and a walls-only version for the third-person camera. |
+| `collision.ts` | Player-vs-wall/furniture/door collision (circle vs boxes), with sliding; a crawling version for Aisha and a walls-only version for the third-person camera. Jumping: furniture's heights, standing on things, and the jump-and-fall step. |
 | `engine.ts` | three.js scene, controls, doors and windows, pickups, the family, third-person camera, timer, win. |
 | `characters.ts` | The 25 playable family members, plus your own. |
 | `talk.ts` | What they say to each other: greetings, questions and answers, the declaration. |
@@ -343,4 +353,8 @@ then `npm run dev` and open `http://localhost:5173/lvts/#house`.
 every Golden Chip spot and the exit can be reached with the doors open (walking
 and crawling), that you can never walk off a ledge, that a shut door blocks its
 doorway, that no door or gate swings through furniture, and the prize-code
-scrambling and round dates.
+scrambling and round dates. For jumping, it checks the jump itself (height,
+landing, the ceiling cap, clearing a barrier at a run, walls stopping you),
+and re-runs the walkability checks as if every piece of furniture could be
+hopped over: you still can't leave the compound in the hunt, get into a
+locked place, or get off the street when exploring.

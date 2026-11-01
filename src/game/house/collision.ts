@@ -1,9 +1,26 @@
 // Solid walls and furniture for a first-person player, as circles against
 // boxes in plan. Pure functions, no three.js, so they can be unit-tested.
+//
+// Jumping: furniture and other loose things know how tall they are (`top`), so
+// once you're off the ground you can pass over anything lower than your feet
+// and land on top of it. Walls, fences, railings, the street's edges, doors,
+// the chore locks and people have no top: they always stop you, so a jump can
+// never take you anywhere you couldn't walk.
 
 import { WALLS, PROPS, DOORS, TREES, wallSolidRects, barrierRect, barrierBlocksSight, barriersFor, heightAt, type Rect, type Door, type XZ, type GameMode } from './layout.ts';
 
-export interface Circle { x: number; z: number; r: number }
+export interface Circle { x: number; z: number; r: number; /** Its top (world y), if you can jump onto it. */ top?: number }
+/** A solid box in plan; `top` (world y) if it's something you can jump onto or over (furniture), none if it always blocks (walls, fences). */
+export interface Solid extends Rect { top?: number }
+
+/** How high a jump goes (the apex above where you took off, m), and how hard you come back down (m/s²). */
+export const JUMP = { up: 1.0, kid: 0.85, gravity: 20 };
+/** Take-off speed for a jump that peaks `apex` m up. */
+export const jumpSpeed = (apex: number) => Math.sqrt(2 * JUMP.gravity * apex);
+/** You stand on anything whose top is within this of your feet. */
+const ON_TOP = 0.02;
+/** How much of you has to be over something to stand on it (a fraction of your radius). */
+const FOOTING = 0.6;
 
 /** An oriented box in plan: centre, half extents along its own axes, and the angle of its local x axis (x = cos, z = sin). */
 export interface OBB { cx: number; cz: number; hx: number; hz: number; angle: number }
@@ -22,14 +39,14 @@ const EPS = 1e-6;
 const INSIDE = { x0: -2.7, x1: 15.65, z0: -14, z1: 21.9 };
 const TRUNK: Record<string, number> = { palm: 0.18, banana: 0.2, bush: 0.15, breadfruit: 0.25 };
 
-export interface StaticWorld { rects: Rect[]; circles: Circle[] }
+export interface StaticWorld { rects: Solid[]; circles: Circle[] }
 
 /**
  * Everything solid that never moves. With `crawl`, the world as a crawling
  * baby sees it: table skirts and anything raised off the floor don't block.
  */
 export function buildStaticWorld(opts: { crawl?: boolean; mode?: GameMode } = {}): StaticWorld {
-  const rects: Rect[] = [];
+  const rects: Solid[] = [];
   for (const wall of WALLS) rects.push(...wallSolidRects(wall));
   for (const b of barriersFor(opts.mode ?? 'hunt')) rects.push(barrierRect(b));
   const circles: Circle[] = [];
@@ -39,20 +56,20 @@ export function buildStaticWorld(opts: { crawl?: boolean; mode?: GameMode } = {}
       const lift = prim.min[1] - heightAt((prim.min[0] + prim.max[0]) / 2, (prim.min[2] + prim.max[2]) / 2);
       if (lift >= OVERHEAD) continue;
       if (opts.crawl && (prim.crawl || lift >= CRAWL_CLEAR)) continue;
-      rects.push({ x0: prim.min[0], x1: prim.max[0], z0: prim.min[2], z1: prim.max[2] });
+      rects.push({ x0: prim.min[0], x1: prim.max[0], z0: prim.min[2], z1: prim.max[2], top: prim.max[1] });
     } else if (prim.kind === 'cyl' && prim.solid) {
       const [x, y, z] = prim.base;
       if (prim.axis === 'x' || prim.axis === 'z') {
         // a lying cylinder blocks as its box in plan
         const hx = prim.axis === 'x' ? prim.h / 2 : prim.r;
         const hz = prim.axis === 'z' ? prim.h / 2 : prim.r;
-        rects.push({ x0: x - hx, x1: x + hx, z0: z - hz, z1: z + hz });
+        rects.push({ x0: x - hx, x1: x + hx, z0: z - hz, z1: z + hz, top: y + prim.r });
         continue;
       }
       const lift = y - heightAt(x, z);
       if (lift >= OVERHEAD) continue;
       if (opts.crawl && lift >= CRAWL_CLEAR) continue;
-      circles.push({ x, z, r: prim.r });
+      circles.push({ x, z, r: prim.r, top: y + prim.h });
     }
   }
   for (const t of TREES) {
@@ -159,26 +176,31 @@ export function circleHitsOBB(p: XZ, r: number, b: OBB): boolean {
   return pushFromOBB(p, r, b) !== null;
 }
 
-/** True when a circle at `p` overlaps any solid (static or the given door panels). */
-export function blocked(p: XZ, r: number, world: StaticWorld, doors: OBB[]): boolean {
-  for (const q of world.rects) if (pushFromRect(p, r, q.x0, q.z0, q.x1, q.z1)) return true;
-  for (const c of world.circles) if (pushFromCircle(p, r, c)) return true;
+/** Is this solid under your feet (so you pass over it)? `feet` is -Infinity on the ground: then everything blocks. */
+const under = (top: number | undefined, feet: number) => top !== undefined && top <= feet + ON_TOP;
+
+/** True when a circle at `p` overlaps any solid (static or the given door panels). `feet`: off the ground, at this height. */
+export function blocked(p: XZ, r: number, world: StaticWorld, doors: OBB[], feet = -Infinity): boolean {
+  for (const q of world.rects) if (!under(q.top, feet) && pushFromRect(p, r, q.x0, q.z0, q.x1, q.z1)) return true;
+  for (const c of world.circles) if (!under(c.top, feet) && pushFromCircle(p, r, c)) return true;
   for (const b of doors) if (pushFromOBB(p, r, b)) return true;
   return false;
 }
 
 /** Push `p` out of everything it overlaps. A few passes settle corners where two solids meet. */
-export function resolve(p: XZ, r: number, world: StaticWorld, doors: OBB[], passes = 4): XZ {
+export function resolve(p: XZ, r: number, world: StaticWorld, doors: OBB[], passes = 4, feet = -Infinity): XZ {
   let x = p[0], z = p[1];
   for (let pass = 0; pass < passes; pass++) {
     let moved = false;
     for (const q of world.rects) {
       // cheap reject before the exact test
       if (x < q.x0 - r || x > q.x1 + r || z < q.z0 - r || z > q.z1 + r) continue;
+      if (under(q.top, feet)) continue;
       const push = pushFromRect([x, z], r, q.x0, q.z0, q.x1, q.z1);
       if (push) { x += push[0]; z += push[1]; moved = true; }
     }
     for (const c of world.circles) {
+      if (under(c.top, feet)) continue;
       const push = pushFromCircle([x, z], r, c);
       if (push) { x += push[0]; z += push[1]; moved = true; }
     }
@@ -196,10 +218,35 @@ export function resolve(p: XZ, r: number, world: StaticWorld, doors: OBB[], pass
  * into steps no longer than a third of the radius, so a fast step can never
  * tunnel through a 15 cm wall.
  */
-export function moveAndSlide(p: XZ, dx: number, dz: number, r: number, world: StaticWorld, doors: OBB[]): XZ {
+export function moveAndSlide(p: XZ, dx: number, dz: number, r: number, world: StaticWorld, doors: OBB[], feet = -Infinity): XZ {
   const len = Math.hypot(dx, dz);
   const steps = Math.max(1, Math.ceil(len / (r / 3)));
   let cur: XZ = p;
-  for (let i = 0; i < steps; i++) cur = resolve([cur[0] + dx / steps, cur[1] + dz / steps], r, world, doors);
+  for (let i = 0; i < steps; i++) cur = resolve([cur[0] + dx / steps, cur[1] + dz / steps], r, world, doors, 4, feet);
   return cur;
+}
+
+/** The top of the highest thing you'd be standing on at `p` with your feet at `feet` (-Infinity if nothing: you're over the floor). */
+export function supportAt(p: XZ, r: number, world: StaticWorld, feet: number): number {
+  let best = -Infinity;
+  const fr = r * FOOTING;
+  for (const q of world.rects) if (q.top !== undefined && q.top > best && q.top <= feet + ON_TOP && pushFromRect(p, fr, q.x0, q.z0, q.x1, q.z1)) best = q.top;
+  for (const c of world.circles) if (c.top !== undefined && c.top > best && c.top <= feet + ON_TOP && pushFromCircle(p, fr, c)) best = c.top;
+  return best;
+}
+
+/** Your height while jumping or falling. */
+export interface Air { feet: number; vy: number; air: boolean }
+/**
+ * One step of a jump or a fall: gravity while you're in the air, a bump on
+ * `cap` (the highest your feet can go under a ceiling), and landing on `floor`
+ * (the ground, or whatever you come down on).
+ */
+export function airStep(s: Air, floor: number, cap: number, dt: number): Air {
+  if (!s.air) return s;
+  let vy = s.vy - JUMP.gravity * dt;
+  let feet = s.feet + vy * dt;
+  if (feet > cap) { feet = Math.max(cap, s.feet); vy = Math.min(vy, 0); }
+  if (feet <= floor) return { feet: floor, vy: 0, air: false };
+  return { feet, vy, air: true };
 }

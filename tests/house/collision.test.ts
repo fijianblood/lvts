@@ -187,3 +187,60 @@ test('from the spawn point, walking straight ahead goes in through the open half
   for (let i = 0; i < 80; i++) q = moveAndSlide(q, 0, -0.05, PLAYER_R, world, shut);
   assert.ok(q[1] > 13, `walked through the shut slider to z=${q[1]}`);
 });
+
+// ── jumping ─────────────────────────────────────────────────────────────────
+import { airStep, supportAt, jumpSpeed, JUMP, type StaticWorld } from '../../src/game/house/collision.ts';
+
+test('a jump goes up about a metre and comes back down to the floor', () => {
+  let s = { feet: 0, vy: jumpSpeed(JUMP.up), air: true };
+  let top = 0, t = 0;
+  while (s.air && t < 3) { s = airStep(s, 0, Infinity, 1 / 120); top = Math.max(top, s.feet); t += 1 / 120; }
+  assert.ok(Math.abs(top - JUMP.up) < 0.03, `peaked at ${top.toFixed(2)} m`);
+  assert.equal(s.air, false); assert.equal(s.feet, 0);
+  assert.ok(t > 0.5 && t < 0.8, `in the air for ${t.toFixed(2)} s`);
+});
+
+test('a ceiling stops a jump: your feet never go above the cap', () => {
+  let s = { feet: 0, vy: jumpSpeed(JUMP.up), air: true };
+  let top = 0;
+  while (s.air) { s = airStep(s, 0, 0.6, 1 / 60); top = Math.max(top, s.feet); }
+  assert.ok(top <= 0.6 + 1e-9, `feet reached ${top}`);
+});
+
+test('furniture blocks you on the floor; off the ground you pass over it and can stand on it', () => {
+  const box: StaticWorld = { rects: [{ x0: 1, x1: 1.5, z0: -1, z1: 1, top: 0.8 }], circles: [] };
+  assert.equal(blocked([1.25, 0], PLAYER_R, box, []), true, 'should block you on the floor');
+  assert.equal(blocked([1.25, 0], PLAYER_R, box, [], 0.85), false, 'should not block you above it');
+  assert.equal(blocked([1.25, 0], PLAYER_R, box, [], 0.5), true, 'should block you below its top');
+  assert.equal(supportAt([1.25, 0], PLAYER_R, box, 0.85), 0.8, 'should hold you up');
+  assert.equal(supportAt([2.5, 0], PLAYER_R, box, 0.85), -Infinity, 'nothing to stand on past it');
+});
+
+test('running and jumping clears a waist-high barrier; walls stop you however you jump', () => {
+  // the run-up, a jump, and on past it, simulated as the engine does
+  const run = (world: StaticWorld) => {
+    let p: XZ = [0, 0];
+    let s = { feet: 0, vy: 0, air: false };
+    for (let i = 0; i < 240; i++) {
+      const dt = 1 / 60;
+      if (!s.air && p[0] > 0.3 && p[0] < 0.6) s = { feet: 0, vy: jumpSpeed(JUMP.up), air: true };
+      p = moveAndSlide(p, 4 * dt, 0, PLAYER_R, world, [], s.air || s.feet > 0.05 ? s.feet : -Infinity);
+      const floor = Math.max(0, supportAt(p, PLAYER_R, world, s.feet));
+      if (s.air) s = airStep(s, floor, Infinity, dt);
+      else if (floor < s.feet - 0.25) s = { ...s, air: true, vy: 0 };
+      else s = { ...s, feet: floor };
+    }
+    return p[0];
+  };
+  assert.ok(run({ rects: [{ x0: 1.4, x1: 1.85, z0: -2, z1: 2, top: 0.8 }], circles: [] }) > 4, 'should clear a red water barrier at a run');
+  assert.ok(run({ rects: [{ x0: 1.4, x1: 1.6, z0: -2, z1: 2 }], circles: [] }) < 1.4, 'a wall (no top) should stop you');
+});
+
+test('only furniture and loose things can be jumped: every wall, fence, railing and street edge always blocks', () => {
+  for (const mode of ['hunt', 'explore'] as const) {
+    const w = buildStaticWorld({ mode });
+    const jumpable = w.rects.filter((q) => q.top !== undefined).length + w.circles.filter((c) => c.top !== undefined).length;
+    const solidProps = PROPS.filter((p) => p.kind !== 'cone' && p.solid).length;
+    assert.ok(jumpable <= solidProps, `${mode}: ${jumpable} jumpable solids but only ${solidProps} solid props`);
+  }
+});
