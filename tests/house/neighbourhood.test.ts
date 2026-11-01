@@ -1,7 +1,7 @@
 // Run with: node --test tests/house/
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildStaticWorld, doorOBB, bodyOBB, blocked, PLAYER_R, type OBB } from '../../src/game/house/collision.ts';
+import { buildStaticWorld, doorOBB, bodyOBB, blocked, PLAYER_R, type OBB, type StaticWorld } from '../../src/game/house/collision.ts';
 import { DOORS, SPAWN, RAMPS, heightAt, SIDE_ROAD, PARKED, MASJID, type GameMode } from '../../src/game/house/layout.ts';
 import { GARDEN_CITY } from '../../src/game/house/gardenCity.ts';
 import { SHOP_SPOTS, SHOP_LINE, STREET, VISITOR_SPOTS, visitorCharacter } from '../../src/game/house/neighbourhood.ts';
@@ -16,8 +16,10 @@ type Grid = { x0: number; z0: number; step: number; nx: number; nz: number };
 const FINE: Grid = { x0: -12.5, z0: -14.6, step: 0.1, nx: 450, nz: 470 };
 /** All of the walkable part of Raiwai (McFarlane Road end to end, the side road, Garden City), on a 20 cm grid. */
 const RAIWAI_G: Grid = { x0: -63, z0: -42, step: 0.2, nx: 1405, nz: 500 };
-function reach(mode: GameMode, extra: OBB[] = [], G: Grid = FINE, start: [number, number] = [SPAWN.pos[0], SPAWN.pos[2]]) {
-  const world = buildStaticWorld({ mode });
+/** As if you could jump over every piece of furniture and every loose thing (more than a jump can really do). */
+const hopAll = (w: StaticWorld): StaticWorld => ({ rects: w.rects.filter((q) => q.top === undefined), circles: w.circles.filter((c) => c.top === undefined) });
+function reach(mode: GameMode, extra: OBB[] = [], G: Grid = FINE, start: [number, number] = [SPAWN.pos[0], SPAWN.pos[2]], jumping = false) {
+  const world = jumping ? hopAll(buildStaticWorld({ mode })) : buildStaticWorld({ mode });
   const obstacles = [...doorsOpen, ...extra];
   const seen = new Uint8Array(G.nx * G.nz);
   const free = (i: number, j: number) => !blocked([G.x0 + i * G.step, G.z0 + j * G.step], PLAYER_R, world, obstacles);
@@ -64,6 +66,12 @@ test('the hunt keeps you in the compound: you never get out onto the street', ()
   assert.equal(hunt.any((_x, z) => z > 24.0), false, 'walked past the finish line in the hunt');
 });
 
+test('jumping never gets you out of the compound in the hunt, even hopping over every piece of furniture', () => {
+  const hunt = reach('hunt', [], FINE, undefined, true);
+  assert.equal(hunt.any((_x, z) => z > 24.0), false, 'jumped out past the finish line in the hunt');
+  assert.equal(hunt.any((x, z) => z < 21.9 && (x < -2.75 || x > 15.75)), false, 'jumped over the compound fence');
+});
+
 test('exploring: from the house out of the gate onto McFarlane Road, and not into the yards', () => {
   const map = reach('explore', visitors, FINE);
   assert.ok(map.near(14, 26, 0.5), "can't get from the house out of the gate onto McFarlane Road");
@@ -92,6 +100,17 @@ test('exploring Raiwai: McFarlane Road end to end, up the side road, and no furt
   // (the compound itself is checked on the fine grid above; this coarser grid only looks outside it)
   const outside = map.cliffs().filter((m) => { const [x, z] = m.slice(1, m.indexOf(')')).split(',').map(Number); return !(inCompound(x) && z < 22.3); });
   assert.deepEqual(outside.slice(0, 6), [], 'a ledge on McFarlane Road or the side road');
+});
+
+test('jumping never gets you off the street when exploring, even hopping over every piece of furniture and every car', () => {
+  const map = reach('explore', visitors, RAIWAI_G, [14, 25], true);
+  const inSide = (x: number) => x > SIDE_ROAD.x0 - 0.05 && x < SIDE_ROAD.x1 + 0.05;
+  const inCompound = (x: number) => x > -2.75 && x < 15.75;
+  assert.equal(map.any((x) => x < STREET.x0 - 0.05 || x > STREET.x1 + 0.05), false, 'jumped off the end of McFarlane Road');
+  assert.equal(map.any((x, z) => z > STREET.z1 + 0.05 && !inGardenCity(x, z)), false, 'jumped over the wall or into a shop across the road');
+  assert.equal(map.any((x, z) => z < 22.25 && !inSide(x) && !inCompound(x)), false, "jumped into someone's yard");
+  assert.equal(map.any((x, z) => inGardenCity(x, z) && z > GC.z1 - 0.15), false, "jumped through Garden City's back wall");
+  assert.equal(map.any((x, z) => z > SHOP_LINE + 0.05 && x > MASJID.x - MASJID.w / 2 - 1 && x < MASJID.x + MASJID.w / 2 + 1), false, 'jumped up the masjid steps');
 });
 
 test('Garden City: in through the gate, across the car park and into the units being built, but not the one shut off', () => {

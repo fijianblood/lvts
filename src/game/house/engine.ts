@@ -13,10 +13,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import {
   C, ROOMS, WALLS, DOORS, WINDOWS, PROPS, COLLECTIBLES, GOLDEN_SPOTS, SPAWN, EXIT_ZONE, POSTER,
   BARRIERS, TREES, NEIGHBOURS, RAMPS, NPC_SPOTS, CAT_SPOT, BACK_Y, ROAD_Y, GROUND_BREAKS, PARKED, MCFARLANE,
-  WALL_H, CEIL_H, DOOR_TOP, roomAt, groundY, heightAt,
+  WALL_H, CEIL_H, DOOR_TOP, HOUSE, roomAt, groundY, heightAt,
   type GameMode, type WallRun, type Prim, type Door, type HingedDoor, type WindowSpec, type Room, type XYZ, type Barrier, type NpcSpot,
 } from './layout.ts';
-import { buildStaticWorld, buildCameraWorld, doorOBB, bodyOBB, moveAndSlide, circleHitsOBB, blocked, type OBB, type StaticWorld } from './collision.ts';
+import { buildStaticWorld, buildCameraWorld, doorOBB, bodyOBB, moveAndSlide, circleHitsOBB, blocked, supportAt, airStep, jumpSpeed, JUMP, type OBB, type StaticWorld } from './collision.ts';
 import { CHARACTERS, characterById, firstName, type Character, type CharacterId } from './characters.ts';
 import { buildFigure, animate, bakeStatic, cat, type Rig } from './figures.ts';
 import type { Say } from './talk.ts';
@@ -82,6 +82,8 @@ const GC_TEX: Record<string, () => THREE.Texture> = {
   gcsign: T.gardenCitySign, gcboard: T.gardenCityBoard, gcbanner: T.comingSoonBanner, gcbuild: T.constructionSign, gcsoon: T.shopComingSoon,
 };
 const DEFAULT_SIGHT = 5.5;
+/** Feet this far above the floor count as up on something (walking down stairs your feet trail the steps by a few cm). */
+const LIFTED = 0.15;
 
 // ── geometry helpers ────────────────────────────────────────────────────────
 type Buckets = Map<string, THREE.BufferGeometry[]>;
@@ -294,7 +296,11 @@ export class HouseEngine {
   };
   private get worldCam(): StaticWorld { return this.worlds[this.mode].cam; }
   private char: Character = characterById('josese');
+  /** Your feet: the floor (eased on stairs), whatever you're standing on, or in the air when jumping. */
   private floorY = 0;
+  /** Jumping or falling, and how fast you're going up (m/s). */
+  private air = false;
+  private vy = 0;
   private third = false;
   private player?: Rig;
   private npcs: { id: CharacterId; char: Character; rig: Rig; spot: NpcSpot; obb?: OBB; baseQuat: THREE.Quaternion; visitor?: boolean }[] = [];
@@ -1437,6 +1443,8 @@ export class HouseEngine {
     this.lookedOut = false;
     this.pos = [SPAWN.pos[0], SPAWN.pos[2]];
     this.floorY = heightAt(this.pos[0], this.pos[1]);
+    this.air = false;
+    this.vy = 0;
     this.vel = [0, 0];
     this.yaw = SPAWN.yaw;
     this.pitch = -0.05;
@@ -1524,6 +1532,23 @@ export class HouseEngine {
     this.pitch = Math.max(-1.35, Math.min(1.35, this.pitch - dy));
   }
   setRun(on: boolean) { this.running = on; }
+
+  /** Jump (Space, or the jump button). Not in the air already, and not the baby (she crawls). */
+  jump() {
+    if (this.state !== 'playing' || this.air || this.char.crawl) return;
+    this.air = true;
+    this.vy = jumpSpeed(this.char.look.kind === 'kid' ? JUMP.kid : JUMP.up);
+    this.started = true;
+    this.sfx.jump();
+  }
+
+  /** The highest your feet can go here: under a ceiling, low enough that your head stays below it. */
+  private ceilingCap(): number {
+    const [x, z] = this.pos;
+    const room = roomAt(x, z);
+    const roofed = room ? room.ceiling : x > HOUSE.x0 - 0.2 && x < HOUSE.x1 + 0.2 && z > HOUSE.z0 - 0.2 && z < HOUSE.z1 + 0.2;   // a doorway in the house
+    return roofed ? (room?.y ?? 0) + CEIL_H - this.char.eye - 0.18 : Infinity;
+  }
   toggleMap(): boolean {
     this.minimap.expanded = !this.minimap.expanded;
     this.mapFrame = 0;
@@ -1575,6 +1600,7 @@ export class HouseEngine {
     if (code === 'KeyE' || code === 'Enter' || code === 'KeyF') { e.preventDefault(); if (!e.repeat) this.interact(); return; }
     if (code === 'KeyM' && !e.repeat) { this.toggleMap(); return; }
     if (code === 'KeyV' && !e.repeat) { this.toggleView(); return; }
+    if (code === 'Space') { if (!e.repeat) this.jump(); return; }
     this.keys.add(code);
   };
   private onKeyUp = (e: KeyboardEvent) => { this.keys.delete(e.code); };
@@ -1791,7 +1817,9 @@ export class HouseEngine {
       this.vel[1] += (fz * speed - this.vel[1]) * blend;
       if (!this.started && len > 0.05) this.started = true;
       if (Math.hypot(this.vel[0], this.vel[1]) > 0.01) {
-        this.pos = moveAndSlide(this.pos, this.vel[0] * dt, this.vel[1] * dt, r, this.solid, this.obstacles());
+        // in the air or up on something, you pass over whatever is below your feet
+        const lifted = this.air || this.floorY > heightAt(this.pos[0], this.pos[1]) + LIFTED;
+        this.pos = moveAndSlide(this.pos, this.vel[0] * dt, this.vel[1] * dt, r, this.solid, this.obstacles(), lifted ? this.floorY : -Infinity);
       }
       const sp = Math.hypot(this.vel[0], this.vel[1]);
       this.bob += sp * dt * 2.4;
@@ -1817,9 +1845,19 @@ export class HouseEngine {
       if (this.mode === 'hunt' && this.pos[0] >= EXIT_ZONE.x0 && this.pos[0] <= EXIT_ZONE.x1 && this.pos[1] >= EXIT_ZONE.z0 && this.pos[1] <= EXIT_ZONE.z1) this.win();
     }
 
-    // the floor under you: ease toward it so stairs and slopes feel smooth
-    const floor = heightAt(this.pos[0], this.pos[1]);
-    this.floorY = Math.abs(floor - this.floorY) > 1.2 ? floor : this.floorY + (floor - this.floorY) * (1 - Math.exp(-dt * 16));
+    // the floor under you (or what you're standing on): ease toward it so stairs and slopes feel smooth;
+    // in the air, gravity until you land; walk off the edge of something and you drop
+    const ground = heightAt(this.pos[0], this.pos[1]);
+    const lifted = this.air || this.floorY > ground + LIFTED;
+    const floor = lifted ? Math.max(ground, supportAt(this.pos, r, this.solid, this.floorY)) : ground;
+    if (this.air) {
+      const s = airStep({ feet: this.floorY, vy: this.vy, air: true }, floor, this.ceilingCap(), dt);
+      this.floorY = s.feet; this.vy = s.vy; this.air = s.air;
+    } else if (floor < this.floorY - 0.25) {
+      this.air = true; this.vy = 0;
+    } else {
+      this.floorY = Math.abs(floor - this.floorY) > 1.2 ? floor : this.floorY + (floor - this.floorY) * (1 - Math.exp(-dt * 16));
+    }
 
     // items bob and turn
     for (const it of this.items) {
@@ -1989,7 +2027,7 @@ export class HouseEngine {
     if (this.player) {
       this.player.root.position.set(this.pos[0], this.floorY, this.pos[1]);
       this.player.root.rotation.y = this.yaw;
-      animate(this.player, this.bob * (this.char.crawl ? 2.2 : 1.6), moving);
+      animate(this.player, this.bob * (this.char.crawl ? 2.2 : 1.6), this.air ? moving * 0.3 : moving);
     }
     this.followSun();
     // the family turn their heads to look at you when you come close
@@ -2077,7 +2115,11 @@ export class HouseEngine {
   /** For the dev-only debug hook in HouseGame. */
   debug() {
     return {
-      teleport: (x: number, z: number, yaw?: number) => { this.pos = [x, z]; this.floorY = heightAt(x, z); if (yaw !== undefined) this.yaw = yaw; },
+      teleport: (x: number, z: number, yaw?: number) => { this.pos = [x, z]; this.floorY = heightAt(x, z); this.air = false; this.vy = 0; if (yaw !== undefined) this.yaw = yaw; },
+      jump: () => this.jump(),
+      /** Run the simulation `n` steps of `dt` seconds (tests: the same every time, however slow the browser is). */
+      tick: (dt: number, n = 1) => { for (let i = 0; i < n; i++) this.step(dt); },
+      air: () => ({ air: this.air, feet: this.floorY, vy: this.vy }),
       character: (id: string) => this.setCharacter(id),
       view: () => this.toggleView(),
       floor: () => this.floorY,

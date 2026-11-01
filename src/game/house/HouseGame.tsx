@@ -161,7 +161,7 @@ function localPoint(e: { clientX: number; clientY: number }, el: Element, rotate
     : { x: e.clientX - r.left, y: e.clientY - r.top, w: r.width };
 }
 
-function TouchControls({ engine, onPause, onMap, onView, rotated }: { engine: HouseEngine; onPause: () => void; onMap: () => void; onView: () => void; rotated: boolean }) {
+function TouchControls({ engine, onPause, onMap, onView, rotated, canJump }: { engine: HouseEngine; onPause: () => void; onMap: () => void; onView: () => void; rotated: boolean; canJump: boolean }) {
   const stick = useRef<{ id: number; x: number; y: number } | null>(null);
   const lookPtr = useRef<{ id: number; x: number; y: number } | null>(null);
   const [knob, setKnob] = useState<{ x: number; y: number; ox: number; oy: number } | null>(null);
@@ -207,8 +207,9 @@ function TouchControls({ engine, onPause, onMap, onView, rotated }: { engine: Ho
         )}
         {!knob && <span className="hh-touch-hint">Drag left side to walk · right side to look</span>}
       </div>
-      <div className="hh-touch-buttons">
+      <div className={`hh-touch-buttons${canJump ? ' with-jump' : ''}`}>
         <button type="button" className="hh-tbtn hh-tbtn-use" onPointerDown={(e) => { e.stopPropagation(); engine.interact(); }} aria-label="Use: open or close what you are looking at">✋</button>
+        {canJump && <button type="button" className="hh-tbtn hh-tbtn-jump" onPointerDown={(e) => { e.stopPropagation(); engine.jump(); }} aria-label="Jump">⬆️</button>}
         <button type="button" className={`hh-tbtn${run ? ' on' : ''}`} onPointerDown={(e) => { e.stopPropagation(); const v = !run; setRun(v); engine.setRun(v); }} aria-label="Run">🏃</button>
         <button type="button" className="hh-tbtn" onPointerDown={(e) => { e.stopPropagation(); onMap(); }} aria-label="Map">🗺️</button>
         <button type="button" className="hh-tbtn" onPointerDown={(e) => { e.stopPropagation(); onView(); }} aria-label="Switch between first and third person">🎥</button>
@@ -709,7 +710,7 @@ export default function HouseGame() {
       })()}
 
       {phase === 'playing' && touch && engineRef.current && (
-        <TouchControls engine={engineRef.current} onPause={() => engineRef.current?.pause('manual')} onMap={toggleMap} onView={toggleView} rotated={rotated} />
+        <TouchControls engine={engineRef.current} onPause={() => engineRef.current?.pause('manual')} onMap={toggleMap} onView={toggleView} rotated={rotated} canJump={!me.crawl} />
       )}
 
       {/* Start card */}
@@ -766,6 +767,7 @@ export default function HouseGame() {
                   <li><b>Left thumb</b> walk</li>
                   <li><b>Right thumb</b> look</li>
                   <li><b>✋</b> open doors, talk to the family</li>
+                  <li><b>⬆️</b> jump over things · <b>🏃</b> run</li>
                   <li><b>🗺️</b> map · <b>📋</b> chores · <b>🎥</b> view · <b>🔄</b> rotate · <b>✕</b> quit</li>
                 </>
               ) : (
@@ -773,7 +775,8 @@ export default function HouseGame() {
                   <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk</li>
                   <li><b>Mouse</b> look · <kbd>X</kbd> quit</li>
                   <li><kbd>E</kbd> open doors, talk to the family</li>
-                  <li><kbd>Shift</kbd> run · <kbd>M</kbd> map · <kbd>C</kbd> chores · <kbd>V</kbd> view</li>
+                  <li><kbd>Space</kbd> jump over things · <kbd>Shift</kbd> run</li>
+                  <li><kbd>M</kbd> map · <kbd>C</kbd> chores · <kbd>V</kbd> view</li>
                 </>
               )}
             </ul>
@@ -1056,6 +1059,8 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
 .hh-tbtn { width: 52px; height: 52px; border-radius: 16px; border: 2px solid rgba(255,255,255,0.7); background: rgba(15,23,42,0.6); font-size: 1.35rem; color: #fff; touch-action: none; }
 .hh-tbtn.on { background: rgba(37,99,235,0.85); }
 .hh-tbtn-use { grid-column: span 2; width: 112px; background: linear-gradient(135deg,#2563eb,#7c3aed); }
+.hh-touch-buttons.with-jump .hh-tbtn-use { grid-column: auto; width: 52px; }
+.hh-tbtn-jump { background: linear-gradient(135deg,#16a34a,#0891b2); }
 @media (max-width: 640px) {
   .hh-map { width: 120px; height: 120px; }
   .hh-pills { max-width: calc(100% - 150px); }

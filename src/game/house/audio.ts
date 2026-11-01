@@ -53,4 +53,5 @@ export class Sfx {
   window() { this.noise(0, 0.12, 1400, 0.04); }
   win() { [392, 523, 659, 784].forEach((f, i) => this.tone(f, i * 0.11, 0.5, 'triangle', 0.1)); this.tone(1047, 0.5, 0.8, 'sine', 0.08); }
   bump() { this.tone(90, 0, 0.08, 'sine', 0.05); }
+  jump() { this.tone(330, 0, 0.1, 'sine', 0.05); this.tone(520, 0.04, 0.12, 'sine', 0.04); }
 }

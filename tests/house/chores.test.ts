@@ -1,20 +1,22 @@
 // Run with: node --test tests/house/
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildStaticWorld, doorOBB, bodyOBB, blocked, PLAYER_R, type OBB } from '../../src/game/house/collision.ts';
+import { buildStaticWorld, doorOBB, bodyOBB, blocked, PLAYER_R, type OBB, type StaticWorld } from '../../src/game/house/collision.ts';
 import { DOORS, COLLECTIBLES, GOLDEN_SPOTS, SPAWN, EXIT_ZONE, NPC_SPOTS, ROOMS, heightAt } from '../../src/game/house/layout.ts';
 import { CHORES, STEPS, TOOLS, PLACES, ITEMS, ALL_DONE_BONUS, lockOBB, unlockedAt, availableChores, type Item } from '../../src/game/house/chores.ts';
 
 const world = buildStaticWorld();
+/** As if you could jump over every piece of furniture and every loose thing (more than a jump can really do). */
+const hopAll = (w: StaticWorld): StaticWorld => ({ rects: w.rects.filter((q) => q.top === undefined), circles: w.circles.filter((c) => c.top === undefined) });
 const doorsOpen: OBB[] = DOORS.map((d) => doorOBB(d, 1));
 const standing: OBB[] = Object.values(NPC_SPOTS).filter((n) => n.collide).map((n) => bodyOBB(n.pos[0], n.pos[2]));
 const locks = (open: boolean): OBB[] => (open ? [] : PLACES.map(lockOBB));
 
 // flood-fill the floor from the spawn point, as in collision.test.ts
 const G = { x0: -3.2, z0: -14.6, step: 0.1, nx: 196, nz: 390 };
-function reach(obstacles: OBB[]) {
+function reach(obstacles: OBB[], w: StaticWorld = world) {
   const seen = new Uint8Array(G.nx * G.nz);
-  const free = (i: number, j: number) => !blocked([G.x0 + i * G.step, G.z0 + j * G.step], PLAYER_R, world, obstacles);
+  const free = (i: number, j: number) => !blocked([G.x0 + i * G.step, G.z0 + j * G.step], PLAYER_R, w, obstacles);
   const si = Math.round((SPAWN.pos[0] - G.x0) / G.step), sj = Math.round((SPAWN.pos[2] - G.z0) / G.step);
   const q = [[si, sj]];
   seen[si * G.nz + sj] = 1;
@@ -78,6 +80,11 @@ test('locked places are shut, and opening them never changes the hunt', () => {
   assert.ok(shut.near((EXIT_ZONE.x0 + EXIT_ZONE.x1) / 2, (EXIT_ZONE.z0 + EXIT_ZONE.z1) / 2, 0.8), 'exit is behind a lock');
   const open = reach([...doorsOpen, ...standing, ...locks(true)]);
   for (const p of PLACES) assert.ok(open.inRoom(p.id), `can't get into the ${p.name} once it's unlocked`);
+});
+
+test('jumping never gets you into a locked place: even hopping over every piece of furniture, the locks hold', () => {
+  const hop = reach([...doorsOpen, ...standing, ...locks(false)], hopAll(world));
+  for (const p of PLACES) assert.equal(hop.inRoom(p.id), false, `jumped into the locked ${p.name}`);
 });
 
 test('every chore, tool and lock can be reached and worked from where you can stand', () => {
