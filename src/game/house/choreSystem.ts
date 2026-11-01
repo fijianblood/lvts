@@ -4,7 +4,7 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { lambert } from './models.ts';
+import { paint } from './models.ts';
 import { canvasTexture } from './textures.ts';
 import { heightAt } from './layout.ts';
 import type { OBB } from './collision.ts';
@@ -36,8 +36,8 @@ const B = (x: number, z: number) => heightAt(x, z);
 
 function mesh(geo: THREE.BufferGeometry, color: string, x: number, y: number, z: number, opts: { opacity?: number; ry?: number; rx?: number; rz?: number } = {}) {
   const mat = opts.opacity !== undefined
-    ? new THREE.MeshLambertMaterial({ color, transparent: true, opacity: opts.opacity, depthWrite: false })
-    : lambert(color);
+    ? new THREE.MeshStandardMaterial({ color, transparent: true, opacity: opts.opacity, depthWrite: false })
+    : paint(color);
   const m = new THREE.Mesh(geo, mat);
   m.position.set(x, y, z);
   m.rotation.set(opts.rx ?? 0, opts.ry ?? 0, opts.rz ?? 0);
@@ -127,7 +127,7 @@ function looks(id: string): { mess?: THREE.Object3D; after?: THREE.Object3D } {
   return { mess: mess.children.length ? mess : undefined, after: after.children.length ? after : undefined };
 }
 
-const painted = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+const painted = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true });
 
 /** Merge a group's solid boxes into one vertex-coloured mesh (one draw call); see-through and label parts stay as they are. */
 function bake(group: THREE.Group | undefined): THREE.Group | undefined {
@@ -138,7 +138,7 @@ function bake(group: THREE.Group | undefined): THREE.Group | undefined {
   for (const c of group.children) {
     const m = c as THREE.Mesh;
     const mat = m.material as THREE.Material | undefined;
-    if (!m.isMesh || !(mat instanceof THREE.MeshLambertMaterial) || mat.transparent) { keep.push(c); continue; }
+    if (!m.isMesh || !(mat instanceof THREE.MeshStandardMaterial) || mat.transparent) { keep.push(c); continue; }
     const g = (m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone()).applyMatrix4(m.matrix);
     const n = g.getAttribute('position').count, col = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) { col[i * 3] = mat.color.r; col[i * 3 + 1] = mat.color.g; col[i * 3 + 2] = mat.color.b; }

@@ -1,7 +1,7 @@
 // The Sahib family, as playable characters. The household's looks are taken
 // from the clothes in the family's photos; the aunties, uncles and cousins
-// don't have photos yet, so their outfits are made up. All are low-poly:
-// blocky figures, not likenesses.
+// don't have photos yet, so their outfits are made up. The 3D figures are
+// built from these descriptions; they are not likenesses.
 //
 // To change how names appear in the game (for example first names only),
 // edit `name` here; nothing else needs to change. `role` is the short label on

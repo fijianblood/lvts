@@ -78,15 +78,52 @@ export const deck = () => canvasTexture(128, 128, (g, w, h) => {
   for (let y = 0; y <= h; y += 32) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
 }, true);
 
-/** Bright, blocky grass: chunky pixels in a few greens, kept sharp when you look closely. */
+/**
+ * A lawn: patches of lighter and darker green, thousands of short blades in
+ * several greens, a few dry and bare spots. Seamless; one repeat is 4 m.
+ */
 export const grass = () => {
-  const t = canvasTexture(16, 16, (g, w, h) => {
+  const t = canvasTexture(512, 512, (g, w, h) => {
     const r = rng(5);
-    const greens = ['#6cc04a', '#7ad152', '#5fb03f', '#86d95c', '#58a63a'];
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { g.fillStyle = greens[Math.floor(r() * greens.length)]; g.fillRect(x, y, 1, 1); }
+    g.fillStyle = '#5f9a3c'; g.fillRect(0, 0, w, h);
+    const wrap = (x: number, y: number, draw: (x: number, y: number) => void) => {
+      for (const dx of [-w, 0, w]) for (const dy of [-h, 0, h]) draw(x + dx, y + dy);
+    };
+    // soft patches, so the lawn isn't one flat colour
+    for (let i = 0; i < 70; i++) {
+      const x = r() * w, y = r() * h, rad = 30 + r() * 90;
+      const tone = r() > 0.5 ? '120,170,70' : '60,110,40';
+      wrap(x, y, (cx, cy) => {
+        const grd = g.createRadialGradient(cx, cy, 0, cx, cy, rad);
+        grd.addColorStop(0, `rgba(${tone},0.22)`); grd.addColorStop(1, `rgba(${tone},0)`);
+        g.fillStyle = grd; g.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
+      });
+    }
+    // a few dry or bare spots
+    for (let i = 0; i < 10; i++) {
+      const x = r() * w, y = r() * h, rad = 6 + r() * 16;
+      wrap(x, y, (cx, cy) => {
+        const grd = g.createRadialGradient(cx, cy, 0, cx, cy, rad);
+        grd.addColorStop(0, r() > 0.5 ? 'rgba(150,140,80,0.5)' : 'rgba(110,90,60,0.45)'); grd.addColorStop(1, 'rgba(0,0,0,0)');
+        g.fillStyle = grd; g.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
+      });
+    }
+    // blades
+    const blades = ['#4d8530', '#6aa845', '#7fbb52', '#578f36', '#8cbf5d', '#3f7426', '#a3c46a'];
+    g.lineCap = 'round';
+    for (let i = 0; i < 9000; i++) {
+      const x = r() * w, y = r() * h, len = 3 + r() * 7, lean = (r() - 0.5) * 4;
+      g.strokeStyle = blades[Math.floor(r() * blades.length)];
+      g.globalAlpha = 0.55 + r() * 0.45;
+      g.lineWidth = 0.8 + r() * 1.2;
+      wrap(x, y, (cx, cy) => {
+        if (cx < -12 || cx > w + 12 || cy < -12 || cy > h + 12) return;
+        g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + lean, cy - len); g.stroke();
+      });
+    }
+    g.globalAlpha = 1;
   }, true);
-  t.magFilter = THREE.NearestFilter;
-  t.minFilter = THREE.NearestMipmapLinearFilter;
+  t.anisotropy = 8;
   return t;
 };
 
