@@ -718,7 +718,8 @@ export default function HouseGame() {
         <div className="hh-overlay">
           <div className="hh-card">
             <div className="hh-eyebrow">LvTS · First-person 3D</div>
-            <h2 className="hh-title">Vaqara <span className="grad-text">Raiwai</span></h2>
+            <h2 className="hh-title">Noqu<span className="grad-text">blox</span></h2>
+            <p className="hh-where">Raiwai · by USP · around the blocks</p>
             <p className="hh-lead">Explore the house and the yard, grab the {total} tech parts, hunt down the <strong>Golden Chip</strong> (it hides somewhere new every game), then get out through the front gate. Help with the chores to earn ⭐ stars and unlock new places.</p>
             <div className="hh-pick-label">Who do you want to play as?</div>
             <div className="hh-tabs" role="tablist" aria-label="Family groups">
@@ -876,7 +877,7 @@ export default function HouseGame() {
         <div className="hh-overlay">
           <div className="hh-card hh-card-sm">
             <h3 className="hh-title-sm">3D isn’t available here</h3>
-            <p className="hh-lead">This browser or device has WebGL turned off, which Vaqara Raiwai needs. Try an up-to-date Chrome, Safari or Firefox, or turn on hardware acceleration in your browser settings.</p>
+            <p className="hh-lead">This browser or device has WebGL turned off, which Noqublox needs. Try an up-to-date Chrome, Safari or Firefox, or turn on hardware acceleration in your browser settings.</p>
           </div>
         </div>
       )}
@@ -1024,6 +1025,7 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
 .hh-card-poster { max-width: 760px; padding: 1rem; }
 .hh-eyebrow { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #7c3aed; margin-bottom: 0.4rem; }
 .hh-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: clamp(1.7rem, 4vw, 2.4rem); line-height: 1.05; margin-bottom: 0.6rem; }
+.hh-where { color: #64748b; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.04em; margin: -0.3rem 0 0.8rem; }
 .hh-title-sm { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.2rem; margin-bottom: 0.4rem; }
 .hh-lead { color: #475569; font-size: 0.92rem; line-height: 1.6; margin-bottom: 0.9rem; }
 .hh-keys { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px 12px; text-align: left; font-size: 0.8rem; color: #334155; margin: 0 auto 1rem; max-width: 420px; }

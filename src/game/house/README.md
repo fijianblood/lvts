@@ -1,7 +1,9 @@
-# Vaqara Raiwai (LvTS)
+# Noqublox (LvTS)
 
-The game was called the House Hunt; it's now **Vaqara Raiwai** (Fijian, roughly
-"search Raiwai"). The page is still at `#house`, so links already shared keep working.
+The game was called the House Hunt, then Vaqara Raiwai; it's now **Noqublox**.
+*Noqu* is iTaukei for "my", so it reads as "my blox". You play in Raiwai, by
+USP and around the blocks. The page is still at `#house`, so links already
+shared keep working.
 
 A first-person 3D walk through the house and the compound around it,
 at `#house` on the site. Pick a family member to play as, find the 12 tech
@@ -348,11 +350,10 @@ GitHub Actions secret and are scrambled into the build.
    build log prints `[house-hunt] N prize code(s) loaded`.
 
 With no secret set, the game still works and shows `LVTS-DEMO` with a
-"no prize round is running" note. While a round is live, the site-wide banner
-promotes Vaqara Raiwai instead of the Weave Playground.
+"no prize round is running" note.
 
 Prize wording, the Facebook link, the payout method and the claim rule live in
-`contest.ts`. By default winners comment the code on the pinned Vaqara Raiwai post
+`contest.ts`. By default winners comment the code on the pinned Noqublox post
 on facebook.com/lvtsfiji. A `timeline` option ("post it on your own Facebook and
 tag the page") exists, but Meta's Pages promotion rules say personal Timelines
 must not be used to administer promotions, so it is off by default.

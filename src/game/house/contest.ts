@@ -1,4 +1,4 @@
-// Vaqara Raiwai contest settings — edit these, not the game code.
+// Noqublox contest settings — edit these, not the game code.
 //
 // The prize codes themselves are NOT here (the repo is public). Set them in the
 // GitHub repository secret HOUSE_PRIZE_CODES; the build scrambles them into the
@@ -18,7 +18,7 @@ export const CONTEST = {
   payout: 'M-PAiSA',
   /**
    * How winners claim.
-   *  'comment'  — comment the code on the pinned Vaqara Raiwai post on the LvTS Facebook page (default).
+   *  'comment'  — comment the code on the pinned Noqublox post on the LvTS Facebook page (default).
    *  'timeline' — post the code on your own Facebook and tag the page. Meta's Pages promotion rules
    *               say personal Timelines must not be used to administer a promotion ("share on your
    *               Timeline to enter" and "tag your friends to enter" are given as not permitted), so this
@@ -48,7 +48,7 @@ export function prizeState(now: Date = new Date()): PrizeState {
 export function claimSteps(): string[] {
   const fb = CONTEST.facebookUrl.replace('https://www.', '');
   const steps = CONTEST.claimMethod === 'comment'
-    ? [`Comment this code on the pinned Vaqara Raiwai post on ${fb}.`, `The first correct comment for each code wins the ${CONTEST.prize}.`]
+    ? [`Comment this code on the pinned Noqublox post on ${fb}.`, `The first correct comment for each code wins the ${CONTEST.prize}.`]
     : [`Post this code on your Facebook and tag ${CONTEST.pageName} (${CONTEST.handle}).`, `The first correct post for each code wins the ${CONTEST.prize}.`];
   steps.push(`We pay winners by ${CONTEST.payout} after we message you from the official ${CONTEST.pageName} page.`);
   return steps;
