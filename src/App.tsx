@@ -20,7 +20,7 @@ import SeoToolsPage from './pages/SeoToolsPage';
 import NetworkDiagramPage from './pages/NetworkDiagramPage';
 import ActivationHelpPage from './pages/ActivationHelpPage';
 
-// three.js is heavy, so the House Hunt loads only when someone opens it.
+// three.js is heavy, so the game (Vaqara Raiwai) loads only when someone opens it.
 const HouseHuntPage = lazy(() => import('./pages/HouseHuntPage'));
 // LvTS only (not linked anywhere): approve visitors' neighbourhood characters.
 const NeighbourhoodAdminPage = lazy(() => import('./pages/NeighbourhoodAdminPage'));
@@ -41,7 +41,7 @@ function renderPage(page: string, onNav: (p: string) => void) {
     case 'ranger':   return <RangerPage />;
     case 'play':     return <PlayPage />;
     case 'house':    return (
-      <Suspense fallback={<div style={{ padding: '160px 1.5rem', textAlign: 'center', color: '#64748b' }}>Loading the House Hunt…</div>}>
+      <Suspense fallback={<div style={{ padding: '160px 1.5rem', textAlign: 'center', color: '#64748b' }}>Loading Vaqara Raiwai…</div>}>
         <HouseHuntPage />
       </Suspense>
     );

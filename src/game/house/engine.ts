@@ -1,4 +1,4 @@
-// The House Hunt engine: builds the low-poly house and compound from
+// The Vaqara Raiwai engine: builds the low-poly house and compound from
 // layout.ts, runs the first- or third-person controller against collision.ts
 // (with floor heights for slopes and stairs), animates doors, gates, windows,
 // collectibles and the family, keeps the clock, and draws the minimap.
