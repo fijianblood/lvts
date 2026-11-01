@@ -22,7 +22,8 @@ export interface Env {
   VISITOR_SALT?: string;
 }
 
-const DEFAULT_ORIGINS = ['https://fijianblood.github.io', 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:4173', 'http://127.0.0.1:4173'];
+// The site's two homes (GitHub Pages and the "lvts" Worker on Cloudflare), plus local testing.
+const DEFAULT_ORIGINS = ['https://fijianblood.github.io', 'https://lvts.lomavatatechfiji.workers.dev', 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:4173', 'http://127.0.0.1:4173'];
 
 function cors(origin: string | null, env: Env): Record<string, string> {
   const allowed = env.ALLOWED_ORIGINS ? env.ALLOWED_ORIGINS.split(',').map((s) => s.trim()) : DEFAULT_ORIGINS;
