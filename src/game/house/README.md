@@ -133,6 +133,15 @@ on them. Baby Aisha babbles, coos and reaches for cuddles instead of talking.
   'shop' or 'hardware' (window and door). A shop without a logo gets its name
   in letters (`sub` for a second line). **The logos belong to their
   businesses**, so get each business's OK before it goes live.
+- **Garden City** ('mall', after Sardaar Complex) is different: a shopping
+  complex set back behind its own car park, and you can walk in. Its iron
+  fence, grey pillars with lanterns and the "Garden City" sign are at the
+  road; through the gate are the car park (a corner fenced off with red water
+  barriers), a covered walkway and five ground-floor units still being built,
+  each with a "coming soon" board (the last one is shut off behind barriers).
+  It is all plain data in `gardenCity.ts`; the signs are drawn in
+  `textures.ts`, not copied from photos. When shops move in, their signs can
+  go on the boards.
 - **Offers** go in `OFFERS` in `neighbourhood.ts`, by shop id, once the
   business has agreed:
 
@@ -180,14 +189,15 @@ on them. Baby Aisha babbles, coos and reaches for cuddles instead of talking.
 ## Raiwai (exploring)
 
 In **Explore the neighbourhood** you leave through the front gate onto
-**McFarlane Road** in Raiwai, and can walk it both ways (x −62 to 162) and up the
+**McFarlane Road** in Raiwai, and can walk it both ways (x −62 to 216) and up the
 **side road** beside the neighbours to the east (x 34–40, it climbs with the
 ground). From the gate, the places along the road to the left (east) are:
 
 - the **Methodist Church** (Raiwai branch), the big A-frame church, set back up the bank with its sign by the road;
 - across the road, the **pool** with its covered stand, the **teal two-storey building**, and the **Lomaiviti Training Ground** with rugby posts;
+- after the training ground, on the same side, the **Raiwai Jame Masjid**: white with teal roofs, on a raised yard behind a teal wall with white pillars and little minaret tops, and steps up from the footpath (you can walk up to it, not in);
 - the green **Nasese bus** at the stop by the pool, and cars parked along both edges (you bump into them);
-- where McFarlane Road ends to the east, the entrance sign of **The University of the South Pacific** (USP) with the campus beyond;
+- across from the training ground, the campus of **The University of the South Pacific** (USP), with its entrance sign where McFarlane Road ends to the east;
 - beyond the training ground, the commercial sheds, the arena and stadium lights, and the sea with the reef's surf;
 - up the hill to the north and west, more houses, flats and an apartment block, and the hills behind.
 
@@ -197,8 +207,9 @@ dishes) but made up from a seed. They are not copies of anyone's real home.
 The public places are modelled on drone photos of the area.
 
 - `raiwaiPlan.ts`: where everything goes (plain data: footprints, faces, which things only show when exploring), the signs, the road labels, trees and power poles.
-- `raiwai.ts`: the 3D pieces (houses, flats, church, pool, teal building, training ground, sheds, bus, cars, poles, mango trees, bougainvillea).
-- `layout.ts`: `MCFARLANE`, `SIDE_ROAD`, the walls along them, and `PARKED` (cars and the bus, with colliders).
+- `raiwai.ts`: the 3D pieces (houses, flats, church, pool, teal building, training ground, the masjid, sheds, bus, cars, poles, mango trees, bougainvillea).
+- `layout.ts`: `MCFARLANE`, `SIDE_ROAD`, `MASJID`, the walls along them, and `PARKED` (cars and the bus, with colliders).
+- `gardenCity.ts`: Garden City (see "Shops" above).
 
 When exploring, the view opens up (fog from 70 to 700 m, the camera sees 1.6 km);
 the far part of Raiwai is hidden in the hunt to keep it cheap. Raiwai adds about
@@ -314,7 +325,8 @@ then `npm run dev` and open `http://localhost:5173/lvts/#house`.
 | `chores.ts`, `choreSystem.ts` | Chores, stars, the places they unlock, and the 3D side of them. |
 | `neighbourhood.ts` | The street, shop spots and offers, visitors' characters, and talking to the server. |
 | `raiwaiPlan.ts` | Where everything in Raiwai goes (plain data, used by the engine, the minimap and the tests). |
-| `raiwai.ts` | Raiwai's 3D pieces: houses, flats, the Methodist Church, the pool, the teal building, the Lomaiviti Training Ground, sheds, the Nasese bus, cars, power poles, trees. |
+| `raiwai.ts` | Raiwai's 3D pieces: houses, flats, the Methodist Church, the pool, the teal building, the Lomaiviti Training Ground, the Raiwai Jame Masjid, sheds, the Nasese bus, cars, power poles, trees. |
+| `gardenCity.ts` | Garden City, the shopping complex being built after Sardaar Complex: plain data for its fence, sign, car park, building and building site. |
 | `portrait.tsx` | The little portraits on the picker, the HUD and the admin page. |
 | `../../../workers/neighbourhood/` | The Neighbourhood server (Cloudflare Worker); its own README has the setup steps. |
 | `../../pages/NeighbourhoodAdminPage.tsx` | The hidden page for approving characters. |

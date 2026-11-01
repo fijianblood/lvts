@@ -14,6 +14,7 @@
 // the way out.
 
 import { SHOP_ROW } from './shops.ts';
+import { GARDEN_CITY, gardenCity } from './gardenCity.ts';
 
 export type XZ = [number, number];
 export type XYZ = [number, number, number];
@@ -123,8 +124,8 @@ export interface WindowSpec {
 
 export type Prim =
   /** `tex` is 'name:face' — a texture drawn on one face of the box ('+x', '-x', '+y', '+z', '-z'). */
-  /** `crawl`: a crawling baby fits under it (table skirts and desk blocks). */
-  | { kind: 'box'; min: XYZ; max: XYZ; color: string; solid?: boolean; emissive?: boolean; tex?: string; crawl?: boolean }
+  /** `crawl`: a crawling baby fits under it (table skirts and desk blocks). `plain`: sharp edges, not the furniture's rounded ones (buildings: cheaper to draw). */
+  | { kind: 'box'; min: XYZ; max: XYZ; color: string; solid?: boolean; emissive?: boolean; tex?: string; crawl?: boolean; plain?: boolean }
   /** `axis`: 'y' (default) stands up from `base`; 'x' or 'z' lies along that axis, centred on `base` (wheels, a satellite dish). */
   | { kind: 'cyl'; base: XYZ; r: number; h: number; color: string; solid?: boolean; seg?: number; top?: number; axis?: 'x' | 'y' | 'z' }
   | { kind: 'cone'; base: XYZ; r: number; h: number; color: string; seg?: number; opacity?: number; flip?: boolean };
@@ -230,10 +231,14 @@ export function heightAt(x: number, z: number): number {
 }
 
 // ── Raiwai, around the house (exploring) ────────────────────────────────────
-/** McFarlane Road runs past the front gate (along x); you can walk it between these ends. */
-export const MCFARLANE = { x0: -62, x1: 162, z0: 22.3, z1: 31.6 };
+/** McFarlane Road runs past the front gate (along x); you can walk it between these ends (east: past the training ground to the masjid). */
+export const MCFARLANE = { x0: -62, x1: 216, z0: 22.3, z1: 31.6 };
 /** The side road off McFarlane Road, past the neighbours to the east of the house. It climbs with the ground. */
 export const SIDE_ROAD = { x0: 34, x1: 40, z0: -40 };
+/** The Raiwai Jame Masjid, across the road after the Lomaiviti Training Ground: its plot (the front wall is on z - d/2; its steps come down to the footpath). */
+export const MASJID = { x: 204, z: 39.6, w: 16, d: 14 };
+/** Garden City, the shopping complex after Sardaar Complex (gardenCity.ts). */
+const GC = gardenCity(ROAD_Y);
 
 // ── Rooms and outdoor areas ─────────────────────────────────────────────────
 // Order matters: roomAt() returns the first match, so stairs and raised floors
@@ -267,11 +272,13 @@ export const ROOMS: Room[] = [
   { id: 'frontyard', name: 'Front garden', x0: -2.7, x1: 12.3, z0: 15.4, z1: 21.9, floor: 'grass', ceiling: false, outside: true, ground: true, area: true },
   { id: 'backyard', name: 'Back yard', x0: -2.7, x1: 15.65, z0: -14, z1: -7.7, floor: 'grass', ceiling: false, outside: true, ground: true, area: true },
   // Raiwai (exploring): McFarlane Road past the front gate, its footpath and the shops, and the side road beside the neighbours
-  { id: 'road', name: 'McFarlane Road', x0: -70, x1: 170, z0: 22.5, z1: 29, floor: 'road', ceiling: false, outside: true, ground: true, area: true, explore: true },
+  { id: 'road', name: 'McFarlane Road', x0: -70, x1: MCFARLANE.x1 + 8, z0: 22.5, z1: 29, floor: 'road', ceiling: false, outside: true, ground: true, area: true, explore: true },
   { id: 'footpath', name: 'The shops', x0: SHOP_ROW.x0 - 0.4, x1: SHOP_ROW.x1 + 0.4, z0: 29, z1: 31.6, floor: 'concrete', ceiling: false, outside: true, ground: true, area: true, explore: true },
   { id: 'footwest', name: 'McFarlane Road', x0: -70, x1: SHOP_ROW.x0 - 0.4, z0: 29, z1: 31.6, floor: 'concrete', ceiling: false, outside: true, ground: true, explore: true },
-  { id: 'footeast', name: 'McFarlane Road', x0: SHOP_ROW.x1 + 0.4, x1: 170, z0: 29, z1: 31.6, floor: 'concrete', ceiling: false, outside: true, ground: true, explore: true },
+  { id: 'footeast', name: 'McFarlane Road', x0: SHOP_ROW.x1 + 0.4, x1: MCFARLANE.x1 + 8, z0: 29, z1: 31.6, floor: 'concrete', ceiling: false, outside: true, ground: true, explore: true },
   { id: 'sideroad', name: 'Side road', x0: SIDE_ROAD.x0, x1: SIDE_ROAD.x1, z0: SIDE_ROAD.z0, z1: 22.5, floor: 'road', ceiling: false, outside: true, ground: true, area: true, explore: true },
+  // Garden City: its car park, the covered walkway and the units being built
+  ...GC.rooms,
 ];
 
 // The house footprint (interior faces of the exterior walls sit 0.1 inside these).
@@ -641,9 +648,12 @@ export const BARRIERS: Barrier[] = [
   { a: [SIDE_ROAD.x1, 22.3], b: [MCFARLANE.x1, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
   { a: [MCFARLANE.x0, 22.3], b: [MCFARLANE.x0, 31.6], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // the ends of McFarlane Road (for now)
   { a: [MCFARLANE.x1, 22.3], b: [MCFARLANE.x1, 31.6], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
-  { a: [SHOP_ROW.x0 - 0.4, 31.6], b: [SHOP_ROW.x1 + 0.4, 31.6], kind: 'facade', h: 3, t: 0.12, mode: 'explore' },       // the shopfronts
+  { a: [SHOP_ROW.x0 - 0.4, 31.6], b: [GARDEN_CITY ? GARDEN_CITY.x0 : SHOP_ROW.x1 + 0.4, 31.6], kind: 'facade', h: 3, t: 0.12, mode: 'explore' },   // the shopfronts
+  ...GC.barriers,                                                                                              // Garden City: in through its gate
   { a: [MCFARLANE.x0, 31.6], b: [SHOP_ROW.x0 - 0.4, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },   // front walls across the road
-  { a: [SHOP_ROW.x1 + 0.4, 31.6], b: [MCFARLANE.x1, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
+  { a: [SHOP_ROW.x1 + 0.4, 31.6], b: [MASJID.x - MASJID.w / 2, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
+  { a: [MASJID.x - MASJID.w / 2, 31.6], b: [MASJID.x + MASJID.w / 2, 31.6], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // the masjid's steps and wall
+  { a: [MASJID.x + MASJID.w / 2, 31.6], b: [MCFARLANE.x1, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
   { a: [SIDE_ROAD.x0, SIDE_ROAD.z0], b: [SIDE_ROAD.x0, 22.3], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },   // walls along the side road
   { a: [SIDE_ROAD.x1, SIDE_ROAD.z0], b: [SIDE_ROAD.x1, 22.3], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
   { a: [SIDE_ROAD.x0, SIDE_ROAD.z0], b: [SIDE_ROAD.x1, SIDE_ROAD.z0], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // its far end (for now)
@@ -698,18 +708,19 @@ export const TREES: Tree[] = [
   { kind: 'bush', x: 18.5, z: -9, s: 1.4 }, { kind: 'bush', x: -4.0, z: -9.5, s: 1.5 }, { kind: 'banana', x: -4.2, z: -12.5, s: 1 },
 ];
 
-/** Cars and the Nasese bus parked along McFarlane Road (both edges), clear of the gate and the side road. Built along x. */
-export interface Parked { x: number; z: number; kind: 'suv' | 'ute' | 'bus'; color: string; facing: 1 | -1 }
+/** Cars and the Nasese bus parked along McFarlane Road (both edges), clear of the gate and the side road, and in Garden City's car park. Built along x (`across`: nosed into a bay along z instead). */
+export interface Parked { x: number; z: number; kind: 'suv' | 'ute' | 'bus'; color: string; facing: 1 | -1; across?: boolean }
 export const PARKED: Parked[] = [
   { x: -46, z: 23.5, kind: 'suv', color: '#f2f2f0', facing: 1 },
   { x: -30, z: 28.0, kind: 'ute', color: '#1d1f22', facing: -1 },
   { x: -20, z: 23.5, kind: 'suv', color: '#c9ccce', facing: 1 },
   { x: 25, z: 23.5, kind: 'suv', color: '#f2f2f0', facing: 1 },
-  { x: 52, z: 28.0, kind: 'suv', color: '#4b5157', facing: -1 },
   { x: 66, z: 23.5, kind: 'ute', color: '#f2f2f0', facing: 1 },
   { x: 92, z: 27.8, kind: 'bus', color: '#36b45f', facing: -1 },     // the Nasese bus, at the stop by the pool
   { x: 128, z: 23.5, kind: 'suv', color: '#f2f2f0', facing: 1 },
   { x: 146, z: 28.0, kind: 'ute', color: '#8a8f94', facing: -1 },
+  { x: 176, z: 28.0, kind: 'suv', color: '#4b5157', facing: -1 },     // by the training ground
+  ...GC.parked,
 ];
 
 /** Neighbouring houses, kept plain so they don't copy anyone's real home. */
@@ -779,8 +790,11 @@ PROPS.push(
   box(3.3, ROAD_Y, 26.55, 7.7, ROAD_Y + 2.2, 28.25, 'transparent', true),
   ...PARKED.map((c) => {
     const [l, w] = c.kind === 'bus' ? [10.5, 2.5] : c.kind === 'ute' ? [5.2, 1.85] : [4.6, 1.85];
-    return box(c.x - l / 2, ROAD_Y, c.z - w / 2, c.x + l / 2, ROAD_Y + 2, c.z + w / 2, 'transparent', true);
+    const [hx, hz] = c.across ? [w / 2, l / 2] : [l / 2, w / 2];
+    return box(c.x - hx, ROAD_Y, c.z - hz, c.x + hx, ROAD_Y + 2, c.z + hz, 'transparent', true);
   }),
+  // Garden City: the fence, the sign, the building and the building site
+  ...GC.props,
 
   // the way out: a green sign on the gate pillar
   box(15.2, groundY(21.9) + 1.55, 21.72, 15.7, groundY(21.9) + 1.75, 21.74, '#16a34a', false, { emissive: true, tex: 'exit:-z' }),

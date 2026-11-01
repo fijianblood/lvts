@@ -35,6 +35,8 @@ export const SHOPS: ShopDef[] = [
   { id: 'damodar', name: 'Damodar Cinemas', kind: 'cinema', width: 12.6, wall: '#2b2d31', sign: '#d61f26', logo: 'damodar-cinemas.png', logoBg: '#070707', blurb: 'Movies on the big screen.' },
   { id: 'manubhai', name: 'R.C. Manubhai', kind: 'hardware', width: 8.6, wall: '#e8ecf6', sign: '#2b3990', logo: 'manubhai.png', blurb: 'Hardware and building supplies.' },
   { id: 'sardaar', name: 'Sardaar Complex', kind: 'complex', width: 16.6, wall: '#f1ecd9', sign: '#c8102e', blurb: 'Shops on the ground floor, offices upstairs.' },
+  // a shopping complex behind its own car park, still being built: walk in through the gate (gardenCity.ts)
+  { id: 'garden-city', name: 'Garden City', kind: 'mall', width: 26, wall: '#e3e5e6', sign: '#4f9a3a', sub: 'Shops coming soon', blurb: 'A new shopping complex, still being built. Shops coming soon! Walk in through the gate and have a look round the building site.' },
 ];
 
 /** The row starts here (x, m) and runs east; 0.8 m between buildings. */

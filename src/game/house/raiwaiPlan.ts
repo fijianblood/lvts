@@ -2,12 +2,15 @@
 // the front gate along x; the side road climbs north beside the neighbours to
 // the east (+x). From the gate, the Methodist Church, the pool, the teal
 // building and the Lomaiviti Training Ground are to the left, along the road
-// to the east; the commercial sheds and the sea are beyond them to the south.
+// to the east, with the Raiwai Jame Masjid after the training ground on the
+// same side; the commercial sheds and the sea are beyond them to the south.
+// Garden City (gardenCity.ts) is after Sardaar Complex in the row of shops.
 //
 // The houses are Raiwai-style but made up from a seed: they aren't copies of
 // anyone's real home. Public places are modelled on drone photos of the area.
-import { MCFARLANE, SIDE_ROAD, NEIGHBOURS } from './layout.ts';
+import { MCFARLANE, SIDE_ROAD, NEIGHBOURS, MASJID } from './layout.ts';
 import { SHOP_ROW } from './shops.ts';
+import { GARDEN_CITY } from './gardenCity.ts';
 
 export interface HouseSpec {
   w: number;
@@ -58,7 +61,7 @@ export function houseSpec(seed: number, simple = false): HouseSpec {
 export type Face = 'n' | 's' | 'e' | 'w';
 export const FACE_ANGLE: Record<Face, number> = { n: 0, s: Math.PI, e: -Math.PI / 2, w: Math.PI / 2 };
 
-export type PlanKind = 'house' | 'flats' | 'campus' | 'tower' | 'church' | 'pool' | 'teal' | 'field' | 'shed' | 'arena' | 'floodlight';
+export type PlanKind = 'house' | 'flats' | 'campus' | 'tower' | 'church' | 'pool' | 'teal' | 'field' | 'masjid' | 'shed' | 'arena' | 'floodlight';
 export interface PlanItem {
   kind: PlanKind;
   x: number;
@@ -95,10 +98,12 @@ export const LANDMARKS: PlanItem[] = [
   { kind: 'pool', x: 87, z: 45, face: 'n', w: 34, d: 22, label: 'Pool' },
   { kind: 'teal', x: 111.5, z: 38.6, face: 'n', w: 9, d: 7 },
   { kind: 'field', x: 158, z: 61, face: 'n', w: 72, d: 50, label: 'Lomaiviti Training Ground' },
-  // the University of the South Pacific, past the end of McFarlane Road
+  // and after the training ground, on the same side: the Raiwai Jame Masjid
+  { kind: 'masjid', x: MASJID.x, z: MASJID.z, face: 'n', w: MASJID.w, d: MASJID.d, label: 'Raiwai Jame Masjid' },
+  // the University of the South Pacific, along the north side and on past the end of McFarlane Road
   { kind: 'campus', x: 190, z: 6, face: 's', w: 30, d: 14, floors: 3, far: true, label: 'USP' },
   { kind: 'campus', x: 226, z: 10, face: 's', w: 26, d: 14, floors: 4, far: true },
-  { kind: 'campus', x: 222, z: 52, face: 'n', w: 30, d: 14, floors: 3, far: true },
+  { kind: 'campus', x: 232, z: 54, face: 'n', w: 30, d: 14, floors: 3, far: true },
   { kind: 'campus', x: 254, z: 38, face: 'w', w: 24, d: 12, floors: 3, far: true },
 ];
 
@@ -108,13 +113,15 @@ export const SIGNS: Sign[] = [
   { x: 103, z: 20.6, face: 's', title: 'METHODIST CHURCH', sub: 'Raiwai', color: '#7f1d1d' },
   { x: 125, z: 33.4, face: 'n', title: 'LOMAIVITI', sub: 'Training Ground', color: '#14532d' },
   // where McFarlane Road ends to the east: the way into the university
-  { x: 167, z: 25.8, face: 'w', title: 'USP', sub: 'The University of the South Pacific', color: '#1aa0a8', logo: 'usp.png', bg: '#ffffff' },
+  { x: MCFARLANE.x1 + 5, z: 25.8, face: 'w', title: 'USP', sub: 'The University of the South Pacific', color: '#1aa0a8', logo: 'usp.png', bg: '#ffffff' },
 ];
 
 /** Big-map labels for the roads. */
 export const ROAD_LABELS = [
   { text: 'McFarlane Road', x: -30, z: 25.8 },
   { text: 'McFarlane Road', x: 70, z: 25.8 },
+  { text: 'McFarlane Road', x: 170, z: 25.8 },
+  ...(GARDEN_CITY ? [{ text: 'Garden City', x: (GARDEN_CITY.x0 + GARDEN_CITY.x1) / 2, z: 37 }] : []),
   { text: 'Side road', x: (SIDE_ROAD.x0 + SIDE_ROAD.x1) / 2, z: -14, vertical: true },
 ];
 
@@ -125,6 +132,8 @@ const taken: Box[] = [
   ...NEIGHBOURS.map((n) => ({ x0: n.x0, x1: n.x1, z0: n.z0, z1: n.z1 })),
   { x0: -3.2, x1: 16.2, z0: -14.5, z1: 22.3 },                               // the compound
   { x0: SHOP_ROW.x0 - 0.5, x1: SHOP_ROW.x1 + 0.5, z0: 31.6, z1: 46 },       // the shops (and their yards behind)
+  ...(GARDEN_CITY ? [{ x0: GARDEN_CITY.x0 - 0.5, x1: GARDEN_CITY.x1 + 0.5, z0: 31.6, z1: GARDEN_CITY.z1 + 1 }] : []),   // Garden City, back to its rear wall
+  { x0: MASJID.x - MASJID.w / 2, x1: MASJID.x + MASJID.w / 2, z0: 31.0, z1: MASJID.z + MASJID.d / 2 },    // the masjid and its steps
   { x0: SIDE_ROAD.x0 - 0.5, x1: SIDE_ROAD.x1 + 0.5, z0: SIDE_ROAD.z0 - 1, z1: 22.5 },
   { x0: 92, x1: 114, z0: -34, z1: 22 },                                      // the church grounds
 ];
@@ -218,6 +227,8 @@ export const RAIWAI_TREES: TreeSpot[] = [];
     if (x > SIDE_ROAD.x0 - 0.8 && x < SIDE_ROAD.x1 + 0.8 && z > SIDE_ROAD.z0 - 1 && z < 22.5) return;
     RAIWAI_TREES.push({ kind, x, z, s: kind === 'mango' ? 0.8 + r() * 0.5 : kind === 'palm' ? 5 + r() * 2.5 : 0.8 + r() * 0.5, far });
   };
+  // the tall coconut palm behind the masjid
+  RAIWAI_TREES.push({ kind: 'palm', x: MASJID.x + 5.5, z: MASJID.z + 6, s: 7.5 });
   for (let i = 0; i < 260; i++) {
     const x = -110 + r() * 340, z = -110 + r() * 200;
     tryTree(x, z, !(z > 0 && z < 45 && x > -70 && x < 170) && !(x > 25 && x < 50 && z > -45));
@@ -226,6 +237,6 @@ export const RAIWAI_TREES: TreeSpot[] = [];
 
 /** Wooden power poles: along the north verge of McFarlane Road and the east side of the side road. Each run is wired. */
 export const POLE_RUNS: [number, number][][] = [
-  Array.from({ length: 9 }, (_, i) => -58 + i * 28).filter((x) => !(x > 8 && x < 20) && !(x > 31 && x < 43)).map((x): [number, number] => [x, 21.6]),
+  Array.from({ length: 10 }, (_, i) => -58 + i * 28).filter((x) => !(x > 8 && x < 20) && !(x > 31 && x < 43)).map((x): [number, number] => [x, 21.6]),
   Array.from({ length: 4 }, (_, i) => -34 + i * 18).map((z): [number, number] => [SIDE_ROAD.x1 + 0.6, z]),
 ];

@@ -271,3 +271,60 @@ export const asphalt = () => canvasTexture(128, 128, (g, w, h) => {
   g.fillStyle = '#44474b'; g.fillRect(0, 0, w, h);
   for (let i = 0; i < 700; i++) { g.fillStyle = `rgba(${r() > 0.5 ? '255,255,255' : '0,0,0'},${r() * 0.1})`; g.fillRect(r() * w, r() * h, 2, 2); }
 }, true);
+
+// ── Garden City (gardenCity.ts) ─────────────────────────────────────────────
+const GC_GREEN = '#4f9a3a';
+
+/** Garden City's name board over the gate: green script letters on white. */
+export const gardenCitySign = () => canvasTexture(512, 128, (g, w, h) => {
+  g.fillStyle = '#f7f7f4'; g.fillRect(0, 0, w, h);
+  g.strokeStyle = '#d5d8d4'; g.lineWidth = 6; g.strokeRect(3, 3, w - 6, h - 6);
+  g.font = 'italic 700 76px "Brush Script MT", "Segoe Script", "Snell Roundhand", "Dancing Script", cursive';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.lineJoin = 'round'; g.lineWidth = 7; g.strokeStyle = '#3c7f2c'; g.strokeText('Garden City', w / 2, h / 2 + 4, w - 44);
+  g.fillStyle = '#7cc24e'; g.fillText('Garden City', w / 2, h / 2 + 4, w - 44);
+});
+
+/** The board under the name: a tile for each shop to come, all still "coming soon". */
+export const gardenCityBoard = () => canvasTexture(256, 232, (g, w, h) => {
+  g.fillStyle = '#5b6066'; g.fillRect(0, 0, w, h);
+  const cols = 4, rows = 3, pad = 14, gap = 9;
+  const tw = (w - pad * 2 - gap * (cols - 1)) / cols, th = (h - pad * 2 - gap * (rows - 1)) / rows;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const x = pad + c * (tw + gap), y = pad + r * (th + gap);
+    g.fillStyle = '#f3f4f2'; g.fillRect(x, y, tw, th);
+    g.fillStyle = '#7b8086'; g.font = '700 11px "Space Grotesk", Arial, sans-serif';
+    g.fillText('COMING', x + tw / 2, y + th / 2 - 7); g.fillText('SOON', x + tw / 2, y + th / 2 + 7);
+  }
+});
+
+/** The banner along the top of the building. */
+export const comingSoonBanner = () => canvasTexture(1024, 48, (g, w, h) => {
+  g.fillStyle = GC_GREEN; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#ffffff'; g.font = '800 30px "Space Grotesk", Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('SHOPS COMING SOON  ·  GARDEN CITY', w / 2, h / 2 + 1, w - 30);
+});
+
+/** A yellow builders' sign. */
+export const constructionSign = () => canvasTexture(256, 168, (g, w, h) => {
+  g.fillStyle = '#f6c21c'; g.fillRect(0, 0, w, h);
+  // black and yellow stripes along the top and bottom
+  g.save(); g.beginPath(); g.rect(0, 0, w, 20); g.rect(0, h - 20, w, 20); g.clip();
+  g.fillStyle = '#16181a';
+  for (let x = -h; x < w + h; x += 28) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x + 14, 0); g.lineTo(x + 14 + h, h); g.lineTo(x + h, h); g.closePath(); g.fill(); }
+  g.restore();
+  g.fillStyle = '#16181a'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = '800 30px "Space Grotesk", Arial, sans-serif'; g.fillText('UNDER', w / 2, 56); g.fillText('CONSTRUCTION', w / 2, 90, w - 16);
+  g.font = '600 17px "Space Grotesk", Arial, sans-serif'; g.fillText('Shops coming soon', w / 2, 124);
+});
+
+/** On each unit's back wall. */
+export const shopComingSoon = () => canvasTexture(256, 104, (g, w, h) => {
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
+  g.strokeStyle = GC_GREEN; g.lineWidth = 6; g.strokeRect(3, 3, w - 6, h - 6);
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = '#5b6066'; g.font = '700 16px "Space Grotesk", Arial, sans-serif'; g.fillText('THIS SHOP', w / 2, 26);
+  g.fillStyle = '#2f6b23'; g.font = '800 28px "Space Grotesk", Arial, sans-serif'; g.fillText('COMING SOON', w / 2, 54, w - 20);
+  g.fillStyle = GC_GREEN; g.font = 'italic 700 22px "Brush Script MT", "Segoe Script", "Snell Roundhand", cursive'; g.fillText('Garden City', w / 2, 82);
+});
