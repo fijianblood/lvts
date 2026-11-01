@@ -22,8 +22,10 @@ import ActivationHelpPage from './pages/ActivationHelpPage';
 
 // three.js is heavy, so the House Hunt loads only when someone opens it.
 const HouseHuntPage = lazy(() => import('./pages/HouseHuntPage'));
+// LvTS only (not linked anywhere): approve visitors' neighbourhood characters.
+const NeighbourhoodAdminPage = lazy(() => import('./pages/NeighbourhoodAdminPage'));
 
-const VALID_PAGES = ['home', 'services', 'website', 'rewards', 'ranger', 'play', 'house', 'tools', 'whiteboard', 'meditrack', 'seo', 'network', 'ask', 'contact', 'activation'];
+const VALID_PAGES = ['home', 'services', 'website', 'rewards', 'ranger', 'play', 'house', 'tools', 'whiteboard', 'meditrack', 'seo', 'network', 'ask', 'contact', 'activation', 'neighbours-admin'];
 
 function initialPage() {
   const hash = window.location.hash.replace('#', '');
@@ -51,6 +53,7 @@ function renderPage(page: string, onNav: (p: string) => void) {
     case 'ask':      return <AskLvtsPage />;
     case 'contact':  return <ContactPage />;
     case 'activation': return <ActivationHelpPage />;
+    case 'neighbours-admin': return <Suspense fallback={null}><NeighbourhoodAdminPage /></Suspense>;
     default:         return null;
   }
 }

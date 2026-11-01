@@ -8,7 +8,7 @@ import {
   C, ROOMS, WALLS, DOORS, WINDOWS, PROPS, COLLECTIBLES, GOLDEN_SPOTS, SPAWN, EXIT_ZONE, POSTER,
   BARRIERS, TREES, NEIGHBOURS, RAMPS, NPC_SPOTS, CAT_SPOT, BACK_Y, ROAD_Y, GROUND_BREAKS,
   WALL_H, CEIL_H, DOOR_TOP, roomAt, groundY, heightAt,
-  type WallRun, type Prim, type Door, type HingedDoor, type WindowSpec, type Room, type XYZ, type Barrier, type NpcSpot,
+  type GameMode, type WallRun, type Prim, type Door, type HingedDoor, type WindowSpec, type Room, type XYZ, type Barrier, type NpcSpot,
 } from './layout.ts';
 import { buildStaticWorld, buildCameraWorld, doorOBB, bodyOBB, moveAndSlide, circleHitsOBB, blocked, type OBB, type StaticWorld } from './collision.ts';
 import { CHARACTERS, characterById, firstName, type Character, type CharacterId } from './characters.ts';
@@ -16,6 +16,7 @@ import { buildFigure, animate, bakeStatic, cat, type Rig } from './figures.ts';
 import type { Say } from './talk.ts';
 import { ChoreSystem, type ChoreCallbacks, type ChoreFocus } from './choreSystem.ts';
 import { PLACES } from './chores.ts';
+import { SHOP_SPOTS, SHOP_LINE, VISITOR_SPOTS, shopBox, visitorCharacter, type ShopSpot, type VisitorCharacter } from './neighbourhood.ts';
 import { Minimap } from './minimap.ts';
 import { Sfx } from './audio.ts';
 import * as T from './textures.ts';
@@ -56,6 +57,8 @@ export interface EngineCallbacks extends ChoreCallbacks {
   /** Something said in passing (the cat). */
   onSay?: (lines: Say[]) => void;
   onView?: (third: boolean) => void;
+  /** You walked up to a shop on the street and pressed E. */
+  onShop?: (spot: ShopSpot) => void;
   /** A perk's live readout for the HUD (warmer/colder, the Golden Chip's room), or null. */
   onPerk?: (pill: PerkPill | null) => void;
 }
@@ -217,7 +220,7 @@ interface Item {
   golden: boolean; taken: boolean; seen: boolean; phase: number; base: number;
 }
 interface Burst { mesh: THREE.InstancedMesh; vel: THREE.Vector3[]; t: number }
-type FocusKind = 'door' | 'window' | 'poster' | 'npc' | 'cat' | ChoreFocus;
+type FocusKind = 'door' | 'window' | 'poster' | 'npc' | 'cat' | 'shop' | ChoreFocus;
 
 export class HouseEngine {
   state: GameState = 'intro';
@@ -228,14 +231,18 @@ export class HouseEngine {
   private renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
   private camera: THREE.PerspectiveCamera;
-  private world = buildStaticWorld();
-  private worldCrawl = buildStaticWorld({ crawl: true });
-  private worldCam = buildCameraWorld();
+  /** The hunt (timer, parts, Golden Chip, win at the gate) or exploring the neighbourhood (out onto the street). */
+  private mode: GameMode = 'hunt';
+  private worlds = {
+    hunt: { walk: buildStaticWorld(), crawl: buildStaticWorld({ crawl: true }), cam: buildCameraWorld() },
+    explore: { walk: buildStaticWorld({ mode: 'explore' }), crawl: buildStaticWorld({ crawl: true, mode: 'explore' }), cam: buildCameraWorld('explore') },
+  };
+  private get worldCam(): StaticWorld { return this.worlds[this.mode].cam; }
   private char: Character = characterById('josese');
   private floorY = 0;
   private third = false;
   private player?: Rig;
-  private npcs: { id: CharacterId; rig: Rig; spot: NpcSpot; obb?: OBB; baseQuat: THREE.Quaternion }[] = [];
+  private npcs: { id: CharacterId; char: Character; rig: Rig; spot: NpcSpot; obb?: OBB; baseQuat: THREE.Quaternion; visitor?: boolean }[] = [];
   private kitty?: THREE.Group;
   private doors: DoorRig[] = [];
   private windows: WindowRig[] = [];
@@ -302,9 +309,10 @@ export class HouseEngine {
     this.camera = new THREE.PerspectiveCamera(opts.touch ? 76 : 72, 1, 0.05, 160);
     this.camera.rotation.order = 'YXZ';
 
-    const sky = new THREE.Color('#cfe9f7');
-    this.scene.background = sky;
-    this.scene.fog = new THREE.Fog(sky, 28, 95);
+    // a bright sky: deep blue overhead, paler at the horizon (where the fog blends in)
+    const horizon = new THREE.Color('#a9dcff');
+    this.scene.background = this.tex(T.skyGradient());
+    this.scene.fog = new THREE.Fog(horizon, 34, 110);
     this.scene.add(new THREE.HemisphereLight('#ffffff', '#cfc6b8', 2.0));
     const sun = new THREE.DirectionalLight('#fff3dc', 1.25);
     sun.position.set(-6, 12, 8);
@@ -778,7 +786,10 @@ export class HouseEngine {
       roofG.translate((n.x0 + n.x1) / 2, gy + n.h + 0.9, (n.z0 + n.z1) / 2);
       push(out, n.roof, roofG);
     }
-    push(out, C.concrete, boxGeo(-30, ROAD_Y - 0.3, 29, 40, ROAD_Y + 0.14, 31));
+    // the footpath beyond the street's ends, and the shops along it
+    push(out, C.concrete, boxGeo(-30, ROAD_Y - 0.3, 29, -12, ROAD_Y + 0.01, 31.6));
+    push(out, C.concrete, boxGeo(32, ROAD_Y - 0.3, 29, 40, ROAD_Y + 0.01, 31.6));
+    this.buildShops(out);
     for (let x = -28; x < 40; x += 3) push(out, '#f1f1ec', boxGeo(x, ROAD_Y + 0.006, 25.7, x + 1.5, ROAD_Y + 0.012, 25.8));
     const v = van();
     v.position.set(5.5, ROAD_Y, 27.4);
@@ -787,9 +798,47 @@ export class HouseEngine {
     this.flush(out);
   }
 
+  /** The shops across the road: a building per spot, its sign, an awning, and its photo once there is one. */
+  private buildShops(out: Buckets) {
+    for (const sp of SHOP_SPOTS) {
+      const b = shopBox(sp);
+      const mid = (b.x0 + b.x1) / 2, w = b.x1 - b.x0;
+      push(out, sp.wall, boxGeo(b.x0, b.y - 0.3, b.z0 + 0.06, b.x1, b.y + 4.2, b.z1));
+      push(out, '#e5e7eb', boxGeo(b.x0 - 0.05, b.y + 4.2, b.z0, b.x1 + 0.05, b.y + 4.45, b.z1 + 0.05));     // parapet
+      // awning in stripes
+      for (let i = 0; i < 8; i++) {
+        const x0 = b.x0 + (w * i) / 8, x1 = b.x0 + (w * (i + 1)) / 8;
+        const g = boxGeo(x0, b.y + 2.55, b.z0 - 1.1, x1, b.y + 2.62, b.z0 + 0.06);
+        g.rotateX(0);
+        push(out, i % 2 ? '#ffffff' : sp.sign, g);
+      }
+      // the front: the shop's photo if it has one, otherwise a window and a door
+      if (sp.photo) {
+        const tex = this.tex(new THREE.TextureLoader().load(`${import.meta.env.BASE_URL}neighbourhood/${sp.photo}`));
+        tex.colorSpace = THREE.SRGBColorSpace;
+        const front = new THREE.Mesh(new THREE.PlaneGeometry(w - 0.4, 2.45), new THREE.MeshBasicMaterial({ map: tex }));
+        front.rotation.y = Math.PI;
+        front.position.set(mid, b.y + 1.27, b.z0 + 0.02);
+        this.scene.add(front);
+      } else {
+        push(out, '#cfe8f5', boxGeo(b.x0 + 0.5, b.y + 0.6, b.z0 + 0.03, mid - 0.7, b.y + 2.2, b.z0 + 0.06));
+        push(out, '#cfe8f5', boxGeo(mid + 0.7, b.y + 0.6, b.z0 + 0.03, b.x1 - 0.5, b.y + 2.2, b.z0 + 0.06));
+        push(out, '#6b4a2b', boxGeo(mid - 0.55, b.y, b.z0 + 0.02, mid + 0.55, b.y + 2.25, b.z0 + 0.06));
+      }
+      // the sign board
+      const name = sp.kind === 'empty' ? sp.name : sp.name;
+      const sub = sp.kind === 'empty' ? 'COMING SOON' : sp.offers.length ? 'Offers inside!' : '';
+      const sign = this.tex(T.shopSign(name, sub, sp.sign));
+      const board = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(w - 0.6, 6.4), 1.1), new THREE.MeshBasicMaterial({ map: sign }));
+      board.rotation.y = Math.PI;
+      board.position.set(mid, b.y + 3.35, b.z0 - 0.002);
+      this.scene.add(board);
+    }
+  }
+
   /** Draw one wall, railing or fence, sitting on whatever floor is on each side of it. */
   private addBarrier(b: Barrier, out: Buckets, chain: THREE.BufferGeometry[]) {
-    if (b.kind === 'invisible') return;
+    if (b.kind === 'invisible' || b.kind === 'facade') return;
     const alongZ = b.a[0] === b.b[0];
     const len = alongZ ? Math.abs(b.b[1] - b.a[1]) : Math.abs(b.b[0] - b.a[0]);
     const at = (t: number): [number, number] => [b.a[0] + (b.b[0] - b.a[0]) * t, b.a[1] + (b.b[1] - b.a[1]) * t];
@@ -901,7 +950,7 @@ export class HouseEngine {
       rig.root.position.set(spot.pos[0], spot.pos[1], spot.pos[2]);
       rig.root.rotation.y = spot.yaw;
       this.scene.add(rig.root);
-      this.npcs.push({ id: c.id, rig, spot, obb: spot.collide ? bodyOBB(spot.pos[0], spot.pos[2]) : undefined, baseQuat: rig.head.quaternion.clone() });
+      this.npcs.push({ id: c.id, char: c, rig, spot, obb: spot.collide ? bodyOBB(spot.pos[0], spot.pos[2]) : undefined, baseQuat: rig.head.quaternion.clone() });
     }
     const k = cat();
     k.position.set(CAT_SPOT.pos[0], CAT_SPOT.pos[1], CAT_SPOT.pos[2]);
@@ -959,6 +1008,36 @@ export class HouseEngine {
 
   get character(): Character { return this.char; }
 
+  /** Hunt or explore. Only between runs (call reset() after). */
+  setMode(mode: GameMode) {
+    this.mode = mode;
+    this.minimap.showExit = mode === 'hunt';
+    this.minimap.setMode(mode);
+  }
+  get gameMode(): GameMode { return this.mode; }
+
+  /** Other visitors' approved characters, standing along the footpath across the road. */
+  setNeighbours(list: VisitorCharacter[]) {
+    for (const n of this.npcs.filter((x) => x.visitor)) {
+      this.scene.remove(n.rig.root);
+      n.rig.root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) m.geometry.dispose(); });
+    }
+    this.npcs = this.npcs.filter((x) => !x.visitor);
+    if (this.talkingTo !== null && this.talkingTo >= this.npcs.length) this.endTalk();
+    list.slice(0, VISITOR_SPOTS.length).forEach((v, i) => {
+      const c = visitorCharacter(v.name, v.look, v.id, false);
+      const pos = VISITOR_SPOTS[i];
+      const spot: NpcSpot = { pos, yaw: (i % 3 - 1) * 0.35, pose: 'stand', collide: true };
+      const rig = buildFigure(c.look, 'stand');
+      bakeStatic(rig);
+      rig.root.position.set(pos[0], pos[1], pos[2]);
+      rig.root.rotation.y = spot.yaw;
+      this.scene.add(rig.root);
+      this.npcs.push({ id: c.id, char: c, rig, spot, obb: bodyOBB(pos[0], pos[2]), baseQuat: rig.head.quaternion.clone(), visitor: true });
+    });
+    this.kick();
+  }
+
   toggleView(): boolean {
     this.third = !this.third;
     if (this.player) this.player.root.visible = this.third;
@@ -969,10 +1048,10 @@ export class HouseEngine {
   /** Areas you can explore: the locked places only count once they're open. */
   private get areaTotal(): number {
     const open = this.chores.unlocked;
-    return AREAS.filter((r) => !PLACES.some((p) => p.id === r.id && !open.includes(p.id))).length;
+    return AREAS.filter((r) => (this.mode === 'explore' || !r.explore) && !PLACES.some((p) => p.id === r.id && !open.includes(p.id))).length;
   }
 
-  private get solid(): StaticWorld { return this.char.crawl ? this.worldCrawl : this.world; }
+  private get solid(): StaticWorld { const w = this.worlds[this.mode]; return this.char.crawl ? w.crawl : w.walk; }
 
   /** Door panels plus anyone standing in the way. */
   private obstacles(): OBB[] {
@@ -1031,6 +1110,8 @@ export class HouseEngine {
       it.group.scale.setScalar(it.base);
       it.group.position.set(it.pos[0], it.pos[1], it.pos[2]);
       it.ring.position.set(it.pos[0], this.floorUnder(it.pos), it.pos[2]);
+      // exploring is just for walking about: no parts, no Golden Chip, no clock
+      if (this.mode === 'explore') { it.taken = true; it.group.visible = false; it.ring.visible = false; }
     }
     for (const d of this.doors) { d.open = 0; d.target = 0; }
     for (const w of this.windows) { w.open = 0; w.target = 0; }
@@ -1124,8 +1205,10 @@ export class HouseEngine {
       if (this.talkingTo === f.index) { this.endTalk(); return; }
       const room = this.golden ? null : (ROOMS.find((r) => r.id === GOLDEN_SPOTS[this.goldenIndex].room)?.name ?? 'house').toLowerCase();
       this.talkingTo = f.index;
-      this.cb.onTalk?.({ player: this.char, npc: characterById(n.id), room, turn: this.talkTurn++ });
+      this.cb.onTalk?.({ player: this.char, npc: n.char, room, turn: this.talkTurn++ });
       this.sfx.pickup();
+    } else if (f.kind === 'shop') {
+      this.cb.onShop?.(SHOP_SPOTS[f.index]);
     } else if (f.kind === 'chore' || f.kind === 'tool' || f.kind === 'lock') {
       this.chores.interact(f.kind, f.index);
     } else if (f.kind === 'cat') {
@@ -1267,7 +1350,7 @@ export class HouseEngine {
       }
       const sp = Math.hypot(this.vel[0], this.vel[1]);
       this.bob += sp * dt * 2.4;
-      if (this.started) this.elapsed += dt;
+      if (this.started && this.mode === 'hunt') this.elapsed += dt;
 
       const room = roomAt(this.pos[0], this.pos[1]);
       if (room?.area && !this.visited.has(room.id)) {
@@ -1286,7 +1369,7 @@ export class HouseEngine {
       }
       this.updateFocus();
 
-      if (this.pos[0] >= EXIT_ZONE.x0 && this.pos[0] <= EXIT_ZONE.x1 && this.pos[1] >= EXIT_ZONE.z0 && this.pos[1] <= EXIT_ZONE.z1) this.win();
+      if (this.mode === 'hunt' && this.pos[0] >= EXIT_ZONE.x0 && this.pos[0] <= EXIT_ZONE.x1 && this.pos[1] >= EXIT_ZONE.z0 && this.pos[1] <= EXIT_ZONE.z1) this.win();
     }
 
     // the floor under you: ease toward it so stairs and slopes feel smooth
@@ -1396,6 +1479,11 @@ export class HouseEngine {
       if (w.spec.at === 'x') consider('window', i, w.spec.line, mid, 1.8); else consider('window', i, mid, w.spec.line, 1.8);
     });
     consider('poster', 0, POSTER.x, POSTER.z, 2.2);
+    if (this.mode === 'explore') SHOP_SPOTS.forEach((sp, i) => {
+      // the nearest point of the shopfront
+      const x = Math.max(sp.x0 + 0.5, Math.min(this.pos[0], sp.x1 - 0.5));
+      consider('shop', i, x, SHOP_LINE, 3.6);
+    });
     this.chores.candidates(consider);
     const b = best as { kind: FocusKind; index: number; score: number } | null;
     this.focus = b ? { kind: b.kind, index: b.index } : null;
@@ -1404,8 +1492,9 @@ export class HouseEngine {
     if (b?.kind === 'door') { const d = this.doors[b.index]; text = `${key} · ${d.target > 0.5 ? 'Close' : 'Open'} the ${d.door.label}`; }
     if (b?.kind === 'window') { const w = this.windows[b.index]; text = `${key} · ${w.target > 0.5 ? 'Close' : 'Open'} the window`; }
     if (b?.kind === 'poster') text = `${key} · Read the poster: how a database index works`;
-    if (b?.kind === 'npc') text = this.talkingTo === b.index ? `${key} · Say goodbye` : `${key} · Talk to ${firstName(characterById(this.npcs[b.index].id))}`;
+    if (b?.kind === 'npc') text = this.talkingTo === b.index ? `${key} · Say goodbye` : `${key} · Talk to ${firstName(this.npcs[b.index].char)}`;
     if (b?.kind === 'cat') text = `${key} · Pet the cat`;
+    if (b?.kind === 'shop') { const sp = SHOP_SPOTS[b.index]; text = `${key} · ${sp.kind === 'empty' ? `Look at ${sp.name}` : `Visit ${sp.name}`}${sp.offers.length ? ' · offers inside' : ''}`; }
     if (b?.kind === 'chore' || b?.kind === 'tool' || b?.kind === 'lock') text = this.chores.prompt(b.kind, b.index, key);
     this.setPrompt(text);
   }
@@ -1552,6 +1641,8 @@ export class HouseEngine {
       stars: (n: number) => this.chores.debugStars(n),
       finish: (stepId: string) => this.chores.debugFinish(stepId),
       chores: () => this.chores.snapshot(),
+      neighbours: (list: VisitorCharacter[]) => this.setNeighbours(list),
+      mode: () => this.mode,
     };
   }
 

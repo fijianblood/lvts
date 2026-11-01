@@ -95,6 +95,51 @@ translation. Please have them read over by someone you trust before you rely
 on them. Baby Aisha babbles, coos and reaches for cuddles instead of talking.
 `tests/house/talk.test.ts` checks every one of the 600 pairings.
 
+## Explore Your Neighbourhood (stage 1)
+
+*Explore virtually. Discover locally. Connect in real life.*
+
+- **Your own character.** The **You** tab on the start card opens a character
+  creator: a first name or nickname, size (kid, teen, grown-up), skin, hair
+  style and colour, top, shorts or long, earrings, beard. It's saved on the
+  device straight away and can be played in the hunt or when exploring.
+- **In the game for good.** The character is also sent to the LvTS
+  Neighbourhood server (`workers/neighbourhood`). Nobody else sees it until
+  LvTS approves it on the hidden admin page, `#neighbours-admin`. Once
+  approved, it stands on the footpath across the road for everyone who
+  explores, and you can talk to it. The creator can change or delete it from
+  the same card (a new name goes back for approval). Until the server is
+  deployed, characters stay on the visitor's own device; nothing breaks.
+- **Explore mode.** "Explore the neighbourhood" on the start card: no timer,
+  no parts or Golden Chip; the front gate leads out onto the street, which
+  runs past the neighbours to a row of five shop spots across the road. Chores
+  and stars work as in the hunt.
+- **Shop spots and offers.** `SHOP_SPOTS` in `neighbourhood.ts`. They are all
+  "Shop spot N — coming soon" until a real business agrees to be in the game.
+  To add one: set its `name`, `kind` ('shop', 'food', 'church', 'mosque',
+  'temple', 'mall', 'community'), a `blurb`, and a photo of the real shopfront
+  in `public/neighbourhood/` as `photo` (shown across the front of the
+  building). Offers go in `offers`:
+
+  ```ts
+  offers: [{
+    id: 'pie-drink', title: 'Free soft drink with any pie', details: 'At the counter, any day.',
+    kind: 'free', unlock: { type: 'stars', stars: 10 }, code: 'LVTS-PIE',
+    terms: 'One per customer per day. While stocks last.', until: '2026-12-31',
+  }],
+  ```
+
+  Unlocks: `{ type: 'visit' }` (walk up to the shop), `{ type: 'stars', stars: N }`
+  (chores), `{ type: 'chip' }` (found the Golden Chip this game). The code is in
+  the website's code, so anyone determined could find it: only use it for
+  offers a business is happy to give anyone who asks. Limited or
+  one-per-person offers need codes the server hands out and the shop can mark
+  as used (a later stage). A test fails if an empty spot has offers.
+- **Talking.** Visitors greet with "Bula!" and the family welcomes them. A
+  visitor can ask the family about their declaration, but other visitors'
+  characters only make small talk and never speak about faith.
+- **The look.** Brighter: a deep-blue sky gradient and chunky pixel grass.
+
 ## Rotating on phones
 
 On touch devices the 🔄 button switches between landscape and portrait. Where
@@ -200,9 +245,13 @@ then `npm run dev` and open `http://localhost:5173/lvts/#house`.
 | `layout.ts` | The house and compound as data: rooms and outdoor areas, ground heights, walls, fences and railings, doors and gates, windows, furniture, trees, the family's spots, parts, Golden Chip spots, spawn, exit. The renderer, collision and minimap all read it. |
 | `collision.ts` | Player-vs-wall/furniture/door collision (circle vs boxes), with sliding; a crawling version for Aisha and a walls-only version for the third-person camera. |
 | `engine.ts` | three.js scene, controls, doors and windows, pickups, the family, third-person camera, timer, win. |
-| `characters.ts` | The 25 playable family members. |
+| `characters.ts` | The 25 playable family members, plus your own. |
 | `talk.ts` | What they say to each other: greetings, questions and answers, the declaration. |
 | `chores.ts`, `choreSystem.ts` | Chores, stars, the places they unlock, and the 3D side of them. |
+| `neighbourhood.ts` | The street, shop spots and offers, visitors' characters, and talking to the server. |
+| `portrait.tsx` | The little portraits on the picker, the HUD and the admin page. |
+| `../../../workers/neighbourhood/` | The Neighbourhood server (Cloudflare Worker); its own README has the setup steps. |
+| `../../pages/NeighbourhoodAdminPage.tsx` | The hidden page for approving characters. |
 | `figures.ts` | The low-poly people (poses, walk and crawl cycles) and the cat. Everyone you aren't playing is baked into two meshes (body, and head on its own pivot) so a full house stays cheap to draw. |
 | `minimap.ts` | Fog-of-war minimap revealed by line of sight, with a breadcrumb trail. |
 | `HouseGame.tsx` | HUD, start/pause/win cards, touch controls, fullscreen. |

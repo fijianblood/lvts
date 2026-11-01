@@ -28,6 +28,7 @@ const OWN_KIDS: ReadonlySet<CharacterId> = new Set(['zane', 'mahala', 'aisha']);
 export function generation(c: Character): Generation {
   if (c.id === 'hussein') return 'grand';
   if (c.look.kind === 'baby') return 'baby';
+  if (c.group === 'you' || c.group === 'visitors') return c.look.kind === 'kid' ? 'child' : 'parent';
   if (c.group === 'cousins' || c.id === 'zane' || c.id === 'mahala') return 'child';
   return 'parent';
 }
@@ -42,6 +43,41 @@ export function address(speaker: Character, listener: Character): string {
   if (listener.id === 'aisha') return 'little Aisha';
   if (listener.group === 'aunties' && young) return `${listener.role} ${name}`;
   return name;
+}
+
+/** Not part of the family: your own character, or another visitor's. */
+export const isVisitor = (c: Character) => c.group === 'you' || c.group === 'visitors';
+
+/**
+ * Visitors meet the family and each other with a Fijian "Bula!". They never
+ * speak for the family's faith: the family shares it when a visitor asks them,
+ * and another visitor's character only says neighbourly things.
+ */
+const NEIGHBOUR_NATURE: Omit<Say, 'who'>[] = [
+  { text: 'I love how green everything is after the rain. Suva is so lush!' },
+  { text: 'The palm trees swaying in the breeze always make me smile.' },
+  { text: 'I love the smell of the sea on a windy day.' },
+  { text: "The sunsets around here are beautiful. Look up tonight and you'll see." },
+  { text: 'Look at all the flowers in the gardens round here. So many colours!' },
+];
+const NEIGHBOUR_HOW = ["Vinaka, I'm good! I'm just exploring the neighbourhood.", 'Really good, vinaka! It is such a nice day for a walk.', "I'm great! I'm waiting for the new shops to open."];
+
+function neighbourOpening(player: Character, npc: Character, n: number): Step {
+  const P = firstName(player), N = firstName(npc);
+  const to = address(player, npc), toMe = address(npc, player);
+  if (!isVisitor(npc)) {
+    // a visitor greets one of the family; the family welcomes them
+    const young = generation(player) === 'child';
+    return [
+      { who: P, text: `Bula${to ? `, ${to}` : ''}! ${young ? 'Vinaka for letting me visit.' : 'Lovely to meet you.'}` },
+      { who: N, text: `Bula vinaka, ${toMe || P}! Welcome to our home. ${pick(['May Allah bless you.', 'Make yourself at home.', 'It is good to have you here.'], n)}` },
+    ];
+  }
+  if (!isVisitor(player)) {
+    // one of the family welcomes a visitor
+    return [{ who: P, text: `Bula, ${N}! Welcome to the neighbourhood.` }, { who: N, text: `Bula vinaka, ${toMe || P}! Vinaka for having me.` }];
+  }
+  return [{ who: P, text: `Bula, ${N}!` }, { who: N, text: pick([`Bula vinaka, ${P}! Nice to meet you.`, `Bula, ${P}! Are you exploring too?`], n) }];
 }
 
 const salaam = (to: string) => `Assalamu alaikum${to ? `, ${to}` : ''}!`;
@@ -116,6 +152,7 @@ export const NATURE: Omit<Say, 'who'>[] = [
 
 /** The salaam both ways, with good words in the right direction for the two of you. */
 export function opening(player: Character, npc: Character, n: number): Step {
+  if (isVisitor(player) || isVisitor(npc)) return neighbourOpening(player, npc, n);
   const P = firstName(player), N = firstName(npc);
   const gp = generation(player), gn = generation(npc);
   const toNpc = address(player, npc), toPlayer = address(npc, player);
@@ -175,6 +212,12 @@ export const CREATION: Omit<Say, 'who'>[] = [
 
 /** A question that only makes sense for the two of you. */
 function personal(player: Character, npc: Character, n: number): { label: string; answer: string } {
+  if (isVisitor(player)) {
+    return pick([
+      { label: 'What is the best thing about this neighbourhood?', answer: 'The people! Everyone looks out for each other here.' },
+      { label: 'Which room is your favourite?', answer: 'The veranda. You can see the whole street from there.' },
+    ], n);
+  }
   const rp = RANK[generation(player)], rn = RANK[generation(npc)];
   if (rp < rn) {
     return pick([
@@ -206,6 +249,18 @@ export function questions(player: Character, npc: Character, room: string | null
   const nature = pick(NATURE, n + npc.id.length);
   const made = pick(CREATION, n + player.id.length);
   const mine = personal(player, npc, n);
+  if (isVisitor(npc)) {
+    // another visitor's character: neighbourly small talk only
+    return [
+      q('how', 'How are you?', 'Smile and babble hello', [ask('How are you?', '(Aisha smiles and babbles)'), { who: N, text: pick(NEIGHBOUR_HOW, n) }]),
+      q('chip', room ? 'Have you seen the Golden Chip?' : 'Have you seen the new shops?', 'Look around for something shiny', [
+        ask(room ? 'Have you seen the Golden Chip?' : 'Have you seen the new shops?', '(Aisha looks around for something shiny)'),
+        { who: N, text: room ? npc.line(room) : "Not yet! They're coming soon, right here on this street." },
+      ]),
+      q('nature', 'What do you love about Suva?', 'Point at the trees', [ask('What do you love about Suva?', '(Aisha points at the trees)'), { who: N, ...pick(NEIGHBOUR_NATURE, n + npc.id.length) }]),
+    ];
+  }
+  const ours = isVisitor(player) ? 'your' : 'our';
   const list: Question[] = [
     q('how', `How are you${to ? `, ${to}` : ''}?`, 'Smile and babble hello', [ask(`How are you${to ? `, ${to}` : ''}?`, '(Aisha smiles and babbles)'), { who: N, text: pick(HOW_ARE_YOU[generation(npc)], n) }]),
     q('chip', room ? 'Have you seen the Golden Chip?' : "I've got the Golden Chip! Where's the gate?", 'Look around for something shiny', [
@@ -218,12 +273,13 @@ export function questions(player: Character, npc: Character, room: string | null
     q('made', 'How did Allah create us?', 'Look up at the sky', themBaby
       ? [ask('Allah created you in the best of forms, little one.', ''), { who: N, text: '(Aisha coos and holds your finger)' }]
       : [ask('How did Allah create us?', '(Aisha looks up at the sky, amazed)'), { who: N, ...made }]),
-    q('declaration', "What is our family's declaration?", 'Listen to the family', themBaby
+    q('declaration', `What is ${ours} family's declaration?`, 'Listen to the family', themBaby
       ? [{ who: P, text: `One day you will say it too, little one: “${DECLARATION}”` }, { who: N, text: '(Aisha listens with big, bright eyes)' }]
       : [
-        ask("What is our family's declaration?", '(Aisha looks up and listens)'),
+        ask(`What is ${ours} family's declaration?`, '(Aisha looks up and listens)'),
         { who: N, text: `We say it with our whole heart: “${DECLARATION}”` },
-        ...(RANK[generation(npc)] > RANK[generation(player)] ? [{ who: N, text: youBaby ? 'One day you will say it too, little one.' : 'Keep it in your heart always.' }] : []),
+        ...(isVisitor(player) ? [{ who: N, text: 'Vinaka for asking. It is the heart of our family.' }]
+          : RANK[generation(npc)] > RANK[generation(player)] ? [{ who: N, text: youBaby ? 'One day you will say it too, little one.' : 'Keep it in your heart always.' }] : []),
       ]),
   ];
   if (!youBaby && !themBaby) list.push(q('mine', mine.label, '', [ask(mine.label, ''), { who: N, text: mine.answer }]));
@@ -238,6 +294,20 @@ export function quiz(player: Character, npc: Character, room: string | null, n: 
   if (gn === 'baby') return null;
   const me = (text: string): Say => ({ who: P, text });
   const them = (text: string): Say => ({ who: N, text });
+  if (isVisitor(player) || isVisitor(npc)) {
+    if (gp === 'baby') return null;
+    return pick<Quiz>([
+      { ask: them('Is this your first time in the neighbourhood?'), choices: [
+        { label: 'Yes, it is!', lines: [me('Yes, it is!'), them('Bula and welcome! Have a good look around.')] },
+        { label: 'No, I come here a lot', lines: [me('No, I come here a lot.'), them('Vinaka for coming back!')] },
+      ] },
+      { ask: them('Which shop would you like to see on this street?'), choices: [
+        { label: 'A bakery', lines: [me('A bakery!'), them('Me too! Fresh bread every morning.')] },
+        { label: 'A phone and computer shop', lines: [me('A phone and computer shop.'), them('Good idea. Everyone needs their tech fixed!')] },
+        { label: 'A fruit and vegetable market', lines: [me('A fruit and vegetable market.'), them('Yes! Fresh dalo and bele from the farm.')] },
+      ] },
+    ], n);
+  }
   if (gp === 'baby') {
     return { ask: them("Who's the happiest baby in Fiji?"), choices: [
       { label: '(Giggle)', lines: [me('(Aisha giggles)'), them('MashaAllah, it is you!')] },
@@ -321,6 +391,9 @@ export function quiz(player: Character, npc: Character, room: string | null, n: 
 /** Saying goodbye. */
 export function farewell(player: Character, npc: Character): Step {
   const P = firstName(player), N = firstName(npc);
+  if ((isVisitor(player) || isVisitor(npc)) && generation(player) !== 'baby' && generation(npc) !== 'baby') {
+    return [{ who: P, text: 'Moce! See you around the neighbourhood.' }, { who: N, text: 'Moce, see you soon!' }];
+  }
   if (generation(player) === 'baby') return [{ who: P, text: '(Aisha waves bye-bye)' }, { who: N, text: 'Bye bye, little Aisha! Fi amanillah.' }];
   if (generation(npc) === 'baby') return [{ who: P, text: 'Bye bye, little Aisha! Fi amanillah.' }, { who: N, text: '(Aisha waves her tiny hand)' }];
   return [{ who: P, text: 'Assalamu alaikum, see you soon!' }, { who: N, text: 'Wa alaikum assalam! Fi amanillah.' }];

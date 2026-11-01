@@ -4,9 +4,14 @@ import { opening, questions, quiz, farewell, address, type Say, type Question, t
 import { PLACES, TOOLS, ITEMS, availableChores } from './chores.ts';
 import type { ChoreSnapshot, Work } from './choreSystem.ts';
 import type { Character } from './characters.ts';
+import { Portrait } from './portrait.tsx';
 import { CONTEST, prizeState, claimSteps } from './contest.ts';
 import { COLLECTIBLES } from './layout.ts';
-import { CHARACTERS, GROUPS, characterById, firstName, type CharacterGroup, type Look } from './characters.ts';
+import { CHARACTERS, GROUPS, characterById, firstName, setMine, getMine, type CharacterGroup } from './characters.ts';
+import {
+  SKIN, HAIR, CLOTHES, SIZES, DEFAULT_LOOK, cleanName, visitorCharacter, loadMine, shareMine, checkMine, deleteMine, fetchNeighbours,
+  offerLive, unlocked as offerUnlocked, API, type Mine, type Sharing, type ShopSpot, type VisitorLook,
+} from './neighbourhood.ts';
 
 type Phase = 'intro' | 'playing' | 'paused' | 'won' | 'nogl';
 type PauseReason = 'lock-lost' | 'poster' | 'manual';
@@ -15,35 +20,84 @@ const BEST_KEY = 'lvts_househunt_best_v1';
 const MUTE_KEY = 'lvts_househunt_muted_v1';
 const CHAR_KEY = 'lvts_househunt_character_v1';
 
+/** Your own character, if you've made one on this device (registered so it can be played as 'me'). */
+function bootMine(): Mine | null {
+  const m = loadMine();
+  setMine(m ? visitorCharacter(m.name, m.look, m.id ?? 'me', true) : null);
+  return m;
+}
 function readChar(): string {
+  bootMine();
   try { return characterById(localStorage.getItem(CHAR_KEY) ?? 'josese').id; } catch { return 'josese'; }
 }
 
-/** A small low-poly portrait drawn from the same look as the 3D figure. */
-function Portrait({ look, size = 52 }: { look: Look; size?: number }) {
-  const baby = look.kind === 'baby';
-  const head = baby ? { x: 14, y: 11, w: 32, h: 30 } : { x: 17, y: 13, w: 26, h: 27 };
+const HAIR_STYLE_LABELS: [VisitorLook['hairStyle'], string][] = [['short', 'Short'], ['afro', 'Afro'], ['bun', 'Bun'], ['ponytail', 'Ponytail'], ['long', 'Long'], ['grey', 'Thin']];
+const SIZE_LABELS: Record<(typeof SIZES)[number], string> = { kid: 'Kid', teen: 'Teen', adult: 'Grown-up' };
+
+/** What the "You" tab says about where your character is. */
+function sharingText(s: Sharing, msg?: string): string {
+  if (s === 'approved') return "You're in the neighbourhood ✓ Everyone exploring can see you on the street.";
+  if (s === 'pending') return 'Saved ✓ Waiting for LvTS to check it. Once approved, everyone exploring the neighbourhood will see you.';
+  if (s === 'offline') return "Saved on this device. The neighbourhood server can't be reached right now, so it will try again next visit.";
+  return msg ? `Saved on this device. ${msg}` : API ? 'Saved on this device.' : "Saved on this device. Sharing with other visitors isn't switched on yet.";
+}
+
+/** Make or change your own character. */
+function Creator({ start, onSave, onDelete, onCancel, saving }: { start: Mine | null; onSave: (name: string, look: VisitorLook) => void; onDelete: () => void; onCancel: () => void; saving: boolean }) {
+  const [name, setName] = useState(start?.name ?? '');
+  const [look, setLook] = useState<VisitorLook>(start?.look ?? DEFAULT_LOOK);
+  const set = <K extends keyof VisitorLook>(k: K, v: VisitorLook[K]) => setLook((l) => ({ ...l, [k]: v, ...(k === 'size' && v !== 'adult' ? { beard: false } : {}) }));
+  const ok = cleanName(name);
+  const preview = visitorCharacter(ok ?? 'You', look, 'preview', true);
+  const swatches = (list: readonly string[], k: 'skin' | 'hair' | 'shirt' | 'pants', label: string) => (
+    <div className="hh-cr-row"><span className="hh-cr-label">{label}</span>
+      <div className="hh-cr-swatches" role="radiogroup" aria-label={label}>
+        {list.map((c) => <button key={c} type="button" role="radio" aria-checked={look[k] === c} aria-label={`${label} ${c}`} className={`hh-sw${look[k] === c ? ' on' : ''}`} style={{ background: c }} onClick={() => set(k, c)} />)}
+      </div>
+    </div>
+  );
   return (
-    <svg viewBox="0 0 60 60" width={size} height={size} aria-hidden focusable="false">
-      <rect width="60" height="60" rx="14" fill="#eef2ff" />
-      <path d="M7 60 Q8 44 30 42 Q52 44 53 60 Z" fill={look.shirt} stroke="rgba(15,23,42,0.12)" />
-      {look.print && <rect x="26" y="50" width="8" height="5" fill={look.print} />}
-      <rect x="26" y="36" width="8" height="8" fill={look.skin} />
-      <rect x={head.x} y={head.y} width={head.w} height={head.h} rx="5" fill={look.skin} />
-      {look.hairStyle === 'afro'
-        ? <rect x="12" y="4" width="36" height="19" rx="9" fill={look.hair} />
-        : <rect x={head.x - 1} y={head.y - 2} width={head.w + 2} height={baby ? 5 : 8} rx="3" fill={look.hair} />}
-      {look.hairStyle === 'bun' && <circle cx="30" cy="9" r="5.5" fill={look.hair} />}
-      {look.hairStyle === 'long' && <path d={`M${head.x - 2} ${head.y + 2} h4 v${head.h + 2} h-4 z M${head.x + head.w - 2} ${head.y + 2} h4 v${head.h + 2} h-4 z`} fill={look.hair} />}
-      {look.streak && <path d="M24.5 11 v7 M35.5 11 v7" stroke={look.streak} strokeWidth="1.5" strokeLinecap="round" />}
-      {look.earrings && <><circle cx={head.x - 0.5} cy="31" r="1.8" fill={look.earrings} /><circle cx={head.x + head.w + 0.5} cy="31" r="1.8" fill={look.earrings} /></>}
-      {look.beard && <path d="M16 27 h28 v7 q-14 11 -28 0 z" fill={look.hair} />}
-      <rect x={baby ? 22 : 23} y={baby ? 25 : 24} width="3.5" height="3" fill="#1a1412" />
-      <rect x={baby ? 34.5 : 33.5} y={baby ? 25 : 24} width="3.5" height="3" fill="#1a1412" />
-      {!look.beard && <rect x="27" y={baby ? 33 : 32} width="6" height="1.6" rx="0.8" fill="#5a2f22" />}
-    </svg>
+    <div className="hh-overlay">
+      <div className="hh-card hh-card-create" role="dialog" aria-labelledby="hh-cr-title">
+        <h3 className="hh-title-sm" id="hh-cr-title">{start ? 'Change your character' : 'Create your character'}</h3>
+        <div className="hh-cr-top">
+          <Portrait look={preview.look} size={96} />
+          <div className="hh-cr-name">
+            <label className="hh-cr-label" htmlFor="hh-cr-name">First name or nickname</label>
+            <input id="hh-cr-name" value={name} maxLength={16} autoComplete="off" placeholder="e.g. Mere" onChange={(e) => setName(e.target.value)} />
+            <small className={name && !ok ? 'hh-cr-bad' : ''}>{name && !ok ? '2 to 16 letters, no numbers or symbols.' : "Please don't use your full name."}</small>
+          </div>
+        </div>
+        <div className="hh-cr-row"><span className="hh-cr-label">Size</span>
+          <div className="hh-seg">{SIZES.map((z) => <button key={z} type="button" className={look.size === z ? 'on' : ''} onClick={() => set('size', z)}>{SIZE_LABELS[z]}</button>)}</div>
+        </div>
+        {swatches(SKIN, 'skin', 'Skin')}
+        <div className="hh-cr-row"><span className="hh-cr-label">Hair</span>
+          <div className="hh-seg hh-seg-wrap">{HAIR_STYLE_LABELS.map(([h, l]) => <button key={h} type="button" className={look.hairStyle === h ? 'on' : ''} onClick={() => set('hairStyle', h)}>{l}</button>)}</div>
+        </div>
+        {swatches(HAIR, 'hair', 'Hair colour')}
+        {swatches(CLOTHES, 'shirt', 'Top')}
+        <div className="hh-cr-row"><span className="hh-cr-label">Bottoms</span>
+          <div className="hh-seg"><button type="button" className={!look.longPants ? 'on' : ''} onClick={() => set('longPants', false)}>Shorts</button><button type="button" className={look.longPants ? 'on' : ''} onClick={() => set('longPants', true)}>Long</button></div>
+        </div>
+        {swatches(CLOTHES, 'pants', 'Bottoms colour')}
+        <div className="hh-cr-row"><span className="hh-cr-label">Extras</span>
+          <div className="hh-seg">
+            <button type="button" className={look.earrings ? 'on' : ''} onClick={() => set('earrings', !look.earrings)}>Earrings</button>
+            {look.size === 'adult' && <button type="button" className={look.beard ? 'on' : ''} onClick={() => set('beard', !look.beard)}>Beard</button>}
+          </div>
+        </div>
+        <p className="hh-cr-note">Once LvTS checks it, your character's name and look are shown to everyone exploring the neighbourhood, and stay there. You can change or delete it here at any time.</p>
+        <div className="hh-row">
+          <button type="button" className="hh-btn" disabled={!ok || saving} onClick={() => ok && onSave(ok, look)}>{saving ? 'Saving…' : 'Save my character'}</button>
+          <button type="button" className="hh-btn hh-btn-ghost" onClick={onCancel}>Cancel</button>
+          {start && <button type="button" className="hh-btn hh-btn-ghost hh-btn-quit" onClick={onDelete}>Delete</button>}
+        </div>
+      </div>
+    </div>
   );
 }
+
 const BASE = import.meta.env.BASE_URL;
 /** Screen Orientation lock: Android Chrome and Firefox only, and only in full screen. */
 type OrientationLock = ScreenOrientation & { lock?: (o: 'landscape' | 'portrait') => Promise<void>; unlock?: () => void };
@@ -186,6 +240,12 @@ export default function HouseGame() {
   const thankCount = useRef(0);
   const [talk, setTalk] = useState<Talk | null>(null);
   const [charId, setCharId] = useState(readChar);
+  const [mine, setMineState] = useState<Mine | null>(() => loadMine());
+  const [sharing, setSharing] = useState<{ s: Sharing; msg?: string }>(() => ({ s: loadMine()?.status ?? 'local' }));
+  const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [mode, setMode] = useState<'hunt' | 'explore'>('hunt');
+  const [shop, setShop] = useState<ShopSpot | null>(null);
   const [tab, setTab] = useState<CharacterGroup>(() => characterById(readChar()).group);
   const [third, setThird] = useState(false);
   const [perk, setPerk] = useState<PerkPill | null>(null);
@@ -241,6 +301,7 @@ export default function HouseGame() {
           onTalk: (t) => setTalk(t ? startTalk(t) : null),
           onSay: (lines) => showSay(lines),
           onView: (t) => setThird(t),
+          onShop: (sp) => setShop((cur) => (cur?.id === sp.id ? null : sp)),
           onPerk: (p) => setPerk(p),
           onChores: (c) => setChores(c),
           onWork: (w) => setWork(w),
@@ -257,6 +318,8 @@ export default function HouseGame() {
     engine.setMuted(muted);
     engine.setCharacter(readChar());
     engineRef.current = engine;
+    // the neighbours: everyone's approved characters, on the street across the road
+    void fetchNeighbours().then((list) => { if (engineRef.current === engine) engine.setNeighbours(list); });
     if (import.meta.env.DEV) (window as unknown as { __house?: unknown }).__house = engine.debug();
     return () => { engine.dispose(); engineRef.current = null; };
     // the engine is created once; `muted` is applied through its own effect below
@@ -346,15 +409,50 @@ export default function HouseGame() {
     return () => { document.body.style.overflow = prev; };
   }, [full]);
 
+  // has LvTS approved your character yet? (and try again if it never reached the server)
+  useEffect(() => {
+    const m = loadMine();
+    if (!m) return;
+    if (m.id && m.key) void checkMine(m).then((s) => setSharing({ s }));
+    else if (API) void shareMine(m).then((r) => { setMineState(r.mine); setSharing({ s: r.sharing, msg: r.message }); });
+  }, []);
+
+  const saveMine = async (name: string, look: VisitorLook) => {
+    setSaving(true);
+    const next: Mine = { ...(mine ?? {}), name, look };
+    setMine(visitorCharacter(name, look, next.id ?? 'me', true));
+    setMineState(next);
+    pick('me');
+    setTab('you');
+    setCreating(false);
+    const r = await shareMine(next);
+    setMineState(r.mine);
+    setSharing({ s: r.sharing, msg: r.message });
+    setSaving(false);
+  };
+  const removeMine = async () => {
+    if (mine) await deleteMine(mine);
+    setMine(null);
+    setMineState(null);
+    setSharing({ s: 'local' });
+    setCreating(false);
+    if (charId === 'me') pick('josese');
+  };
+
   const pick = (id: string) => {
     setCharId(id);
     try { localStorage.setItem(CHAR_KEY, id); } catch { /* storage unavailable */ }
     engineRef.current?.setCharacter(id);
   };
-  const play = () => {
+  const play = (m: 'hunt' | 'explore' = 'hunt') => {
     const e = engineRef.current;
     if (!e) return;
+    setMode(m);
+    setShop(null);
+    e.setMode(m);
     e.setCharacter(charId);
+    e.reset();
+    setCount(0); setGolden(false); setResult(null);
     if (touch) enterFull();
     setPhase('playing');
     e.start();
@@ -407,6 +505,7 @@ export default function HouseGame() {
   }, [talk, phase, choose]);
   /** Back to the start card to pick someone else. */
   const changeCharacter = () => {
+    setShop(null);
     const e = engineRef.current;
     if (!e) return;
     e.reset();
@@ -462,8 +561,8 @@ export default function HouseGame() {
       <div className={`hh-hud${phase === 'playing' ? '' : ' hh-hud-dim'}`} aria-hidden={phase !== 'playing'}>
         <div className="hh-pills">
           <span className="hh-pill hh-who" title={`Playing as ${me.name}`}><Portrait look={me.look} size={20} /> <span className="hh-who-name">{firstName(me)}</span></span>
-          <span className="hh-pill hh-timer" title="Time"><span aria-hidden>⏱</span> <span ref={timerRef}>00:00.0</span></span>
-          <span className="hh-pill" title="Tech parts found"><span aria-hidden>🔧</span> {count}/{total}</span>
+          <span className="hh-pill hh-timer" title="Time" style={mode === 'explore' ? { display: 'none' } : undefined}><span aria-hidden>⏱</span> <span ref={timerRef}>00:00.0</span></span>
+          {mode === 'hunt' ? <span className="hh-pill" title="Tech parts found"><span aria-hidden>🔧</span> {count}/{total}</span> : <span className="hh-pill hh-explore-pill" title="Exploring the neighbourhood">🏘️ Exploring</span>}
           <span className="hh-pill" title="Areas explored, inside and out"><span aria-hidden>🧭</span> {rooms[0]}/{rooms[1]}</span>
           {perk && <span className={`hh-pill hh-perk hh-perk-${perk.tone}`} title={perk.title} aria-live="polite">{perk.text}</span>}
           {chores && !chores.baby && (
@@ -496,6 +595,44 @@ export default function HouseGame() {
           <button type="button" className="hh-icon" onClick={() => (full ? exitFull() : enterFull())} aria-label={full ? 'Exit full screen' : 'Full screen'}>{full ? '🗗' : '⛶'}</button>
         </div>
       </div>
+
+      {phase === 'intro' && creating && <Creator start={mine} saving={saving} onSave={(n, l) => void saveMine(n, l)} onDelete={() => void removeMine()} onCancel={() => setCreating(false)} />}
+
+      {/* A shop on the street: what it is, and its offers (none yet: the spots are waiting for real businesses) */}
+      {phase === 'playing' && shop && !talk && (() => {
+        const today = new Date(Date.now() + 12 * 3600e3).toISOString().slice(0, 10);   // Fiji date
+        const offers = shop.offers.filter((o) => offerLive(o, today));
+        return (
+          <div className="hh-shop" role="dialog" aria-label={shop.name}>
+            <div className="hh-chores-head">
+              <b>🏪 {shop.name}</b>
+              <button type="button" className="hh-talk-x" onPointerDown={(e) => { e.stopPropagation(); setShop(null); }} aria-label="Close">✕</button>
+            </div>
+            {shop.kind === 'empty' ? (
+              <p className="hh-chores-note">This spot is waiting for a real Suva business. Soon you'll be able to explore local shops here, unlock offers in the game and redeem them in real life.<br /><br />Own a local business? Message <a href={CONTEST.facebookUrl} target="_blank" rel="noopener noreferrer">{CONTEST.handle}</a> to be part of the LvTS neighbourhood.</p>
+            ) : (
+              <>
+                {shop.blurb && <p className="hh-chores-note">{shop.blurb}</p>}
+                {offers.length === 0 && <p className="hh-chores-note">No offers right now. Check back soon!</p>}
+                <ul className="hh-chore-list">
+                  {offers.map((o) => {
+                    const open = offerUnlocked(o, { stars: chores?.stars ?? 0, golden });
+                    return (
+                      <li key={o.id} className={open ? 'done' : ''}>
+                        <span className="hh-chore-emoji">{o.kind === 'free' ? '🎁' : '🏷️'}</span>
+                        <span className="hh-chore-text"><b style={{ textDecoration: 'none' }}>{o.title}</b><small>{o.details}</small>
+                          {open ? <small className="hh-offer-code">Show this at the shop: <b>{o.code}</b> · {o.terms}</small>
+                            : <small>🔒 {o.unlock.type === 'stars' ? `Unlocks at ${o.unlock.stars} ⭐` : 'Unlocks when you find the Golden Chip'}</small>}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Chores and rewards: what's left to do this game, and the places stars unlock */}
       {phase === 'playing' && showChores && !talk && chores && (
@@ -576,7 +713,7 @@ export default function HouseGame() {
       )}
 
       {/* Start card */}
-      {phase === 'intro' && (
+      {phase === 'intro' && !creating && (
         <div className="hh-overlay">
           <div className="hh-card">
             <div className="hh-eyebrow">LvTS · First-person 3D</div>
@@ -586,11 +723,30 @@ export default function HouseGame() {
             <div className="hh-tabs" role="tablist" aria-label="Family groups">
               {GROUPS.map((g) => (
                 <button key={g.id} type="button" role="tab" aria-selected={tab === g.id} className={`hh-tab${tab === g.id ? ' on' : ''}`} onClick={() => setTab(g.id)}>
-                  {g.label} <span className="hh-tab-n">{CHARACTERS.filter((c) => c.group === g.id).length}</span>
+                  {g.label}{g.id !== 'you' && <span className="hh-tab-n"> {CHARACTERS.filter((c) => c.group === g.id).length}</span>}
                 </button>
               ))}
             </div>
             <div className="hh-pick" role="radiogroup" aria-label="Choose your character">
+              {tab === 'you' && (() => {
+                const c = getMine();
+                return (
+                  <>
+                    {c && (
+                      <button type="button" role="radio" aria-checked={charId === 'me'} className={`hh-pick-tile${charId === 'me' ? ' on' : ''}`} onClick={() => pick('me')}>
+                        <Portrait look={c.look} size={touch ? 34 : 50} />
+                        <span className="hh-pick-name">{firstName(c)}</span>
+                        <span className="hh-pick-role">You</span>
+                      </button>
+                    )}
+                    <button type="button" className="hh-pick-tile hh-pick-new" onClick={() => setCreating(true)}>
+                      <span className="hh-pick-plus" aria-hidden>{c ? '✏️' : '＋'}</span>
+                      <span className="hh-pick-name">{c ? 'Change' : 'Create'}</span>
+                      <span className="hh-pick-role">{c ? 'your look' : 'your own'}</span>
+                    </button>
+                  </>
+                );
+              })()}
               {CHARACTERS.filter((c) => c.group === tab).map((c) => (
                 <button key={c.id} type="button" role="radio" aria-checked={charId === c.id} className={`hh-pick-tile${charId === c.id ? ' on' : ''}`} onClick={() => pick(c.id)}>
                   <Portrait look={c.look} size={touch ? 34 : 50} />
@@ -599,8 +755,11 @@ export default function HouseGame() {
                 </button>
               ))}
             </div>
-            <div className="hh-pick-perk"><b>{me.name}</b> · {me.perk}</div>
-            <button type="button" className="hh-btn hh-btn-top" onClick={play}>Start as {firstName(me)} →</button>
+            <div className="hh-pick-perk">{tab === 'you' && !mine ? 'Make your own character: it joins the neighbourhood for good once LvTS has checked it.' : tab === 'you' && charId === 'me' ? sharingText(sharing.s, sharing.msg) : <><b>{me.name}</b> · {me.perk}</>}</div>
+            <div className="hh-start-row hh-btn-top">
+              <button type="button" className="hh-btn" onClick={() => play('hunt')}>Start the hunt as {firstName(me)} →</button>
+              <button type="button" className="hh-btn hh-btn-explore" onClick={() => play('explore')}>🏘️ Explore the neighbourhood</button>
+            </div>
             <ul className="hh-keys">
               {touch ? (
                 <>
@@ -817,6 +976,36 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
 .hh-pick-tile.on { border-color: #2563eb; box-shadow: 0 6px 16px rgba(37,99,235,0.18); }
 .hh-pick-name { font-size: 0.8rem; font-weight: 700; color: #0f172a; }
 .hh-pick-role { font-size: 0.64rem; color: #64748b; line-height: 1.1; }
+.hh-start-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; max-width: 520px !important; }
+.hh-start-row .hh-btn { flex: 1 1 200px; }
+.hh-btn.hh-btn-explore { background: linear-gradient(135deg,#0ea5e9,#22c55e); box-shadow: 0 8px 20px rgba(14,165,233,0.3); }
+.hh-explore-pill { background: linear-gradient(135deg,#0ea5e9,#22c55e); }
+.hh-pick-new { border-style: dashed; }
+.hh-pick-plus { width: 50px; height: 50px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.6rem; border-radius: 12px; background: #eef2ff; color: #4f46e5; }
+.hh-is-touch .hh-pick-plus { width: 34px; height: 34px; font-size: 1.2rem; }
+.hh-card-create { max-width: 460px; text-align: left; padding: 1.1rem 1.2rem; }
+.hh-card-create .hh-title-sm { text-align: center; }
+.hh-cr-top { display: flex; gap: 12px; align-items: center; margin: 0.4rem 0 0.6rem; }
+.hh-cr-top svg { border-radius: 18px; flex: none; }
+.hh-cr-name { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.hh-cr-name input { border: 2px solid #e2e8f0; border-radius: 10px; padding: 8px 10px; font: 600 1rem 'Space Grotesk', sans-serif; color: #0f172a; width: 100%; }
+.hh-cr-name input:focus { outline: none; border-color: #2563eb; }
+.hh-cr-name small { color: #64748b; font-size: 0.72rem; }
+.hh-cr-name small.hh-cr-bad { color: #b91c1c; }
+.hh-cr-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.hh-cr-label { font-size: 0.72rem; font-weight: 700; color: #475569; width: 92px; flex: none; }
+.hh-cr-name .hh-cr-label { width: auto; }
+.hh-cr-swatches { display: flex; flex-wrap: wrap; gap: 5px; }
+.hh-sw { width: 24px; height: 24px; border-radius: 7px; border: 2px solid rgba(15,23,42,0.15); cursor: pointer; padding: 0; }
+.hh-sw.on { outline: 3px solid #2563eb; outline-offset: 1px; }
+.hh-seg { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.hh-seg button { border: 2px solid #e2e8f0; background: #fff; border-radius: 9px; padding: 4px 9px; font: 700 0.76rem 'Space Grotesk', sans-serif; color: #334155; cursor: pointer; }
+.hh-seg button.on { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; }
+.hh-cr-note { font-size: 0.72rem; color: #64748b; line-height: 1.45; margin: 8px 0 10px; }
+.hh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.hh-shop { position: absolute; top: 56px; left: 12px; width: min(380px, 70%); max-height: calc(100% - 130px); overflow-y: auto; background: #fff; color: #0f172a; border-radius: 16px; border: 2px solid #bae6fd; box-shadow: 0 16px 40px rgba(15,23,42,0.3); padding: 10px 12px; z-index: 4; pointer-events: auto; font-size: 0.82rem; }
+.hh-is-touch .hh-shop { top: auto; left: 12px; right: 12px; bottom: 12px; width: auto; }
+.hh-offer-code { color: #15803d !important; }
 .hh-pick-perk { font-size: 0.78rem; color: #475569; line-height: 1.45; margin-bottom: 0.9rem; min-height: 2.3em; }
 @keyframes hh-pop { from { transform: translate(-50%, -8px) scale(.9); opacity: 0; } to { transform: translate(-50%, 0) scale(1); opacity: 1; } }
 .hh-corner { position: absolute; bottom: 12px; right: 12px; display: flex; gap: 6px; pointer-events: auto; z-index: 3; }  /* above the phone's look/walk layer */
@@ -882,6 +1071,8 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
   .hh-pick-role { font-size: 0.56rem; }
   .hh-tab { padding: 5px 8px; font-size: 0.7rem; }
   .hh-who-name { display: none; }
+  .hh-cr-label { width: 70px; }
+  .hh-sw { width: 22px; height: 22px; }
   .hh-held-name { display: none; }
   .hh-talk-menu { grid-template-columns: 1fr; }
 }

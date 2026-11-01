@@ -78,11 +78,35 @@ export const deck = () => canvasTexture(128, 128, (g, w, h) => {
   for (let y = 0; y <= h; y += 32) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
 }, true);
 
-export const grass = () => canvasTexture(128, 128, (g, w, h) => {
-  const r = rng(5);
-  g.fillStyle = '#7fb069'; g.fillRect(0, 0, w, h);
-  for (let i = 0; i < 700; i++) { g.fillStyle = `rgba(${r() > 0.5 ? '40,90,30' : '170,210,120'},${0.08 + r() * 0.12})`; g.fillRect(r() * w, r() * h, 2, 3); }
-}, true);
+/** Bright, blocky grass: chunky pixels in a few greens, kept sharp when you look closely. */
+export const grass = () => {
+  const t = canvasTexture(16, 16, (g, w, h) => {
+    const r = rng(5);
+    const greens = ['#6cc04a', '#7ad152', '#5fb03f', '#86d95c', '#58a63a'];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { g.fillStyle = greens[Math.floor(r() * greens.length)]; g.fillRect(x, y, 1, 1); }
+  }, true);
+  t.magFilter = THREE.NearestFilter;
+  t.minFilter = THREE.NearestMipmapLinearFilter;
+  return t;
+};
+
+/** The sky behind everything: deep blue at the top, pale at the horizon. */
+export const skyGradient = () => canvasTexture(4, 256, (g, w, h) => {
+  const grd = g.createLinearGradient(0, 0, 0, h);
+  grd.addColorStop(0, '#1e7bea');
+  grd.addColorStop(0.55, '#5eb3ff');
+  grd.addColorStop(1, '#bfe6ff');
+  g.fillStyle = grd; g.fillRect(0, 0, w, h);
+});
+
+/** A shop's sign board: its name, and a line under it. */
+export const shopSign = (name: string, sub: string, color: string) => canvasTexture(512, 88, (g, w, h) => {
+  g.fillStyle = color; g.fillRect(0, 0, w, h);
+  g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 5; g.strokeRect(5, 5, w - 10, h - 10);
+  g.fillStyle = '#ffffff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = `800 ${sub ? 34 : 40}px sans-serif`; g.fillText(name, w / 2, sub ? 32 : h / 2, w - 30);
+  if (sub) { g.font = '700 22px sans-serif'; g.fillStyle = '#fde68a'; g.fillText(sub, w / 2, 66, w - 30); }
+});
 
 /** Ceiling: painted fibre-board panels with white cover strips, as in the photos. One repeat is 1.2 m. */
 export const ceiling = () => canvasTexture(128, 128, (g, w, h) => {
