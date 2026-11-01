@@ -79,8 +79,9 @@ third-person view. The pick is remembered in `localStorage`.
 Anyone can talk to anyone. Press E next to someone and a conversation opens
 (`talk.ts`, shown by `HouseGame.tsx`):
 
-- **Salaam both ways**: the younger one greets the elder with respect and
-  thanks, and the elder answers with a blessing, or the other way round.
+- **Bula both ways**: everyone greets with "Bula!" and answers "Bula
+  vinaka!". The younger one greets the elder with respect and thanks, and
+  the elder answers with a blessing, or the other way round.
   Grown-ups of the same generation and the cousins greet each other as
   friends. Everyone is called the right thing (Dad, Mum, Grandpa,
   Aunty Nancy, Uncle Ravi…); see `address()`.
