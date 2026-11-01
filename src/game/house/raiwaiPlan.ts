@@ -1,6 +1,7 @@
 // Where everything in Raiwai goes (plain data, no 3D): McFarlane Road runs past
 // the front gate along x; the side road climbs north beside the neighbours to
-// the east (+x). From the gate, the Methodist Church, the pool, the teal
+// the east (+x). To the right as you come out of the gate (west), on the
+// house's side of the road, the Howell Road Hindu Temple. From the gate, the Methodist Church, the pool, the teal
 // building and the Lomaiviti Training Ground are to the left, along the road
 // to the east, with the Raiwai Jame Masjid after the training ground on the
 // same side; the commercial sheds and the sea are beyond them to the south.
@@ -8,7 +9,7 @@
 //
 // The houses are Raiwai-style but made up from a seed: they aren't copies of
 // anyone's real home. Public places are modelled on drone photos of the area.
-import { MCFARLANE, SIDE_ROAD, NEIGHBOURS, MASJID } from './layout.ts';
+import { MCFARLANE, SIDE_ROAD, NEIGHBOURS, MASJID, TEMPLE } from './layout.ts';
 import { SHOP_ROW } from './shops.ts';
 import { GARDEN_CITY } from './gardenCity.ts';
 import { USP, USP_BUILDINGS, USP_TREES, USP_SIGN } from './uspCampus.ts';
@@ -63,7 +64,7 @@ export function houseSpec(seed: number, simple = false): HouseSpec {
 export type Face = 'n' | 's' | 'e' | 'w';
 export const FACE_ANGLE: Record<Face, number> = { n: 0, s: Math.PI, e: -Math.PI / 2, w: Math.PI / 2 };
 
-export type PlanKind = 'house' | 'flats' | 'campus' | 'tower' | 'church' | 'pool' | 'teal' | 'field' | 'masjid' | 'shed' | 'arena' | 'floodlight';
+export type PlanKind = 'house' | 'flats' | 'campus' | 'tower' | 'church' | 'pool' | 'teal' | 'field' | 'masjid' | 'temple' | 'shed' | 'arena' | 'floodlight';
 export interface PlanItem {
   kind: PlanKind;
   x: number;
@@ -92,6 +93,8 @@ const overlaps = (a: Box, b: Box, pad = 0) => a.x0 < b.x1 + pad && a.x1 > b.x0 -
 
 // ── the landmarks ──────────────────────────────────────────────────────────
 export const LANDMARKS: PlanItem[] = [
+  // to the right out of the gate (west), on the house's side: the Howell Road Hindu Temple, its gate on the road
+  { kind: 'temple', x: TEMPLE.x, z: TEMPLE.z, face: 's', w: TEMPLE.w, d: TEMPLE.d, label: 'Howell Road Hindu Temple' },
   // north side of McFarlane Road, east of the side road
   { kind: 'house', x: 47.5, z: 13.5, face: 's', w: 10, d: 10, spec: { w: 10, d: 10, storeys: 2, wall: '#f1f0ea', roof: '#b4babd', roofStyle: 'hip', base: 0.3, seed: 501 } },
   { kind: 'church', x: 103, z: -17, face: 's', w: 18, d: 26, label: 'Methodist Church' },

@@ -941,6 +941,7 @@ export class HouseEngine {
       case 'teal': g = R.tealBuilding(); break;
       case 'field': g = R.sportsField(it.w, it.d); break;
       case 'masjid': g = R.jameMasjid(); break;
+      case 'temple': g = R.hinduTemple(hi - lo, it.d); break;
       case 'shed': g = R.shed(it.w, it.d, it.roof); break;
       case 'arena': g = R.arena(); break;
       default: g = R.floodlight();
@@ -952,7 +953,8 @@ export class HouseEngine {
       base.position.y = -h / 2;
       g.add(base);
     }
-    g.position.set(it.x, it.kind === 'house' ? lo : hi, it.z);
+    // houses and the temple stand at the low (road) side and build up the slope themselves
+    g.position.set(it.x, it.kind === 'house' || it.kind === 'temple' ? lo : hi, it.z);
     g.rotation.y = FACE_ANGLE[it.face];
     return g;
   }

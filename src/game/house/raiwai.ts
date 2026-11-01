@@ -550,6 +550,132 @@ export function wires(points: THREE.Vector3[][], color = '#2a2c2f'): THREE.LineS
 }
 
 /** A big covered arena with a teal curved roof (seen across the sheds by the sea). */
+let templeArch: THREE.CanvasTexture | undefined;
+
+/**
+ * The Howell Road Hindu Temple, from a photo of its entrance: a yellow arch
+ * with red "OM SHAKTHI · PARA SHAKTHI" lettering between two red-and-yellow
+ * tiered pillars, a metal gate, strings of coloured flags up to tall bamboo
+ * poles. Up the slope behind, the temple: cream walls with red and saffron
+ * bands, a pillared porch, and a tiered tower over the shrine with a gold
+ * kalash on top, on a raised base with steps. `lift` is how much the ground
+ * rises from the gate to the back of the plot (`d` deep); the group's origin
+ * is on the ground at the gate's end.
+ */
+export function hinduTemple(lift: number, d = 13.8): THREE.Group {
+  const g = new THREE.Group();
+  const CREAM = '#f3e6c4', RED = '#c8322a', YELLOW = '#f2b632', ORANGE = '#e8742b', GOLD = '#d4a537';
+  const ground = (z: number) => lift * (z + d / 2) / d;      // the slope, rising away from the gate
+  const GZ = -d / 2 + 0.3;                                    // the gate's line
+
+  // the low front wall either side of the gate, cream with a red top
+  for (const [a, b] of [[-6.5, -2.75], [2.75, 6.5]]) {
+    box(g, b - a, 0.95, 0.25, CREAM, (a + b) / 2, 0.47, GZ);
+    box(g, b - a, 0.1, 0.32, RED, (a + b) / 2, 1.0, GZ);
+  }
+  // the two gate pillars: red base, yellow shaft, tiers of red and yellow, a little dome
+  for (const sx of [-2.25, 2.25]) {
+    box(g, 0.95, 1.0, 0.95, RED, sx, 0.5, GZ);
+    box(g, 0.72, 1.7, 0.72, YELLOW, sx, 1.85, GZ);
+    box(g, 0.5, 1.1, 0.02, RED, sx, 1.9, GZ - 0.37);
+    box(g, 1.0, 0.16, 1.0, RED, sx, 2.78, GZ);
+    box(g, 0.8, 0.55, 0.8, YELLOW, sx, 3.13, GZ);
+    box(g, 0.92, 0.14, 0.92, RED, sx, 3.47, GZ);
+    box(g, 0.6, 0.45, 0.6, YELLOW, sx, 3.76, GZ);
+    box(g, 0.72, 0.12, 0.72, RED, sx, 4.04, GZ);
+    cyl(g, 0, 0.3, 0.55, YELLOW, sx, 4.38, GZ, 12);
+  }
+  // the arch over the gate: a yellow board with a curved crest, red edges, the lettering
+  const archShape = new THREE.Shape();
+  archShape.moveTo(-2.3, 0); archShape.lineTo(2.3, 0); archShape.lineTo(2.3, 0.85);
+  archShape.quadraticCurveTo(0, 1.55, -2.3, 0.85); archShape.closePath();
+  const archGeo = new THREE.ExtrudeGeometry(archShape, { depth: 0.22, bevelEnabled: false });
+  archGeo.translate(0, 0, -0.11);
+  const arch = new THREE.Mesh(archGeo, paint('#f5b335'));
+  arch.position.set(0, 3.0, GZ);
+  g.add(arch);
+  box(g, 4.7, 0.1, 0.26, RED, 0, 2.98, GZ);
+  templeArch ??= canvasTexture(512, 96, (c, w, h) => {
+    c.fillStyle = '#f5b335'; c.fillRect(0, 0, w, h);
+    c.strokeStyle = '#c0302a'; c.lineWidth = 6; c.strokeRect(3, 3, w - 6, h - 6);
+    c.fillStyle = '#c0302a'; c.font = '800 32px "Space Grotesk", Arial, sans-serif'; c.textBaseline = 'middle';
+    c.textAlign = 'right'; c.fillText('OM SHAKTHI', w / 2 - 38, h / 2 + 2, w / 2 - 50);
+    c.textAlign = 'left'; c.fillText('PARA SHAKTHI', w / 2 + 38, h / 2 + 2, w / 2 - 50);
+    c.fillStyle = '#2f6db5'; c.beginPath(); c.arc(w / 2, h / 2, 30, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = '#f6f1e3'; c.lineWidth = 4; c.beginPath(); c.arc(w / 2, h / 2, 22, 0, Math.PI * 2); c.stroke();
+  });
+  // fitted between the pillars, so neither end of the lettering is hidden
+  const words = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 0.68), new THREE.MeshStandardMaterial({ map: templeArch, roughness: 0.6 }));
+  words.rotation.y = Math.PI;
+  words.position.set(0, 3.45, GZ - 0.12);
+  g.add(words);
+  // the gate: two metal leaves, shut
+  for (let x = -1.7; x <= 1.7001; x += 0.17) box(g, 0.03, 1.8, 0.03, '#b8bcc0', x, 1.0, GZ + 0.05);
+  for (const y of [0.15, 1.0, 1.85]) box(g, 3.5, 0.05, 0.05, '#b8bcc0', 0, y, GZ + 0.05);
+
+  // tall bamboo poles with a red flag on top, and strings of little flags from the arch
+  const flagColours = ['#e8742b', '#c8322a', '#f2b632', '#2f9e44', '#f6f1e3', '#2f6db5'];
+  for (const sx of [-5.6, 5.6]) {
+    cyl(g, 0.05, 0.07, 8.0, '#c9b07a', sx, 4.0, GZ + 0.8, 8);
+    box(g, 0.9, 0.6, 0.02, RED, sx + Math.sign(sx) * 0.48, 7.6, GZ + 0.8);
+    const a = new THREE.Vector3(0, 4.45, GZ), b = new THREE.Vector3(sx, 7.4, GZ + 0.8);
+    for (let i = 1; i < 12; i++) {
+      const p = a.clone().lerp(b, i / 12);
+      p.y -= Math.sin((i / 12) * Math.PI) * 0.5;            // the string sags
+      box(g, 0.22, 0.28, 0.01, flagColours[i % flagColours.length], p.x, p.y - 0.16, p.z);
+    }
+  }
+
+  // the path up from the gate to the foot of the temple's steps
+  const BZ = 0.35, STEPS = 6, TREAD = 0.28;                 // the raised base's front, its steps
+  const pz0 = GZ + 0.4, pz1 = BZ - STEPS * TREAD, rise = ground(pz1) - ground(pz0);
+  const path = box(g, 2.4, 0.08, Math.hypot(pz1 - pz0, rise), '#c9c6bf', 0, (ground(pz0) + ground(pz1)) / 2 + 0.03, (pz0 + pz1) / 2);
+  path.rotation.x = -Math.atan2(rise, pz1 - pz0);
+
+  // the raised base, its steps, and the temple on it
+  const top = ground(d / 2 - 0.3) + 0.45, foot = ground(pz1) - 0.3;
+  box(g, 9.2, top - foot, 6.4, '#d9cfb8', 0, (top + foot) / 2, BZ + 3.2);
+  box(g, 9.3, 0.12, 6.5, RED, 0, top - 0.06, BZ + 3.2);
+  for (let i = 0; i < STEPS; i++) {
+    const h = ground(pz1) + ((top - ground(pz1)) * (i + 1)) / STEPS;
+    box(g, 2.4, h - foot, TREAD, '#e0d8c6', 0, (h + foot) / 2, BZ - (STEPS - i - 0.5) * TREAD);
+  }
+  // the hall: cream walls, red and saffron bands, carved doors, a porch on red-and-yellow columns
+  const H = 3.2, hz0 = 1.7, hz1 = 6.4;
+  box(g, 8, H, hz1 - hz0, CREAM, 0, top + H / 2, (hz0 + hz1) / 2);
+  box(g, 8.1, 0.25, hz1 - hz0 + 0.1, ORANGE, 0, top + 0.12, (hz0 + hz1) / 2);
+  box(g, 8.3, 0.3, hz1 - hz0 + 0.3, RED, 0, top + H - 0.15, (hz0 + hz1) / 2);
+  box(g, 8.5, 0.35, hz1 - hz0 + 0.5, YELLOW, 0, top + H + 0.17, (hz0 + hz1) / 2);
+  box(g, 1.5, 2.3, 0.08, '#7a4a28', 0, top + 1.15, hz0 - 0.04);
+  for (const sx of [-0.38, 0.38]) box(g, 0.6, 1.9, 0.02, '#a0662f', sx, top + 1.1, hz0 - 0.09);
+  for (const sx of [-2.6, 2.6]) windowAt(g, sx, top + 1.6, hz0, 0, 0.9, 1.0);
+  box(g, 8.3, 0.22, 1.3, CREAM, 0, top + H - 0.1, hz0 - 0.65);                           // the porch roof
+  box(g, 8.4, 0.12, 1.35, RED, 0, top + H + 0.05, hz0 - 0.65);
+  for (const sx of [-3.8, -1.3, 1.3, 3.8]) {
+    cyl(g, 0.16, 0.16, H - 0.2, YELLOW, sx, top + (H - 0.2) / 2, hz0 - 1.1, 12);
+    box(g, 0.42, 0.22, 0.42, RED, sx, top + 0.11, hz0 - 1.1);
+    box(g, 0.42, 0.2, 0.42, RED, sx, top + H - 0.3, hz0 - 1.1);
+  }
+  // the tower over the shrine: tiers of saffron, yellow and red, a dome and the gold kalash
+  let y = top + H + 0.35;
+  const tiers: [number, number, string][] = [[3.4, 2.8, ORANGE], [2.8, 2.3, YELLOW], [2.2, 1.8, RED], [1.6, 1.3, ORANGE], [1.1, 0.9, YELLOW]];
+  for (const [w, dd, c] of tiers) {
+    box(g, w, 0.65, dd, c, 0, y + 0.32, 4.6);
+    box(g, w + 0.12, 0.08, dd + 0.12, RED, 0, y + 0.66, 4.6);
+    y += 0.7;
+  }
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(0.55, 14, 10), paint(YELLOW));
+  dome.scale.y = 1.15;
+  dome.position.set(0, y + 0.45, 4.6);
+  g.add(dome);
+  cyl(g, 0.12, 0.2, 0.3, GOLD, 0, y + 1.15, 4.6, 12);
+  const pot = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 8), paint(GOLD));
+  pot.position.set(0, y + 1.42, 4.6);
+  g.add(pot);
+  cyl(g, 0, 0.08, 0.35, GOLD, 0, y + 1.72, 4.6, 10);
+  return g;
+}
+
 export function arena(): THREE.Group {
   const g = new THREE.Group();
   cyl(g, 34, 34, 10, '#e9e7e1', 0, 5, 0, 32);
