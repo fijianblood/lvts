@@ -6,7 +6,8 @@
 // LvTS approves it. Until the server is set up, a visitor's character is kept
 // on their own device and the street shows only the family.
 
-import { ROAD_Y, type XYZ } from './layout.ts';
+import { ROAD_Y, MCFARLANE, type XYZ } from './layout.ts';
+import { SHOPS, SHOP_FRONTS, type ShopKind } from './shops.ts';
 import type { Character, Look } from './characters.ts';
 import { cleanLook, cleanName, type VisitorCharacter, type VisitorLook } from '../../../workers/neighbourhood/src/rules.ts';
 
@@ -17,8 +18,8 @@ declare const __NEIGHBOURHOOD_API__: string | undefined;
 export const API = (typeof __NEIGHBOURHOOD_API__ === 'string' ? __NEIGHBOURHOOD_API__ : '').replace(/\/+$/, '');
 
 // ── The street ─────────────────────────────────────────────────────────────
-/** Where you can walk in explore mode: the road and the footpath across it. */
-export const STREET = { x0: -12, x1: 32, z0: 22.3, z1: 31.6 };
+/** Where you can walk along McFarlane Road in explore mode: the road and the footpath across it (the side road is separate). */
+export const STREET = MCFARLANE;
 /** The shopfronts face the road along this line. */
 export const SHOP_LINE = 31.6;
 const SHOP_DEPTH = 6;
@@ -51,15 +52,19 @@ export interface Offer {
 
 export interface ShopSpot {
   id: string;
-  /** The business's name as it should appear, once it has agreed to be in the game. */
+  /** The business's name as it appears on the sign and its panel. */
   name: string;
-  kind: 'empty' | 'shop' | 'food' | 'church' | 'mosque' | 'temple' | 'mall' | 'community';
+  kind: ShopKind;
   /** Along the street (x, metres). */
   x0: number;
   x1: number;
   /** Wall and sign colours. */
   wall: string;
   sign: string;
+  /** The business's logo in public/neighbourhood/logos/, on the sign board above the front. */
+  logo?: string;
+  logoBg?: string;
+  sub?: string;
   /** A photo of the real shopfront in public/neighbourhood/ (e.g. 'shop-1.jpg'), shown on the front of the building. */
   photo?: string;
   blurb: string;
@@ -67,17 +72,15 @@ export interface ShopSpot {
 }
 
 /**
- * The shops across the road. They are all empty spots for now: no real
- * business is named and no offer is made until a business has agreed to it.
- * To add one, fill in a spot (name, kind, photo, blurb, offers); see the README.
+ * The shops across the road, from the list in shops.ts (add a shop there and
+ * the row grows). Offers go in `OFFERS` below, by shop id, once a business has
+ * agreed to them.
  */
-export const SHOP_SPOTS: ShopSpot[] = [
-  { id: 'spot-1', name: 'Shop spot 1', kind: 'empty', x0: -11, x1: -3.2, wall: '#f4d35e', sign: '#1f2937', blurb: '', offers: [] },
-  { id: 'spot-2', name: 'Shop spot 2', kind: 'empty', x0: -2.4, x1: 5.4, wall: '#9bd3ae', sign: '#14532d', blurb: '', offers: [] },
-  { id: 'spot-3', name: 'Shop spot 3', kind: 'empty', x0: 6.2, x1: 14.0, wall: '#f5a3a3', sign: '#7f1d1d', blurb: '', offers: [] },
-  { id: 'spot-4', name: 'Shop spot 4', kind: 'empty', x0: 14.8, x1: 22.6, wall: '#a5c8f0', sign: '#1e3a8a', blurb: '', offers: [] },
-  { id: 'spot-5', name: 'Shop spot 5', kind: 'empty', x0: 23.4, x1: 31.4, wall: '#d8b4fe', sign: '#4c1d95', blurb: '', offers: [] },
-];
+export const OFFERS: Record<string, Offer[]> = {};
+export const SHOP_SPOTS: ShopSpot[] = SHOPS.map((d, i) => ({
+  id: d.id, name: d.name, kind: d.kind, x0: SHOP_FRONTS[i].x0, x1: SHOP_FRONTS[i].x1, wall: d.wall, sign: d.sign,
+  logo: d.logo, logoBg: d.logoBg, sub: d.sub, blurb: d.blurb, offers: OFFERS[d.id] ?? [],
+}));
 export const shopBox = (s: ShopSpot) => ({ x0: s.x0, x1: s.x1, z0: SHOP_LINE, z1: SHOP_LINE + SHOP_DEPTH, y: ROAD_Y });
 
 /** Is an offer showing today? `today` is YYYY-MM-DD. */

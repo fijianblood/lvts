@@ -13,6 +13,8 @@
 // floor and the driveway falls about 3 m to the road, where the front gate is
 // the way out.
 
+import { SHOP_ROW } from './shops.ts';
+
 export type XZ = [number, number];
 export type XYZ = [number, number, number];
 
@@ -227,6 +229,12 @@ export function heightAt(x: number, z: number): number {
   return groundY(z);
 }
 
+// ── Raiwai, around the house (exploring) ────────────────────────────────────
+/** McFarlane Road runs past the front gate (along x); you can walk it between these ends. */
+export const MCFARLANE = { x0: -62, x1: 162, z0: 22.3, z1: 31.6 };
+/** The side road off McFarlane Road, past the neighbours to the east of the house. It climbs with the ground. */
+export const SIDE_ROAD = { x0: 34, x1: 40, z0: -40 };
+
 // ── Rooms and outdoor areas ─────────────────────────────────────────────────
 // Order matters: roomAt() returns the first match, so stairs and raised floors
 // come before the yards they sit over.
@@ -258,8 +266,12 @@ export const ROOMS: Room[] = [
   { id: 'sidepath', name: 'Side path', x0: -2.7, x1: -0.1, z0: -7.7, z1: 15.4, floor: 'concrete', ceiling: false, outside: true, ground: true, area: true },
   { id: 'frontyard', name: 'Front garden', x0: -2.7, x1: 12.3, z0: 15.4, z1: 21.9, floor: 'grass', ceiling: false, outside: true, ground: true, area: true },
   { id: 'backyard', name: 'Back yard', x0: -2.7, x1: 15.65, z0: -14, z1: -7.7, floor: 'grass', ceiling: false, outside: true, ground: true, area: true },
-  { id: 'road', name: 'The street', x0: -30, x1: 40, z0: 22.5, z1: 29, floor: 'road', ceiling: false, outside: true, ground: true, area: true, explore: true },
-  { id: 'footpath', name: 'The shops', x0: -12, x1: 32, z0: 29, z1: 31.6, floor: 'concrete', ceiling: false, outside: true, ground: true, area: true, explore: true },
+  // Raiwai (exploring): McFarlane Road past the front gate, its footpath and the shops, and the side road beside the neighbours
+  { id: 'road', name: 'McFarlane Road', x0: -70, x1: 170, z0: 22.5, z1: 29, floor: 'road', ceiling: false, outside: true, ground: true, area: true, explore: true },
+  { id: 'footpath', name: 'The shops', x0: SHOP_ROW.x0 - 0.4, x1: SHOP_ROW.x1 + 0.4, z0: 29, z1: 31.6, floor: 'concrete', ceiling: false, outside: true, ground: true, area: true, explore: true },
+  { id: 'footwest', name: 'McFarlane Road', x0: -70, x1: SHOP_ROW.x0 - 0.4, z0: 29, z1: 31.6, floor: 'concrete', ceiling: false, outside: true, ground: true, explore: true },
+  { id: 'footeast', name: 'McFarlane Road', x0: SHOP_ROW.x1 + 0.4, x1: 170, z0: 29, z1: 31.6, floor: 'concrete', ceiling: false, outside: true, ground: true, explore: true },
+  { id: 'sideroad', name: 'Side road', x0: SIDE_ROAD.x0, x1: SIDE_ROAD.x1, z0: SIDE_ROAD.z0, z1: 22.5, floor: 'road', ceiling: false, outside: true, ground: true, area: true, explore: true },
 ];
 
 // The house footprint (interior faces of the exterior walls sit 0.1 inside these).
@@ -623,12 +635,18 @@ export const BARRIERS: Barrier[] = [
   { a: [12.25, 21.9], b: [12.25, 23.8], kind: 'invisible', h: 1, t: 0.1, mode: 'hunt' },
   { a: [15.7, 21.9], b: [15.7, 23.8], kind: 'invisible', h: 1, t: 0.1, mode: 'hunt' },
   { a: [12.25, 23.8], b: [15.7, 23.8], kind: 'invisible', h: 1, t: 0.1, mode: 'hunt' },
-  // exploring: out of the gate onto the street, which runs past the neighbours to the shops across the road
-  { a: [-12, 22.3], b: [-2.7, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // the neighbours' front yards
-  { a: [15.7, 22.3], b: [32, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
-  { a: [-12, 22.3], b: [-12, 31.6], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },    // the ends of the street (for now)
-  { a: [32, 22.3], b: [32, 31.6], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
-  { a: [-12, 31.6], b: [32, 31.6], kind: 'facade', h: 3, t: 0.12, mode: 'explore' },       // the shopfronts
+  // exploring Raiwai: out of the gate onto McFarlane Road, along it both ways, and up the side road
+  { a: [MCFARLANE.x0, 22.3], b: [-2.7, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // the neighbours' front yards
+  { a: [15.7, 22.3], b: [SIDE_ROAD.x0, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
+  { a: [SIDE_ROAD.x1, 22.3], b: [MCFARLANE.x1, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
+  { a: [MCFARLANE.x0, 22.3], b: [MCFARLANE.x0, 31.6], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // the ends of McFarlane Road (for now)
+  { a: [MCFARLANE.x1, 22.3], b: [MCFARLANE.x1, 31.6], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
+  { a: [SHOP_ROW.x0 - 0.4, 31.6], b: [SHOP_ROW.x1 + 0.4, 31.6], kind: 'facade', h: 3, t: 0.12, mode: 'explore' },       // the shopfronts
+  { a: [MCFARLANE.x0, 31.6], b: [SHOP_ROW.x0 - 0.4, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },   // front walls across the road
+  { a: [SHOP_ROW.x1 + 0.4, 31.6], b: [MCFARLANE.x1, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
+  { a: [SIDE_ROAD.x0, SIDE_ROAD.z0], b: [SIDE_ROAD.x0, 22.3], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },   // walls along the side road
+  { a: [SIDE_ROAD.x1, SIDE_ROAD.z0], b: [SIDE_ROAD.x1, 22.3], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
+  { a: [SIDE_ROAD.x0, SIDE_ROAD.z0], b: [SIDE_ROAD.x1, SIDE_ROAD.z0], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // its far end (for now)
 
   // ── places you unlock with stars from chores (each has one way in, shut by a lock until then) ──
   // vegetable garden behind the storeroom: a picket fence, the gate on the west side (z -12.9..-12.1)
@@ -678,6 +696,20 @@ export const TREES: Tree[] = [
   { kind: 'palm', x: 18.4, z: -1, s: 5.6 }, { kind: 'palm', x: 16.9, z: -12, s: 6.4 }, { kind: 'breadfruit', x: 17.6, z: 15.5, s: 1.3 },
   { kind: 'breadfruit', x: 18.2, z: 3.5, s: 1.2 }, { kind: 'bush', x: -4.4, z: 12.5, s: 1.5 }, { kind: 'bush', x: -4.5, z: 0.5, s: 1.2 },
   { kind: 'bush', x: 18.5, z: -9, s: 1.4 }, { kind: 'bush', x: -4.0, z: -9.5, s: 1.5 }, { kind: 'banana', x: -4.2, z: -12.5, s: 1 },
+];
+
+/** Cars and the Nasese bus parked along McFarlane Road (both edges), clear of the gate and the side road. Built along x. */
+export interface Parked { x: number; z: number; kind: 'suv' | 'ute' | 'bus'; color: string; facing: 1 | -1 }
+export const PARKED: Parked[] = [
+  { x: -46, z: 23.5, kind: 'suv', color: '#f2f2f0', facing: 1 },
+  { x: -30, z: 28.0, kind: 'ute', color: '#1d1f22', facing: -1 },
+  { x: -20, z: 23.5, kind: 'suv', color: '#c9ccce', facing: 1 },
+  { x: 25, z: 23.5, kind: 'suv', color: '#f2f2f0', facing: 1 },
+  { x: 52, z: 28.0, kind: 'suv', color: '#4b5157', facing: -1 },
+  { x: 66, z: 23.5, kind: 'ute', color: '#f2f2f0', facing: 1 },
+  { x: 92, z: 27.8, kind: 'bus', color: '#36b45f', facing: -1 },     // the Nasese bus, at the stop by the pool
+  { x: 128, z: 23.5, kind: 'suv', color: '#f2f2f0', facing: 1 },
+  { x: 146, z: 28.0, kind: 'ute', color: '#8a8f94', facing: -1 },
 ];
 
 /** Neighbouring houses, kept plain so they don't copy anyone's real home. */
@@ -743,8 +775,12 @@ PROPS.push(
   box(13.38, B + 2.2, -9.02, 13.42, B + 2.3, -8.98, '#fff7cc', false, { emissive: true }),
   box(11.2, B + 2.5, -10.6, 15.6, B + 2.6, -7.4, '#5f6468'),
 
-  // the van parked across the road (you bump into it when exploring)
+  // the van parked across the road, and the cars and the bus parked along McFarlane Road (you bump into them)
   box(3.3, ROAD_Y, 26.55, 7.7, ROAD_Y + 2.2, 28.25, 'transparent', true),
+  ...PARKED.map((c) => {
+    const [l, w] = c.kind === 'bus' ? [10.5, 2.5] : c.kind === 'ute' ? [5.2, 1.85] : [4.6, 1.85];
+    return box(c.x - l / 2, ROAD_Y, c.z - w / 2, c.x + l / 2, ROAD_Y + 2, c.z + w / 2, 'transparent', true);
+  }),
 
   // the way out: a green sign on the gate pillar
   box(15.2, groundY(21.9) + 1.55, 21.72, 15.7, groundY(21.9) + 1.75, 21.74, '#16a34a', false, { emissive: true, tex: 'exit:-z' }),
