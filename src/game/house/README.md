@@ -138,19 +138,33 @@ on them. Baby Aisha babbles, coos and reaches for cuddles instead of talking.
     logo: 'my-shop.png', blurb: 'What it sells.' },
   ```
 
-  `kind` sets the front: 'supermarket' (long glass front), 'cinema' (tall dark
-  front with posters), 'complex' (two storeys, like Sardaar Complex), 'food',
-  'shop' or 'hardware' (window and door). A shop without a logo gets its name
+  `kind` sets the front and what's inside (see "Walking into the shops"
+  below): 'supermarket' (taller, long windows, double doors), 'complex' (two
+  storeys and a door per unit, like Sardaar Complex), 'food', 'shop' or
+  'hardware' (windows and a door), or 'mall' for a centre that's built in its
+  own file (Garden City, Damodar City). 'cinema' still works but gives a tall
+  front with an empty room. A shop without a logo gets its name
   in letters (`sub` for a second line). **The logos belong to their
   businesses**, so get each business's OK before it goes live.
+- **Walking into the shops.** Every shop on the row has a glass door (two for
+  the supermarkets, one per unit for Sardaar Complex) that opens with E, like
+  the house's doors, and starts shut. Inside, by `kind`: 'food' has a counter
+  with buns, bread shelves, an oven, a menu board and two tables; 'shop' has
+  clothes racks, gift shelves, a counter and a mirror; 'supermarket' has
+  checkouts, baskets, aisles of goods and fridges; 'hardware' has paint
+  shelves, a pegboard of tools and a timber rack; 'complex' has four small
+  units with a counter and shelves each. The insides are plain data in
+  `shopInsides.ts`, which also makes each front (walls, windows, door frames)
+  so the doorway lines up with the door.
 - **Garden City** ('mall', after Sardaar Complex) is different: a shopping
   complex set back behind its own car park, and you can walk in. Its iron
   fence, grey pillars with lanterns and the "Garden City" sign are at the
-  road; through the gate are the car park (a corner fenced off with red water
+  road; through the iron gates (they open with E) are the car park (a corner fenced off with red water
   barriers), a covered walkway and five ground-floor units still being built,
   each with a "coming soon" board (the last one is shut off behind barriers).
-  The second unit is already open: **Westpac**, with its logo over the door
-  and on a red back wall, a counter, two ATMs, chairs and queue posts.
+  The second unit is already open: **Westpac**, through a pair of glass
+  doors, with its logo over the door and on a red back wall, a counter, two
+  ATMs, chairs and queue posts.
   It is all plain data in `gardenCity.ts`; the signs are drawn in
   `textures.ts`, not copied from photos. When shops move in, their signs can
   go on the boards.
@@ -162,9 +176,23 @@ on them. Baby Aisha babbles, coos and reaches for cuddles instead of talking.
   round-topped lamp posts, parked cars. Along the back, a two-storey block of
   eight shops with a glass-fronted walkway upstairs, white pillars and a
   blue-grey roof band, and the cinema at the east end with its logo up high;
-  a smaller block down the west side. **BSP** is open (walk in: its logo on a
-  green wall, a counter, ATMs, chairs); the other shops are coming soon. All
-  in `damodarCity.ts`.
+  a smaller block down the west side. Every ground-floor shop has a glass
+  door that opens with E. **BSP** is open (double doors; its logo on a green
+  wall, a counter, ATMs, chairs); the other shops are coming soon, and inside
+  each is an empty unit being fitted out (a "coming soon" board, boxes, a
+  ladder). **Damodar Cinemas** has double doors into its lobby: a red carpet,
+  the ticket counter, the candy bar with popcorn, film posters, a bench and
+  the two screen doors with green exit lights. All in `damodarCity.ts`.
+- **The LvTS plaque.** Each public building (every shop and unit row,
+  Garden City, Damodar City's two blocks and the cinema, and the USP blocks)
+  carries one small plaque, 0.9 by 0.42 m, about waist to shoulder height by
+  the door: the LvTS logo (the same one as on the house's TV, from
+  `public/logo.jpg`) and "Call 8331088". It is kept small so it never
+  competes with a shop's own sign. Places of worship and the neighbours'
+  houses don't get one. In data it's `lvtsPlaque(x, y, z)` from
+  `shopInsides.ts` (a box with `tex: 'lvts:-z'`; the engine draws the texture
+  once and shares it). A test checks there is one per building, and none on
+  the masjid, temple or church.
 - **Logos on buildings**: a box prop with `tex: 'logo/file.png:-z'` shows that
   logo (from `public/neighbourhood/logos/`) on a sign board filling that face,
   fitted without stretching; `'logo/file.png@#070707:-z'` for a board that
@@ -224,12 +252,13 @@ entrance: the yellow arch with red "OM SHAKTHI · PARA SHAKTHI" lettering
 between two red-and-yellow tiered pillars, the metal gate, strings of
 coloured flags up to tall bamboo poles, and the temple up the slope behind
 (cream with red and saffron bands, a pillared porch, a tiered tower with a
-gold kalash). You can walk up to its gate, not into the grounds.
+gold kalash). Its gate opens with E and you can walk around the grounds
+(the flag poles, up to the base); the temple itself stays shut.
 From the gate, the places along the road to the left (east) are:
 
 - the **Methodist Church** (Raiwai branch), the big A-frame church, set back up the bank with its sign by the road;
 - across the road, the **pool** with its covered stand, the **teal two-storey building**, and the **Lomaiviti Training Ground** with rugby posts;
-- after the training ground, on the same side, the **Raiwai Jame Masjid**: white with teal roofs, on a raised yard behind a teal wall with white pillars and little minaret tops, and steps up from the footpath (you can walk up to it, not in);
+- after the training ground, on the same side, the **Raiwai Jame Masjid**: white with teal roofs, on a raised yard behind a teal wall with white pillars and little minaret tops, and steps up from the footpath to a teal gate that opens with E onto the yard (`MASJID_YARD` in `layout.ts`); the buildings stay shut;
 - the green **Nasese bus** at the stop by the pool, and cars parked along both edges (you bump into them);
 - across from the training ground, the campus of **The University of the South Pacific** (USP), with its entrance sign where McFarlane Road ends to the east;
 - beyond the training ground, the commercial sheds, the arena and stadium lights, and the sea with the reef's surf;
@@ -361,7 +390,9 @@ then `npm run dev` and open `http://localhost:5173/lvts/#house`.
 | `raiwaiPlan.ts` | Where everything in Raiwai goes (plain data, used by the engine, the minimap and the tests). |
 | `raiwai.ts` | Raiwai's 3D pieces: houses, flats, the Methodist Church, the pool, the teal building, the Lomaiviti Training Ground, the Raiwai Jame Masjid, the Howell Road Hindu Temple, sheds, the Nasese bus, cars, power poles, trees. |
 | `gardenCity.ts` | Garden City, the shopping complex being built after Sardaar Complex: plain data for its fence, sign, car park, building, building site and the Westpac branch. |
-| `damodarCity.ts` | Damodar City, the centre across the road: its sign, car park, shops, the BSP branch and Damodar Cinemas. |
+| `damodarCity.ts` | Damodar City, the centre across the road: its sign, car park, shops (with doors and insides), the BSP branch and Damodar Cinemas' lobby. |
+| `shopInsides.ts` | The row of shops across the road, opened up: each front's walls, windows and glass doors, and what's inside by kind. Also `lvtsPlaque()`, the small LvTS logo-and-number plaque. |
+| `uspCampus.ts` | The USP campus you can walk around: its blocks, paths, trees and sign. |
 | `portrait.tsx` | The little portraits on the picker, the HUD and the admin page. |
 | `../../../workers/neighbourhood/` | The Neighbourhood server (Cloudflare Worker); its own README has the setup steps. |
 | `../../pages/NeighbourhoodAdminPage.tsx` | The hidden page for approving characters. |
@@ -377,7 +408,10 @@ then `npm run dev` and open `http://localhost:5173/lvts/#house`.
 `npm run test:game` (Node 22.18 or newer) checks collision, that every part,
 every Golden Chip spot and the exit can be reached with the doors open (walking
 and crawling), that you can never walk off a ledge, that a shut door blocks its
-doorway, that no door or gate swings through furniture, and the prize-code
+doorway, that no door or gate swings through furniture, that each shop, centre,
+bank, the cinema and the temple and masjid grounds can be reached with their
+doors open and not with them shut (and never into the temple or masjid
+buildings), that there's one LvTS plaque per building, and the prize-code
 scrambling and round dates. For jumping, it checks the jump itself (height,
 landing, the ceiling cap, clearing a barrier at a run, walls stopping you),
 and re-runs the walkability checks as if every piece of furniture could be

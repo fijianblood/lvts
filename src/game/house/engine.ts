@@ -24,6 +24,7 @@ import { ChoreSystem, type ChoreCallbacks, type ChoreFocus } from './choreSystem
 import { PLACES } from './chores.ts';
 import { SHOP_SPOTS, SHOP_LINE, VISITOR_SPOTS, shopBox, visitorCharacter, type ShopSpot, type VisitorCharacter } from './neighbourhood.ts';
 import { Minimap } from './minimap.ts';
+import { shopTall } from './shopInsides.ts';
 import { Sfx } from './audio.ts';
 import * as T from './textures.ts';
 import * as R from './raiwai.ts';
@@ -511,6 +512,9 @@ export class HouseEngine {
     // furniture
     const glow: THREE.BufferGeometry[] = [];
     for (const prim of PROPS) this.addPrim(prim, solid, glow);
+    // the signs drawn in code (coming-soon boards, the LvTS plaques…): one mesh per texture
+    for (const [name, list] of this.namedPlanes) this.scene.add(new THREE.Mesh(mergeGeometries(list), new THREE.MeshStandardMaterial({ map: this.named.get(name) })));
+    this.namedPlanes.clear();
     if (glow.length) this.scene.add(new THREE.Mesh(mergeGeometries(glow), new THREE.MeshBasicMaterial({ color: '#fffdf5' })));
 
     // the bedroom-3 fan head, animated
@@ -610,7 +614,7 @@ export class HouseEngine {
     if (prim.kind === 'box') {
       if (prim.color === 'transparent') return;
       const [x0, y0, z0] = prim.min, [x1, y1, z1] = prim.max;
-      if (prim.tex) { this.addTexturedBox(prim); return; }
+      if (prim.tex) { this.addTexturedBox(prim, solid); return; }
       if (prim.emissive) { glow.push(boxGeo(x0, y0, z0, x1, y1, z1)); return; }
       push(solid, prim.color, prim.plain ? boxGeo(x0, y0, z0, x1, y1, z1) : furnBox(x0, y0, z0, x1, y1, z1));
       return;
@@ -632,6 +636,33 @@ export class HouseEngine {
     );
     cone.position.set(prim.base[0], prim.base[1] + prim.h / 2, prim.base[2]);
     this.scene.add(cone);
+  }
+
+  /** The small LvTS plaque on the buildings: the logo (as on the TV) and the number, white, with a thin border. */
+  private lvtsPlaque(): THREE.Texture {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512; canvas.height = 240;
+    const g = canvas.getContext('2d')!;
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 4;
+    const draw = (logo?: HTMLImageElement) => {
+      g.fillStyle = '#ffffff'; g.fillRect(0, 0, 512, 240);
+      g.strokeStyle = '#c9d3e6'; g.lineWidth = 6; g.strokeRect(3, 3, 506, 234);
+      if (logo) {
+        const s = Math.min(470 / logo.width, 140 / logo.height), lw = logo.width * s, lh = logo.height * s;
+        g.drawImage(logo, (512 - lw) / 2, 18 + (140 - lh) / 2, lw, lh);
+      }
+      g.fillStyle = '#1b2a5c'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = '800 46px "Space Grotesk", Arial, sans-serif';
+      g.fillText('Call 8331088', 256, 196);
+      tex.needsUpdate = true;
+    };
+    draw();
+    const img = new Image();
+    img.onload = () => { draw(img); this.kick(); };
+    img.src = `${this.opts.baseUrl}logo.jpg`;
+    return tex;
   }
 
   /** One texture per name, however many boxes show it (Garden City's signs). */
@@ -659,10 +690,29 @@ export class HouseEngine {
     this.scene.add(board);
   }
 
-  private addTexturedBox(prim: Extract<Prim, { kind: 'box' }>) {
+  /** Planes showing a shared sign texture, by texture name, merged into one mesh each once the props are built. */
+  private namedPlanes = new Map<string, THREE.BufferGeometry[]>();
+
+  private addTexturedBox(prim: Extract<Prim, { kind: 'box' }>, solid?: Buckets) {
     const [x0, y0, z0] = prim.min, [x1, y1, z1] = prim.max;
     const [name, face] = (prim.tex ?? '').split(':');
     if (name.startsWith('logo/')) { this.addLogoBox(prim, name.slice(5), face); return; }
+    if (solid && !prim.emissive && (name in NAMED_TEX || name === 'lvts')) {
+      // a shared sign: its box joins the colour buckets, its face waits to be merged with the others like it
+      this.namedTex(name, name === 'lvts' ? () => this.lvtsPlaque() : NAMED_TEX[name]);
+      push(solid, prim.color, boxGeo(x0, y0, z0, x1, y1, z1));
+      const w = face.endsWith('x') ? z1 - z0 : x1 - x0, h = y1 - y0, e = 0.004;
+      const g = new THREE.PlaneGeometry(w, h);
+      const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, cz = (z0 + z1) / 2;
+      if (face === '+x') g.rotateY(Math.PI / 2).translate(x1 + e, cy, cz);
+      else if (face === '-x') g.rotateY(-Math.PI / 2).translate(x0 - e, cy, cz);
+      else if (face === '+z') g.translate(cx, cy, z1 + e);
+      else g.rotateY(Math.PI).translate(cx, cy, z0 - e);
+      const list = this.namedPlanes.get(name) ?? [];
+      list.push(g);
+      this.namedPlanes.set(name, list);
+      return;
+    }
     let tex: THREE.Texture;
     if (name === 'tv') {
       tex = this.tex(new THREE.TextureLoader().load(`${this.opts.baseUrl}logo.jpg`));
@@ -672,6 +722,7 @@ export class HouseEngine {
     else if (name === 'exit') tex = this.tex(T.exitSign());
     else if (name === 'clock') { this.clock = T.clockFace(); tex = this.tex(this.clock.tex); }
     else if (name in NAMED_TEX) tex = this.namedTex(name, NAMED_TEX[name]);
+    else if (name === 'lvts') tex = this.namedTex(name, () => this.lvtsPlaque());
     else tex = this.tex(T.ceiling());
     const box = new THREE.Mesh(boxGeo(x0, y0, z0, x1, y1, z1), prim.emissive ? new THREE.MeshBasicMaterial({ color: prim.color }) : paint(prim.color));
     this.scene.add(box);
@@ -821,6 +872,16 @@ export class HouseEngine {
       const top = door.height ?? DOOR_TOP;
       if (door.style === 'grille' || door.style === 'bars') {
         pivot.add(new THREE.Mesh(gateGeo(door.width, top, door.style), paint(door.color)));
+      } else if (door.style === 'glass') {
+        // a shop door: a dark frame round a pane of glass, a push bar on each face
+        const fw = 0.06, frame = [
+          boxGeo(0.01, 0.01, -0.025, door.width - 0.01, 0.12, 0.025), boxGeo(0.01, top - 0.08, -0.025, door.width - 0.01, top - 0.01, 0.025),
+          boxGeo(0.01, 0.01, -0.025, 0.01 + fw, top - 0.01, 0.025), boxGeo(door.width - 0.01 - fw, 0.01, -0.025, door.width - 0.01, top - 0.01, 0.025),
+          ...[-1, 1].map((side) => boxGeo(0.12, 1.0, side * 0.045 - 0.012, door.width - 0.12, 1.04, side * 0.045 + 0.012)),
+        ];
+        pivot.add(new THREE.Mesh(mergeGeometries(frame), paint(door.color)));
+        const pane = new THREE.MeshStandardMaterial({ color: C.glass, transparent: true, opacity: 0.22, roughness: 0.08, envMapIntensity: 0.35, depthWrite: false, side: THREE.DoubleSide });
+        pivot.add(new THREE.Mesh(boxGeo(0.01 + fw, 0.12, -0.006, door.width - 0.01 - fw, top - 0.08, 0.006), pane));
       } else {
         pivot.add(new THREE.Mesh(boxGeo(0.02, 0.01, -0.02, door.width - 0.02, top - 0.02, 0.02), paint(door.color, surfaceFor(door.color))));
         const knobs = [-1, 1].map((side) => new THREE.SphereGeometry(0.03, 8, 6).translate(door.width - 0.09, 1.0, side * 0.045));
@@ -867,6 +928,7 @@ export class HouseEngine {
 
     // stairs: one box per step, from below the ground up to the step's mid height
     for (const r of RAMPS) {
+      if (r.style === 'drawn') continue;            // its builder draws these steps (the masjid's)
       const n = Math.max(2, Math.round(Math.abs(r.y1 - r.y0) / 0.17));
       for (let k = 0; k < n; k++) {
         const za = r.z0 + ((r.z1 - r.z0) * k) / n, zb = r.z0 + ((r.z1 - r.z0) * (k + 1)) / n;
@@ -1085,35 +1147,14 @@ export class HouseEngine {
       if (sp.kind === 'mall') continue;          // Garden City is built from its props (gardenCity.ts)
       const b = shopBox(sp);
       const mid = (b.x0 + b.x1) / 2, w = b.x1 - b.x0;
-      const tall = sp.kind === 'complex' ? 7.4 : sp.kind === 'cinema' ? 6.2 : sp.kind === 'supermarket' ? 5.2 : 4.2;
-      push(out, sp.wall, boxGeo(b.x0, b.y - 0.3, b.z0 + 0.06, b.x1, b.y + tall, b.z1));
+      // the walls, windows, doors and insides are shopInsides.ts's props; here the parapet, awning and sign
+      const tall = shopTall(sp.kind);
       push(out, '#e5e7eb', boxGeo(b.x0 - 0.05, b.y + tall, b.z0, b.x1 + 0.05, b.y + tall + 0.25, b.z1 + 0.05));     // parapet
       if (sp.kind === 'complex') { this.buildComplex(sp, out); continue; }
       // awning in stripes
       for (let i = 0; i < 8; i++) {
         const x0 = b.x0 + (w * i) / 8, x1 = b.x0 + (w * (i + 1)) / 8;
         push(out, i % 2 ? '#ffffff' : sp.sign, boxGeo(x0, b.y + 2.55, b.z0 - 1.1, x1, b.y + 2.62, b.z0 + 0.06));
-      }
-      if (sp.photo) {
-        const tex = this.tex(new THREE.TextureLoader().load(`${import.meta.env.BASE_URL}neighbourhood/${sp.photo}`));
-        tex.colorSpace = THREE.SRGBColorSpace;
-        const front = new THREE.Mesh(new THREE.PlaneGeometry(w - 0.4, 2.45), new THREE.MeshBasicMaterial({ map: tex }));
-        front.rotation.y = Math.PI;
-        front.position.set(mid, b.y + 1.27, b.z0 + 0.02);
-        this.scene.add(front);
-      } else if (sp.kind === 'supermarket') {
-        // a long glass front with an entrance in the middle
-        push(out, '#bfe0ee', boxGeo(b.x0 + 0.4, b.y + 0.15, b.z0 + 0.03, b.x1 - 0.4, b.y + 2.4, b.z0 + 0.06));
-        for (let x = b.x0 + 1.6; x < b.x1 - 0.5; x += 1.6) push(out, '#9aa3aa', boxGeo(x - 0.04, b.y + 0.15, b.z0 + 0.01, x + 0.04, b.y + 2.4, b.z0 + 0.03));
-        push(out, '#3b4045', boxGeo(mid - 1.0, b.y, b.z0 + 0.0, mid + 1.0, b.y + 2.3, b.z0 + 0.02));
-      } else if (sp.kind === 'cinema') {
-        // a tall dark front: poster boxes either side of the doors
-        for (const sx of [-1, 1]) push(out, '#f3d36b', boxGeo(mid + sx * 3.2 - 0.9, b.y + 0.6, b.z0 + 0.02, mid + sx * 3.2 + 0.9, b.y + 2.9, b.z0 + 0.04));
-        push(out, '#c9ced2', boxGeo(mid - 1.4, b.y, b.z0 + 0.02, mid + 1.4, b.y + 2.4, b.z0 + 0.05));
-      } else {
-        push(out, '#cfe8f5', boxGeo(b.x0 + 0.5, b.y + 0.6, b.z0 + 0.03, mid - 0.7, b.y + 2.2, b.z0 + 0.06));
-        push(out, '#cfe8f5', boxGeo(mid + 0.7, b.y + 0.6, b.z0 + 0.03, b.x1 - 0.5, b.y + 2.2, b.z0 + 0.06));
-        push(out, '#6b4a2b', boxGeo(mid - 0.55, b.y, b.z0 + 0.02, mid + 0.55, b.y + 2.25, b.z0 + 0.06));
       }
       // the sign board: the logo if there is one, otherwise the name in letters
       const signY = b.y + Math.min(tall - 0.85, 3.6);
@@ -1163,23 +1204,12 @@ export class HouseEngine {
     return g;
   }
 
-  /** Sardaar Complex: two storeys, roller shutters below, red sign bands, barred windows upstairs, its name on a white panel. */
+  /** Sardaar Complex's upper storey: red sign bands, barred windows between pillars, its name on a white panel. */
   private buildComplex(sp: ShopSpot, out: Buckets) {
     const b = shopBox(sp);
     const w = b.x1 - b.x0, z = b.z0;
     const red = sp.sign;
-    // ground floor: shutters, and one shop open with posters in its window
-    const n = 4;
-    for (let i = 0; i < n; i++) {
-      const x0 = b.x0 + 0.3 + (i * (w - 0.6)) / n, x1 = b.x0 + 0.3 + ((i + 1) * (w - 0.6)) / n - 0.25;
-      if (i === n - 1) {
-        push(out, '#f3d36b', boxGeo(x0, b.y + 2.5, z - 0.04, x1, b.y + 2.85, z + 0.02));       // a yellow band over it
-        for (let k = 0; k < 3; k++) push(out, ['#6fa8dc', '#22313f', '#e8ecef'][k], boxGeo(x0 + 0.15 + k * (x1 - x0 - 0.3) / 3, b.y + 0.4, z + 0.02, x0 + 0.1 + (k + 1) * (x1 - x0 - 0.3) / 3, b.y + 2.3, z + 0.05));
-      } else {
-        push(out, '#c7cbcf', boxGeo(x0, b.y + 0.02, z + 0.02, x1, b.y + 2.6, z + 0.05));
-        for (let y = b.y + 0.2; y < b.y + 2.6; y += 0.18) push(out, '#a9aeb3', boxGeo(x0, y, z + 0.0, x1, y + 0.03, z + 0.02));
-      }
-    }
+    // the ground floor's four shops (glass fronts, doors, insides) are shopInsides.ts's props
     push(out, red, boxGeo(b.x0 - 0.1, b.y + 2.9, z - 0.25, b.x1 + 0.1, b.y + 3.8, z + 0.06));      // the first sign band
     // upstairs: three barred windows between pillars
     for (let i = 0; i < 3; i++) {

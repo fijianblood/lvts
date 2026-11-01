@@ -8,8 +8,11 @@
 //
 // Pure data, no three.js: layout.ts adds the rooms, barriers, props and parked
 // cars; the engine draws the props (the signs are textures named in `tex`).
-import type { Prim, Barrier, Room, Parked, XZ } from './layout.ts';
+import type { Prim, Barrier, Room, Parked, Door, XZ } from './layout.ts';
 import { SHOP_FRONTS } from './shops.ts';
+import { lvtsPlaque } from './shopInsides.ts';
+
+const HALF_PI = Math.PI / 2;
 
 const front = SHOP_FRONTS.find((f) => f.id === 'garden-city');
 
@@ -44,9 +47,9 @@ const cyl = (x: number, y: number, z: number, r: number, h: number, color: strin
   ({ kind: 'cyl', base: [x, y, z], r, h, color, solid, seg, top });
 
 /** Garden City's rooms, barriers, props and parked cars, on ground at height `y` (the road). */
-export function gardenCity(y: number): { rooms: Room[]; barriers: Barrier[]; props: Prim[]; parked: Parked[] } {
+export function gardenCity(y: number): { rooms: Room[]; barriers: Barrier[]; props: Prim[]; parked: Parked[]; doors: Door[] } {
   const P = GARDEN_CITY;
-  if (!P) return { rooms: [], barriers: [], props: [], parked: [] };
+  if (!P) return { rooms: [], barriers: [], props: [], parked: [], doors: [] };
   const { x0, x1, z0: F, walk: W, build: Bf, z1: Bk } = P;
   const [g0, g1] = P.gate;
   const uw = (x1 - x0) / P.units;
@@ -87,12 +90,12 @@ export function gardenCity(y: number): { rooms: Room[]; barriers: Barrier[]; pro
     box(x0 + 5.75, y, F - 0.08, x0 + 8.45, y + 2.45, F + 0.08, '#5b6066', true, { tex: 'gcboard:-z' }),
     box(x0 + 5.35, y + 2.5, F - 0.12, x0 + 8.85, y + 3.4, F + 0.12, '#f7f7f4', false, { tex: 'gcsign:-z' }),
   );
-  // the gates, swung open into the car park
-  for (const gx of [g0 + 0.08, g1 - 0.08]) {
-    for (let z = F + 0.35; z <= F + 3.0; z += 0.16) add(cyl(gx, y + 0.1, z, 0.016, 1.75, BLACK, false, 4));
-    for (const h of [0.1, 0.95, 1.8]) add(box(gx - 0.025, y + h, F + 0.35, gx + 0.025, y + h + 0.05, F + 3.0, BLACK));
-    add(box(gx - 0.05, y, F + 0.35, gx + 0.05, y + 1.9, F + 3.0, 'transparent', true));
-  }
+  // the gates: a pair of iron leaves between the gate pillars, opened with E (they swing into the car park)
+  const gw = (g1 - g0) / 2;
+  const doors: Door[] = [
+    { kind: 'hinged', id: 'gc-gate-l', label: 'Garden City gate', hinge: [g0, F], width: gw, closed: 0, swing: HALF_PI, color: BLACK, exterior: true, style: 'bars', height: 1.8, base: y, pair: 'gc-gate-r' },
+    { kind: 'hinged', id: 'gc-gate-r', label: 'Garden City gate', hinge: [g1, F], width: gw, closed: Math.PI, swing: -HALF_PI, color: BLACK, exterior: true, style: 'bars', height: 1.8, base: y, pair: 'gc-gate-l' },
+  ];
   // a sign inside the gate, and a potted palm in each front corner
   add(
     box(g1 + 1.0, y + 0.9, F + 1.4, g1 + 2.2, y + 1.7, F + 1.45, '#f6c21c', false, { tex: 'gcbuild:-z' }),
@@ -132,6 +135,7 @@ export function gardenCity(y: number): { rooms: Room[]; barriers: Barrier[]; pro
     box(x0, y + 3.8, Bf + 0.4, x1, y + 7.0, Bk, '#e3e5e6'),                       // upstairs
     box(x0 - 0.1, y + 7.0, Bf + 0.2, x1 + 0.1, y + 7.6, Bk + 0.1, '#f2f3f1'),     // parapet
     box(x0 + 3, y + 7.05, Bf + 0.14, x1 - 3, y + 7.55, Bf + 0.2, '#4f9a3a', false, { tex: 'gcbanner:-z' }),
+    lvtsPlaque(x1 - 1.4, y + 3.44, W - 0.055),                                    // the LvTS plaque, on the canopy's edge
     box(x0, y, Bf, x0 + 0.2, y + 3.5, Bk, BLOCK), box(x1 - 0.2, y, Bf, x1, y + 3.5, Bk, BLOCK),   // side walls
     box(x0, y, Bk - 0.2, x1, y + 3.5, Bk, BLOCK),                                                 // back wall
   );
@@ -185,7 +189,7 @@ export function gardenCity(y: number): { rooms: Room[]; barriers: Barrier[]; pro
       box(u + 1.0, y + 2.0, Bk - 0.27, u1 - 1.0, y + 2.9, Bk - 0.24, '#ffffff', false, { tex: 'logo/westpac.png:-z' }),
       // the shopfront: glass either side of an open doorway, a white band with the logo
       box(u + 0.25, y, fz, mid - 0.9, y + 2.7, fz + 0.06, '#bfe0ee', true), box(mid + 0.9, y, fz, u1 - 0.25, y + 2.7, fz + 0.06, '#bfe0ee', true),
-      box(mid - 0.9, y + 2.3, fz, mid + 0.9, y + 2.7, fz + 0.06, '#bfe0ee'),
+      box(mid - 0.9, y + 2.3, fz, mid + 0.9, y + 2.7, fz + 0.06, '#bfe0ee'),                  // over the double glass doors (below)
       box(mid - 0.95, y, fz - 0.02, mid - 0.85, y + 2.7, fz + 0.08, '#3b3f44'), box(mid + 0.85, y, fz - 0.02, mid + 0.95, y + 2.7, fz + 0.08, '#3b3f44'),
       box(u + 0.25, y + 2.7, fz - 0.04, u1 - 0.25, y + 3.48, fz + 0.06, '#ffffff'),
       box(u + 0.6, y + 2.76, fz - 0.07, u1 - 0.6, y + 3.42, fz - 0.04, '#ffffff', false, { tex: 'logo/westpac.png:-z' }),
@@ -209,6 +213,10 @@ export function gardenCity(y: number): { rooms: Room[]; barriers: Barrier[]; pro
     // chairs along the right wall, queue posts with a red belt in front of the counter
     for (const z of [49.4, 50.2, 51.0]) add(box(u1 - 0.65, y + 0.44, z, u1 - 0.2, y + 0.49, z + 0.55, '#3b3f44', true), box(u1 - 0.24, y + 0.49, z, u1 - 0.2, y + 0.95, z + 0.55, '#3b3f44'));
     for (const x of [u + 1.2, mid, u1 - 1.8]) add(cyl(x, y, 52.4, 0.035, 0.95, '#c0c4c8', true, 8), cyl(x, y, 52.4, 0.15, 0.03, '#3b3f44', false, 10));
+    doors.push(
+      { kind: 'hinged', id: 'gc-westpac-l', label: 'Westpac door', hinge: [mid - 0.9, fz + 0.03], width: 0.9, closed: 0, swing: HALF_PI, color: '#3b3f44', exterior: true, style: 'glass', height: 2.3, base: y, pair: 'gc-westpac-r' },
+      { kind: 'hinged', id: 'gc-westpac-r', label: 'Westpac door', hinge: [mid + 0.9, fz + 0.03], width: 0.9, closed: Math.PI, swing: -HALF_PI, color: '#3b3f44', exterior: true, style: 'glass', height: 2.3, base: y, pair: 'gc-westpac-l' },
+    );
     add(box(u + 1.2, y + 0.85, 52.39, u1 - 1.8, y + 0.9, 52.41, RED_W));
   }
   {
@@ -268,5 +276,5 @@ export function gardenCity(y: number): { rooms: Room[]; barriers: Barrier[]; pro
     { x: x0 + 19.5, z: 41.7, kind: 'suv', color: '#2f4a7a', facing: 1, across: true },
   ];
 
-  return { rooms, barriers, props, parked };
+  return { rooms, barriers, props, parked, doors };
 }
