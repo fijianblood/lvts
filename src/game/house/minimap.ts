@@ -1,14 +1,15 @@
 // The minimap: a plan of the house and compound hidden under fog, cleared by
 // what the player can actually see (rays stopped by walls and shut doors),
 // with a breadcrumb trail of the path walked.
-import { ROOMS, WALLS, BARRIERS, EXIT_ZONE, barrierRect, barrierBlocksSight, type WallRun, type Rect, type Room, type GameMode } from './layout.ts';
+import { ROOMS, WALLS, BARRIERS, EXIT_ZONE, MCFARLANE, barrierRect, barrierBlocksSight, type WallRun, type Rect, type Room, type GameMode } from './layout.ts';
+import { GARDEN_CITY } from './gardenCity.ts';
 import { SHOP_SPOTS, shopBox } from './neighbourhood.ts';
 import { PLAN, ROAD_LABELS, footprint } from './raiwaiPlan.ts';
 import { PARKED } from './layout.ts';
 import type { OBB } from './collision.ts';
 
-/** The map covers the compound and the part of Raiwai you can walk (McFarlane Road, the side road). */
-const B = { x0: -64.0, x1: 166.0, z0: -44.0, z1: 42.0 };
+/** The map covers the compound and the part of Raiwai you can walk (McFarlane Road, the side road, Garden City). */
+const B = { x0: -64.0, x1: MCFARLANE.x1 + 6, z0: -44.0, z1: Math.max(42, (GARDEN_CITY?.z1 ?? 0) + 2) };
 /** The big map in the hunt shows just the compound. */
 const HUNT_FRAME = { x0: -4.0, x1: 17.0, z0: -15.0, z1: 24.5 };
 const PPM = 10;              // base-map pixels per metre
@@ -142,7 +143,7 @@ export class Minimap {
       }
     }
     // Raiwai: houses, the church, the pool, the training ground (what's on the map's patch), and parked cars
-    const ink: Partial<Record<string, string>> = { church: '#f4f3ef', pool: '#7fcfe3', field: '#c8c08f', teal: '#2fbf9f' };
+    const ink: Partial<Record<string, string>> = { church: '#f4f3ef', pool: '#7fcfe3', field: '#c8c08f', teal: '#2fbf9f', masjid: '#2a9d99' };
     for (const it of PLAN) {
       const f = footprint(it);
       if (f.x1 < B.x0 || f.x0 > B.x1 || f.z1 < B.z0 || f.z0 > B.z1) continue;
@@ -154,11 +155,13 @@ export class Minimap {
     g.fillStyle = 'rgba(15,23,42,0.6)';
     for (const c of PARKED) {
       const [l, w] = c.kind === 'bus' ? [10.5, 2.5] : [4.8, 1.85];
+      const [dx, dz] = c.across ? [w, l] : [l, w];
       g.fillStyle = c.kind === 'bus' ? '#36b45f' : 'rgba(15,23,42,0.6)';
-      g.fillRect(this.mx(c.x - l / 2), this.my(c.z - w / 2), l * PPM, w * PPM);
+      g.fillRect(this.mx(c.x - dx / 2), this.my(c.z - dz / 2), dx * PPM, dz * PPM);
     }
     // the shops across the road
     for (const sp of SHOP_SPOTS) {
+      if (sp.kind === 'mall') continue;           // Garden City: its rooms and walls are drawn above
       const b = shopBox(sp);
       g.fillStyle = sp.wall;
       g.fillRect(this.mx(b.x0), this.my(b.z0), (b.x1 - b.x0) * PPM, (b.z1 - b.z0) * PPM);

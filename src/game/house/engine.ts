@@ -12,7 +12,7 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import {
   C, ROOMS, WALLS, DOORS, WINDOWS, PROPS, COLLECTIBLES, GOLDEN_SPOTS, SPAWN, EXIT_ZONE, POSTER,
-  BARRIERS, TREES, NEIGHBOURS, RAMPS, NPC_SPOTS, CAT_SPOT, BACK_Y, ROAD_Y, GROUND_BREAKS, PARKED,
+  BARRIERS, TREES, NEIGHBOURS, RAMPS, NPC_SPOTS, CAT_SPOT, BACK_Y, ROAD_Y, GROUND_BREAKS, PARKED, MCFARLANE,
   WALL_H, CEIL_H, DOOR_TOP, roomAt, groundY, heightAt,
   type GameMode, type WallRun, type Prim, type Door, type HingedDoor, type WindowSpec, type Room, type XYZ, type Barrier, type NpcSpot,
 } from './layout.ts';
@@ -77,6 +77,10 @@ const REACH = 1.8;
 const PICKUP = 0.85;
 const LOOK = 0.0022;
 const AREAS = ROOMS.filter((r) => r.area);
+/** Garden City's signs, by the name its props give in `tex`. */
+const GC_TEX: Record<string, () => THREE.Texture> = {
+  gcsign: T.gardenCitySign, gcboard: T.gardenCityBoard, gcbanner: T.comingSoonBanner, gcbuild: T.constructionSign, gcsoon: T.shopComingSoon,
+};
 const DEFAULT_SIGHT = 5.5;
 
 // ── geometry helpers ────────────────────────────────────────────────────────
@@ -601,7 +605,7 @@ export class HouseEngine {
       const [x0, y0, z0] = prim.min, [x1, y1, z1] = prim.max;
       if (prim.tex) { this.addTexturedBox(prim); return; }
       if (prim.emissive) { glow.push(boxGeo(x0, y0, z0, x1, y1, z1)); return; }
-      push(solid, prim.color, furnBox(x0, y0, z0, x1, y1, z1));
+      push(solid, prim.color, prim.plain ? boxGeo(x0, y0, z0, x1, y1, z1) : furnBox(x0, y0, z0, x1, y1, z1));
       return;
     }
     if (prim.kind === 'cyl') {
@@ -623,6 +627,14 @@ export class HouseEngine {
     this.scene.add(cone);
   }
 
+  /** One texture per name, however many boxes show it (Garden City's signs). */
+  private named = new Map<string, THREE.Texture>();
+  private namedTex(name: string, make: () => THREE.Texture) {
+    let t = this.named.get(name);
+    if (!t) { t = this.tex(make()); this.named.set(name, t); }
+    return t;
+  }
+
   private addTexturedBox(prim: Extract<Prim, { kind: 'box' }>) {
     const [x0, y0, z0] = prim.min, [x1, y1, z1] = prim.max;
     const [name, face] = (prim.tex ?? '').split(':');
@@ -634,6 +646,7 @@ export class HouseEngine {
     else if (name === 'welcome') tex = this.tex(T.welcomeSign());
     else if (name === 'exit') tex = this.tex(T.exitSign());
     else if (name === 'clock') { this.clock = T.clockFace(); tex = this.tex(this.clock.tex); }
+    else if (name in GC_TEX) tex = this.namedTex(name, GC_TEX[name]);
     else tex = this.tex(T.ceiling());
     const box = new THREE.Mesh(boxGeo(x0, y0, z0, x1, y1, z1), prim.emissive ? new THREE.MeshBasicMaterial({ color: prim.color }) : paint(prim.color));
     this.scene.add(box);
@@ -879,7 +892,7 @@ export class HouseEngine {
     });
     // the shops across the road, and the centre line all along McFarlane Road
     this.buildShops(out);
-    for (let x = -68; x < 168; x += 3) push(out, '#f1f1ec', boxGeo(x, ROAD_Y + 0.006, 25.7, x + 1.5, ROAD_Y + 0.012, 25.8));
+    for (let x = -68; x < MCFARLANE.x1 + 6; x += 3) push(out, '#f1f1ec', boxGeo(x, ROAD_Y + 0.006, 25.7, x + 1.5, ROAD_Y + 0.012, 25.8));
     const v = van();
     v.position.set(5.5, ROAD_Y, 27.4);
     bake(v, out, this.scene);
@@ -902,6 +915,7 @@ export class HouseEngine {
       case 'pool': g = R.publicPool(); break;
       case 'teal': g = R.tealBuilding(); break;
       case 'field': g = R.sportsField(it.w, it.d); break;
+      case 'masjid': g = R.jameMasjid(); break;
       case 'shed': g = R.shed(it.w, it.d, it.roof); break;
       case 'arena': g = R.arena(); break;
       default: g = R.floodlight();
@@ -950,7 +964,8 @@ export class HouseEngine {
     for (const c of PARKED) {
       const v = c.kind === 'bus' ? R.greenBus() : R.car(c.kind, c.color);
       v.position.set(c.x, ROAD_Y, c.z);
-      v.rotation.y = c.facing > 0 ? 0 : Math.PI;
+      // built along +x; nosed into a bay along z in Garden City's car park
+      v.rotation.y = c.across ? (c.facing > 0 ? -Math.PI / 2 : Math.PI / 2) : c.facing > 0 ? 0 : Math.PI;
       bake(v, near, this.raiwaiNear);
     }
 
@@ -1033,6 +1048,7 @@ export class HouseEngine {
    */
   private buildShops(out: Buckets) {
     for (const sp of SHOP_SPOTS) {
+      if (sp.kind === 'mall') continue;          // Garden City is built from its props (gardenCity.ts)
       const b = shopBox(sp);
       const mid = (b.x0 + b.x1) / 2, w = b.x1 - b.x0;
       const tall = sp.kind === 'complex' ? 7.4 : sp.kind === 'cinema' ? 6.2 : sp.kind === 'supermarket' ? 5.2 : 4.2;

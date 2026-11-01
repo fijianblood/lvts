@@ -613,7 +613,7 @@ export default function HouseGame() {
             ) : (
               <>
                 {shop.blurb && <p className="hh-chores-note">{shop.blurb}</p>}
-                {offers.length === 0 && <p className="hh-chores-note">No offers right now. Check back soon!</p>}
+                {offers.length === 0 && shop.kind !== 'mall' && <p className="hh-chores-note">No offers right now. Check back soon!</p>}
                 <ul className="hh-chore-list">
                   {offers.map((o) => {
                     const open = offerUnlocked(o, { stars: chores?.stars ?? 0, golden });

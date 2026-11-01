@@ -291,6 +291,102 @@ export function tealBuilding(): THREE.Group {
   return g;
 }
 
+let masjidSign: THREE.CanvasTexture | undefined;
+
+/**
+ * The Raiwai Jame Masjid, from a photo: white, two storeys, teal hipped roofs
+ * and trim, its name across the front under the eaves. It stands on a raised
+ * yard behind a teal wall and railings, with white pillars topped by little
+ * minarets, and steps come up from the footpath through a gap in the wall.
+ * The plot is 16 m by 14 m; the steps stand out 1 m in front of it.
+ */
+export function jameMasjid(): THREE.Group {
+  const g = new THREE.Group();
+  const TEAL = '#1f8f8c', TEAL_DARK = '#17706d', WHITE = '#f4f5f2';
+  const LIFT = 1.2, FZ = -6.9;            // the yard's height behind the front wall, and the wall's line
+  const SX0 = -4.1, SX1 = -2.5;           // the steps, in a gap in the wall
+  const wallH = LIFT + 0.15;
+
+  // the raised yard, and the teal walls round it
+  box(g, 15.6, LIFT, 13.7, '#7aa35a', 0, LIFT / 2, 0.1);
+  box(g, SX0 + 8, wallH, 0.3, TEAL, (SX0 - 8) / 2, wallH / 2, FZ);
+  box(g, 8 - SX1, wallH, 0.3, TEAL, (SX1 + 8) / 2, wallH / 2, FZ);
+  for (const s of [-1, 1]) box(g, 0.3, wallH, 14, TEAL, s * 7.85, wallH / 2, 0);
+  box(g, 16, wallH, 0.3, TEAL, 0, wallH / 2, 6.95);
+  // teal railings on top of the walls (along x or z), from `y` up
+  const railing = (ax: number, az: number, bx: number, bz: number, y: number) => {
+    const alongX = az === bz, len = alongX ? bx - ax : bz - az;
+    for (const h of [0.08, 0.9]) box(g, alongX ? len : 0.05, 0.05, alongX ? 0.05 : len, TEAL, (ax + bx) / 2, y + h, (az + bz) / 2);
+    const n = Math.max(1, Math.round(len / 0.14));
+    for (let i = 1; i < n; i++) box(g, 0.03, 0.82, 0.03, TEAL, alongX ? ax + (len * i) / n : ax, y + 0.49, alongX ? az : az + (len * i) / n);
+  };
+  railing(-8, FZ, SX0, FZ, wallH); railing(SX1, FZ, 8, FZ, wallH);
+  railing(-7.85, FZ, -7.85, 6.9, wallH); railing(7.85, FZ, 7.85, 6.9, wallH);
+  // white pillars along the front, each topped with a little minaret
+  for (const x of [-7.85, -6.1, SX0 - 0.2, SX1 + 0.2, 0.6, 3.4, 6.0, 7.85]) {
+    box(g, 0.42, 2.5, 0.42, WHITE, x, 1.25, FZ);
+    box(g, 0.56, 0.12, 0.56, WHITE, x, 2.56, FZ);
+    cyl(g, 0.12, 0.14, 0.42, WHITE, x, 2.83, FZ, 10);
+    cyl(g, 0.17, 0.17, 0.06, WHITE, x, 3.07, FZ, 10);
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), paint(WHITE));
+    dome.scale.y = 1.2;
+    dome.position.set(x, 3.24, FZ);
+    g.add(dome);
+    cyl(g, 0, 0.05, 0.2, WHITE, x, 3.5, FZ, 8);
+  }
+  // the steps up from the footpath, with teal handrails, and a path to the door
+  const STEPS = 6, s0 = -8.0, s1 = -6.75;
+  for (let i = 0; i < STEPS; i++) {
+    const zf = s0 + (i * (s1 - s0)) / STEPS, h = (LIFT * (i + 1)) / STEPS;
+    box(g, SX1 - SX0, h, s1 - zf, '#b9b6ae', (SX0 + SX1) / 2, h / 2, (zf + s1) / 2);
+  }
+  const run = s1 - s0, len = Math.hypot(run, LIFT);
+  for (const x of [SX0 + 0.1, SX1 - 0.1]) {
+    const r = box(g, 0.05, 0.05, len, TEAL, x, 0.9 + LIFT / 2, s0 + run / 2);
+    r.rotation.x = -Math.atan2(LIFT, run);
+    cyl(g, 0.025, 0.025, 0.9, TEAL, x, 0.45, s0 + 0.05, 6);
+  }
+  box(g, SX1 - SX0, 0.02, 4.1, '#c9c6bf', (SX0 + SX1) / 2, LIFT + 0.01, -4.7);
+
+  // the main building: two storeys, a teal hipped roof
+  const B0 = LIFT, H = 5.6;
+  box(g, 8.2, H, 8, WHITE, 2.5, B0 + H / 2, 1.4);
+  box(g, 9.0, 0.3, 8.8, TEAL_DARK, 2.5, B0 + H - 0.15, 1.4);
+  const roof = new THREE.Mesh(hipGeometry(9.0, 8.8, 1.5), paint(TEAL));
+  roof.position.set(2.5, B0 + H, 1.4);
+  g.add(roof);
+  for (const x of [2.0, 4.6]) windowAt(g, x, B0 + 3.85, -2.6, 0, 1.8, 1.3);       // the big windows upstairs
+  for (const x of [0.2, 2.6, 5.0]) windowAt(g, x, B0 + 1.4, -2.6, 0, 1.2, 1.1);    // downstairs, behind the railings
+  for (const y of [1.4, 3.85]) windowAt(g, 6.6, B0 + y, 1.4, -Math.PI / 2, 1.4, 1.2);
+  box(g, 1.0, 2.2, 0.08, '#6b4a2b', -0.9, B0 + 1.1, -2.65);                         // the door
+  box(g, 0.85, 0.55, 0.32, '#e9eaea', -0.2, B0 + 3.9, -2.78);                       // an air conditioner
+  box(g, 0.6, 0.35, 0.02, '#b8bcbf', -0.2, B0 + 3.9, -2.95);
+  masjidSign ??= canvasTexture(512, 64, (c, w, h) => {
+    c.fillStyle = '#f6f6f2'; c.fillRect(0, 0, w, h);
+    c.strokeStyle = TEAL_DARK; c.lineWidth = 4; c.strokeRect(2, 2, w - 4, h - 4);
+    c.fillStyle = '#1b5f5d'; c.font = '700 34px "Space Grotesk", Arial, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText('RAIWAI-JAME-MASJID', w / 2, h / 2 + 2, w - 24);
+  });
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 0.58), new THREE.MeshStandardMaterial({ map: masjidSign, roughness: 0.6 }));
+  sign.rotation.y = Math.PI;
+  sign.position.set(2.5, B0 + 4.95, -2.62);
+  g.add(sign);
+
+  // the wing on the left: a veranda upstairs behind a teal railing, under its own lower roof
+  box(g, 5.4, 5.0, 6, WHITE, -4.3, B0 + 2.5, 2.4);
+  box(g, 5.4, 0.15, 1.8, WHITE, -4.3, B0 + 2.7, -1.5);
+  railing(-7.0, -2.35, -1.6, -2.35, B0 + 2.78);
+  for (const x of [-6.9, -1.7]) cyl(g, 0.1, 0.1, 5.0, WHITE, x, B0 + 2.5, -2.35, 10);
+  box(g, 6.0, 0.25, 8.2, TEAL_DARK, -4.3, B0 + 4.88, 1.5);
+  const wingRoof = new THREE.Mesh(hipGeometry(6.0, 8.2, 0.9), paint(TEAL));
+  wingRoof.position.set(-4.3, B0 + 5.0, 1.5);
+  g.add(wingRoof);
+  windowAt(g, -4.3, B0 + 4.0, -0.6, 0, 1.4, 1.2);
+  windowAt(g, -5.6, B0 + 1.3, -0.6, 0, 1.0, 1.1);
+  box(g, 1.0, 2.1, 0.08, '#6b4a2b', -3.4, B0 + 1.05, -0.65);
+  return g;
+}
+
 /** The sports ground: dry grass with greener patches, and rugby posts at each end (along x). */
 export function sportsField(w = 72, d = 50): THREE.Group {
   const g = new THREE.Group();
