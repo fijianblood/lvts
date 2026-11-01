@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   C, ROOMS, WALLS, DOORS, WINDOWS, PROPS, COLLECTIBLES, GOLDEN_SPOTS, SPAWN, EXIT_ZONE, POSTER,
-  BARRIERS, TREES, NEIGHBOURS, RAMPS, NPC_SPOTS, CAT_SPOT, BACK_Y, ROAD_Y, GROUND_BREAKS,
+  BARRIERS, TREES, NEIGHBOURS, RAMPS, NPC_SPOTS, CAT_SPOT, BACK_Y, ROAD_Y, GROUND_BREAKS, PARKED,
   WALL_H, CEIL_H, DOOR_TOP, roomAt, groundY, heightAt,
   type GameMode, type WallRun, type Prim, type Door, type HingedDoor, type WindowSpec, type Room, type XYZ, type Barrier, type NpcSpot,
 } from './layout.ts';
@@ -20,6 +20,8 @@ import { SHOP_SPOTS, SHOP_LINE, VISITOR_SPOTS, shopBox, visitorCharacter, type S
 import { Minimap } from './minimap.ts';
 import { Sfx } from './audio.ts';
 import * as T from './textures.ts';
+import * as R from './raiwai.ts';
+import { PLAN, SIGNS, RAIWAI_TREES, POLE_RUNS, FACE_ANGLE, footprint, houseSpec, rng, type PlanItem } from './raiwaiPlan.ts';
 import { partModel, goldenChip, ranger, palm, bushTree, banana, breadfruit, van, lambert } from './models.ts';
 
 export type GameState = 'intro' | 'playing' | 'paused' | 'won';
@@ -81,6 +83,11 @@ function boxGeo(x0: number, y0: number, z0: number, x1: number, y1: number, z1: 
 }
 
 function push(b: Buckets, key: string, g: THREE.BufferGeometry) {
+  // merging needs every piece alike: unindexed, with position, normal and uv (roof shapes come without some)
+  if (g.index) g = g.toNonIndexed();
+  if (!g.getAttribute('normal')) g.computeVertexNormals();
+  if (!g.getAttribute('uv')) g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(g.getAttribute('position').count * 2), 2));
+  for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal' && k !== 'uv') g.deleteAttribute(k);
   const list = b.get(key);
   if (list) list.push(g); else b.set(key, [g]);
 }
@@ -117,9 +124,11 @@ function groundStrip(x0: number, z0: number, x1: number, z1: number, lift: numbe
 
 /** The ground for the whole scene: a grid whose rows land on every slope break. */
 function terrain(): THREE.BufferGeometry {
-  const xs: number[] = [], zs = new Set<number>(GROUND_BREAKS);
-  for (let x = -45; x <= 55; x += 5) xs.push(x);
-  for (let z = -45; z <= 55; z += 2.5) zs.add(z);
+  // fine where you walk (Raiwai), coarser out toward the hills; it stops at the shore
+  const xs: number[] = [-900, -600, -400, -300, -220, -160], zs = new Set<number>([...GROUND_BREAKS, -900, -600, -400, -300, -220, -160, 180, 220, SHORE]);
+  for (let x = -120; x <= 240; x += 5) xs.push(x);
+  xs.push(300, 400, 600, 900);
+  for (let z = -120; z <= 150; z += 2.5) zs.add(z);
   const zl = [...zs].sort((a, b) => a - b);
   const pos: number[] = [], uv: number[] = [], index: number[] = [];
   for (const z of zl) for (const x of xs) { pos.push(x, groundY(z) - 0.02, z); uv.push(x / 4, -z / 4); }
@@ -135,6 +144,9 @@ function terrain(): THREE.BufferGeometry {
   g.computeVertexNormals();
   return g;
 }
+
+/** Where the land meets the sea, south of the town. */
+const SHORE = 270;
 
 /** A round bar from a to b. */
 function tubeGeo(a: THREE.Vector3, b: THREE.Vector3, r: number, seg = 6) {
@@ -198,7 +210,7 @@ function onWall(w: WallRun, a0: number, a1: number, y0: number, y1: number, n0: 
  * Fold a static group into the colour buckets (one draw call per colour instead
  * of one per part). Only Lambert meshes are baked; anything else stays as is.
  */
-function bake(group: THREE.Object3D, buckets: Buckets, scene: THREE.Scene) {
+function bake(group: THREE.Object3D, buckets: Buckets, scene: THREE.Object3D) {
   group.updateMatrixWorld(true);
   const keep: THREE.Object3D[] = [];
   group.traverse((o) => {
@@ -253,6 +265,9 @@ export class HouseEngine {
   private fanHead?: THREE.Object3D;
   private clock?: { tex: THREE.CanvasTexture; redraw: () => void };
   private textures: THREE.Texture[] = [];
+  /** Raiwai near the house (also seen from the compound in the hunt), and the rest (only when exploring). */
+  private raiwaiNear = new THREE.Group();
+  private raiwaiFar = new THREE.Group();
 
   // player
   private pos: [number, number] = [SPAWN.pos[0], SPAWN.pos[2]];
@@ -321,6 +336,7 @@ export class HouseEngine {
 
     this.buildHouse();
     this.buildCompound();
+    this.buildRaiwai();
     this.buildItems();
     this.chores = new ChoreSystem(this.scene, {
       onChores: (s) => this.cb.onChores?.(s),
@@ -450,11 +466,11 @@ export class HouseEngine {
   }
 
   /** Merge each colour bucket into one mesh. */
-  private flush(buckets: Buckets) {
+  private flush(buckets: Buckets, parent: THREE.Object3D = this.scene) {
     for (const [key, list] of buckets) {
       if (key === 'transparent' || !list.length) continue;
       const [color, em] = key.split('|e');
-      this.scene.add(new THREE.Mesh(mergeGeometries(list), lambert(color, { emissive: em ? `#${em}` : undefined })));
+      parent.add(new THREE.Mesh(mergeGeometries(list), lambert(color, { emissive: em ? `#${em}` : undefined })));
     }
   }
 
@@ -776,26 +792,141 @@ export class HouseEngine {
       bake(tree, out, this.scene);
     }
 
-    // the neighbours, the road, a van parked across it
-    for (const n of NEIGHBOURS) {
-      const gy = groundY((n.z0 + n.z1) / 2);
-      push(out, n.wall, boxGeo(n.x0, gy - 1.6, n.z0, n.x1, gy + n.h, n.z1));
-      const roofG = new THREE.ConeGeometry(1, 1.8, 4, 1);
-      roofG.rotateY(Math.PI / 4);
-      roofG.scale((n.x1 - n.x0) / 2 / Math.SQRT1_2 + 0.3, 1, (n.z1 - n.z0) / 2 / Math.SQRT1_2 + 0.3);
-      roofG.translate((n.x0 + n.x1) / 2, gy + n.h + 0.9, (n.z0 + n.z1) / 2);
-      push(out, n.roof, roofG);
-    }
-    // the footpath beyond the street's ends, and the shops along it
-    push(out, C.concrete, boxGeo(-30, ROAD_Y - 0.3, 29, -12, ROAD_Y + 0.01, 31.6));
-    push(out, C.concrete, boxGeo(32, ROAD_Y - 0.3, 29, 40, ROAD_Y + 0.01, 31.6));
+    // the neighbours: Raiwai houses on the same plots (made up, not copies of anyone's home)
+    NEIGHBOURS.forEach((n, i) => {
+      const w = n.x1 - n.x0, d = n.z1 - n.z0;
+      const spec = { ...houseSpec(300 + i), w, d, wall: n.wall, roof: n.roof, storeys: (n.h > 5 ? 2 : 1) as 1 | 2 };
+      const item: PlanItem = { kind: 'house', x: (n.x0 + n.x1) / 2, z: (n.z0 + n.z1) / 2, face: n.z0 > 0 ? 's' : 'n', w, d, spec };
+      bake(this.placeRaiwai(item), out, this.scene);
+    });
+    // the shops across the road, and the centre line all along McFarlane Road
     this.buildShops(out);
-    for (let x = -28; x < 40; x += 3) push(out, '#f1f1ec', boxGeo(x, ROAD_Y + 0.006, 25.7, x + 1.5, ROAD_Y + 0.012, 25.8));
+    for (let x = -68; x < 168; x += 3) push(out, '#f1f1ec', boxGeo(x, ROAD_Y + 0.006, 25.7, x + 1.5, ROAD_Y + 0.012, 25.8));
     const v = van();
     v.position.set(5.5, ROAD_Y, 27.4);
     bake(v, out, this.scene);
 
     this.flush(out);
+  }
+
+  /** One thing from the Raiwai plan, built, turned to face its way and set on the ground (houses get a base on the slope). */
+  private placeRaiwai(it: PlanItem): THREE.Group {
+    const fp = footprint(it);
+    const corners = [heightAt(fp.x0, fp.z0), heightAt(fp.x1, fp.z0), heightAt(fp.x0, fp.z1), heightAt(fp.x1, fp.z1), heightAt(it.x, it.z)];
+    const lo = Math.min(...corners), hi = Math.max(...corners);
+    let g: THREE.Group;
+    switch (it.kind) {
+      case 'house': g = R.house({ ...it.spec!, base: (it.spec!.base ?? 0.3) + (hi - lo) }); break;
+      case 'flats': g = R.flats({ floors: it.floors ?? 3, w: it.w, d: it.d }); break;
+      case 'tower': g = R.tower(it.floors ?? 6); break;
+      case 'church': g = R.aFrameChurch(); break;
+      case 'pool': g = R.publicPool(); break;
+      case 'teal': g = R.tealBuilding(); break;
+      case 'field': g = R.sportsField(it.w, it.d); break;
+      case 'shed': g = R.shed(it.w, it.d, it.roof); break;
+      case 'arena': g = R.arena(); break;
+      default: g = R.floodlight();
+    }
+    g.position.set(it.x, it.kind === 'house' ? lo : hi, it.z);
+    g.rotation.y = FACE_ANGLE[it.face];
+    return g;
+  }
+
+  /**
+   * Raiwai around the house: McFarlane Road's houses, the side road, the
+   * Methodist Church, the pool, the teal building, the Lomaiviti Training
+   * Ground, flats, sheds, trees, power poles, parked cars and the Nasese bus;
+   * further out the hills and the sea. See raiwaiPlan.ts for where things go.
+   */
+  private buildRaiwai() {
+    const near: Buckets = new Map(), far: Buckets = new Map();
+    for (const it of PLAN) bake(this.placeRaiwai(it), it.far ? far : near, it.far ? this.raiwaiFar : this.raiwaiNear);
+
+    for (const t of RAIWAI_TREES) {
+      const tree = t.kind === 'mango' ? R.mangoTree(t.s, Math.round(t.x * 13 + t.z)) : t.kind === 'palm' ? palm(t.s, 0.25) : t.kind === 'breadfruit' ? breadfruit(t.s) : R.bougainvillea(t.s, Math.round(t.x + t.z * 7));
+      tree.position.set(t.x, heightAt(t.x, t.z), t.z);
+      tree.rotation.y = t.x * 1.3 + t.z;
+      bake(tree, t.far ? far : near, t.far ? this.raiwaiFar : this.raiwaiNear);
+    }
+
+    // power poles, wired along each run
+    const runs: THREE.Vector3[][][] = [];
+    for (const run of POLE_RUNS) {
+      const tops: THREE.Vector3[][] = [];
+      for (const [x, z] of run) {
+        const p = R.powerPole();
+        const y = heightAt(x, z);
+        p.group.position.set(x, y, z);
+        // the light over the road: McFarlane Road is south (+z) of its poles, the side road west (-x) of its
+        p.group.rotation.y = run[0][0] === run[run.length - 1][0] ? Math.PI / 2 : Math.PI;
+        p.group.updateMatrixWorld(true);
+        tops.push(p.tops.map((v) => v.clone().applyMatrix4(p.group.matrixWorld)));
+        bake(p.group, near, this.raiwaiNear);
+      }
+      runs.push([0, 1, 2].map((k) => tops.map((t) => t[k])));
+    }
+    for (const r of runs) this.raiwaiNear.add(R.wires(r));
+
+    // parked cars and the Nasese bus
+    for (const c of PARKED) {
+      const v = c.kind === 'bus' ? R.greenBus() : R.car(c.kind, c.color);
+      v.position.set(c.x, ROAD_Y, c.z);
+      v.rotation.y = c.facing > 0 ? 0 : Math.PI;
+      bake(v, near, this.raiwaiNear);
+    }
+
+    // signs by the road: the Methodist Church, the Lomaiviti Training Ground
+    for (const sg of SIGNS) {
+      const g = new THREE.Group();
+      const y = heightAt(sg.x, sg.z);
+      for (const s of [-1, 1]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.6, 0.1), lambert('#3b3f44')); post.position.set(s * 1.35, 0.8, 0); g.add(post); }
+      const board = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.62, 0.08), lambert(sg.color));
+      board.position.y = 1.75;
+      g.add(board);
+      const face = new THREE.Mesh(new THREE.PlaneGeometry(2.9, 0.52), new THREE.MeshBasicMaterial({ map: this.tex(T.shopSign(sg.title, sg.sub, sg.color)) }));
+      face.position.set(0, 1.75, -0.045);
+      face.rotation.y = Math.PI;
+      g.add(face);
+      g.position.set(sg.x, y, sg.z);
+      g.rotation.y = FACE_ANGLE[sg.face];
+      bake(g, near, this.raiwaiNear);
+    }
+
+    this.buildScenery(far);
+    this.flush(near, this.raiwaiNear);
+    this.flush(far, this.raiwaiFar);
+    this.raiwaiFar.visible = this.mode === 'explore';
+    this.scene.add(this.raiwaiNear, this.raiwaiFar);
+  }
+
+  /** Far away: the hills to the north and west with houses on their slopes, the sea and the reef to the south. */
+  private buildScenery(far: Buckets) {
+    const r = rng(9);
+    const hills: [number, number, number, number][] = [
+      [40, -520, 330, 85], [-380, -420, 280, 70], [-560, -60, 260, 55], [420, -480, 300, 80], [640, -120, 240, 50],
+    ];
+    hills.forEach(([cx, cz, rad, h], i) => {
+      const geo = new THREE.SphereGeometry(1, 28, 10, 0, Math.PI * 2, 0, Math.PI / 2);
+      geo.scale(rad, h, rad);
+      geo.translate(cx, BACK_Y - 1, cz);
+      push(far, i % 2 ? '#4c8a3c' : '#55943f', geo);
+      // houses dotted up the side facing the town
+      const toTown = Math.atan2(0 - cz, 60 - cx);
+      for (let k = 0; k < 46; k++) {
+        const a = toTown + (r() - 0.5) * 2.2, d = rad * (0.3 + r() * 0.6);
+        const x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
+        const y = BACK_Y - 1 + h * Math.sqrt(Math.max(0, 1 - (d / rad) ** 2));
+        const w = 6 + r() * 6, dd = 5 + r() * 4;
+        push(far, ['#f4f2ec', '#cfe3f3', '#efe7d3', '#e9e9e4', '#5fc6c9'][k % 5], boxGeo(x - w / 2, y - 1, z - dd / 2, x + w / 2, y + 3, z + dd / 2));
+        push(far, ['#c3c8cb', '#9c3d30', '#3f73bf', '#b4babd'][k % 4], boxGeo(x - w / 2 - 0.4, y + 3, z - dd / 2 - 0.4, x + w / 2 + 0.4, y + 3.4, z + dd / 2 + 0.4));
+      }
+    });
+    // the sea, with the reef's line of surf
+    const sea = new THREE.Mesh(new THREE.PlaneGeometry(3200, 1400), lambert('#2e6da4'));
+    sea.rotation.x = -Math.PI / 2;
+    sea.position.set(60, ROAD_Y - 0.3, SHORE - 6 + 700);
+    this.raiwaiFar.add(sea);
+    push(far, '#d9eef2', boxGeo(-1500, ROAD_Y - 0.28, 352, 1600, ROAD_Y - 0.26, 358));
   }
 
   /** The shops across the road: a building per spot, its sign, an awning, and its photo once there is one. */
@@ -1011,6 +1142,14 @@ export class HouseEngine {
   /** Hunt or explore. Only between runs (call reset() after). */
   setMode(mode: GameMode) {
     this.mode = mode;
+    // exploring opens up the view: the whole of Raiwai, the hills and the sea
+    const explore = mode === 'explore';
+    this.raiwaiFar.visible = explore;
+    const fog = this.scene.fog as THREE.Fog;
+    fog.near = explore ? 70 : 34;
+    fog.far = explore ? 700 : 110;
+    this.camera.far = explore ? 1600 : 160;
+    this.camera.updateProjectionMatrix();
     this.minimap.showExit = mode === 'hunt';
     this.minimap.setMode(mode);
   }
@@ -1643,6 +1782,7 @@ export class HouseEngine {
       chores: () => this.chores.snapshot(),
       neighbours: (list: VisitorCharacter[]) => this.setNeighbours(list),
       mode: () => this.mode,
+      raiwaiLayers: (near: boolean, far: boolean) => { this.raiwaiNear.visible = near; this.raiwaiFar.visible = far; },
     };
   }
 

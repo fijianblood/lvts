@@ -140,6 +140,32 @@ on them. Baby Aisha babbles, coos and reaches for cuddles instead of talking.
   characters only make small talk and never speak about faith.
 - **The look.** Brighter: a deep-blue sky gradient and chunky pixel grass.
 
+## Raiwai (exploring)
+
+In **Explore the neighbourhood** you leave through the front gate onto
+**McFarlane Road** in Raiwai, and can walk it both ways (x −62 to 162) and up the
+**side road** beside the neighbours to the east (x 34–40, it climbs with the
+ground). From the gate, the places along the road to the left (east) are:
+
+- the **Methodist Church** (Raiwai branch), the big A-frame church, set back up the bank with its sign by the road;
+- across the road, the **pool** with its covered stand, the **teal two-storey building**, and the **Lomaiviti Training Ground** with rugby posts;
+- the green **Nasese bus** at the stop by the pool, and cars parked along both edges (you bump into them);
+- beyond the training ground, the commercial sheds, the arena and stadium lights, and the sea with the reef's surf;
+- up the hill to the north and west, more houses, flats and an apartment block, and the hills behind.
+
+The neighbours' houses are Raiwai-style (corrugated-iron roofs, concrete bases
+on the slope, louvre windows, verandas, carports, water tanks, satellite
+dishes) but made up from a seed. They are not copies of anyone's real home.
+The public places are modelled on drone photos of the area.
+
+- `raiwaiPlan.ts`: where everything goes (plain data: footprints, faces, which things only show when exploring), the signs, the road labels, trees and power poles.
+- `raiwai.ts`: the 3D pieces (houses, flats, church, pool, teal building, training ground, sheds, bus, cars, poles, mango trees, bougainvillea).
+- `layout.ts`: `MCFARLANE`, `SIDE_ROAD`, the walls along them, and `PARKED` (cars and the bus, with colliders).
+
+When exploring, the view opens up (fog from 70 to 700 m, the camera sees 1.6 km);
+the far part of Raiwai is hidden in the hunt to keep it cheap. Raiwai adds about
+130 draw calls and 120,000 triangles when you can see all of it.
+
 ## Rotating on phones
 
 On touch devices the 🔄 button switches between landscape and portrait. Where
@@ -249,6 +275,8 @@ then `npm run dev` and open `http://localhost:5173/lvts/#house`.
 | `talk.ts` | What they say to each other: greetings, questions and answers, the declaration. |
 | `chores.ts`, `choreSystem.ts` | Chores, stars, the places they unlock, and the 3D side of them. |
 | `neighbourhood.ts` | The street, shop spots and offers, visitors' characters, and talking to the server. |
+| `raiwaiPlan.ts` | Where everything in Raiwai goes (plain data, used by the engine, the minimap and the tests). |
+| `raiwai.ts` | Raiwai's 3D pieces: houses, flats, the Methodist Church, the pool, the teal building, the Lomaiviti Training Ground, sheds, the Nasese bus, cars, power poles, trees. |
 | `portrait.tsx` | The little portraits on the picker, the HUD and the admin page. |
 | `../../../workers/neighbourhood/` | The Neighbourhood server (Cloudflare Worker); its own README has the setup steps. |
 | `../../pages/NeighbourhoodAdminPage.tsx` | The hidden page for approving characters. |

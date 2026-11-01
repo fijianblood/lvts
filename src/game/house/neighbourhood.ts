@@ -6,7 +6,7 @@
 // LvTS approves it. Until the server is set up, a visitor's character is kept
 // on their own device and the street shows only the family.
 
-import { ROAD_Y, type XYZ } from './layout.ts';
+import { ROAD_Y, MCFARLANE, type XYZ } from './layout.ts';
 import type { Character, Look } from './characters.ts';
 import { cleanLook, cleanName, type VisitorCharacter, type VisitorLook } from '../../../workers/neighbourhood/src/rules.ts';
 
@@ -17,8 +17,8 @@ declare const __NEIGHBOURHOOD_API__: string | undefined;
 export const API = (typeof __NEIGHBOURHOOD_API__ === 'string' ? __NEIGHBOURHOOD_API__ : '').replace(/\/+$/, '');
 
 // ── The street ─────────────────────────────────────────────────────────────
-/** Where you can walk in explore mode: the road and the footpath across it. */
-export const STREET = { x0: -12, x1: 32, z0: 22.3, z1: 31.6 };
+/** Where you can walk along McFarlane Road in explore mode: the road and the footpath across it (the side road is separate). */
+export const STREET = MCFARLANE;
 /** The shopfronts face the road along this line. */
 export const SHOP_LINE = 31.6;
 const SHOP_DEPTH = 6;
