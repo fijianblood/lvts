@@ -149,9 +149,26 @@ on them. Baby Aisha babbles, coos and reaches for cuddles instead of talking.
   road; through the gate are the car park (a corner fenced off with red water
   barriers), a covered walkway and five ground-floor units still being built,
   each with a "coming soon" board (the last one is shut off behind barriers).
+  The second unit is already open: **Westpac**, with its logo over the door
+  and on a red back wall, a counter, two ATMs, chairs and queue posts.
   It is all plain data in `gardenCity.ts`; the signs are drawn in
   `textures.ts`, not copied from photos. When shops move in, their signs can
   go on the boards.
+- **Damodar City** ('mall', across the road from the gate) is the shopping
+  centre with Damodar Cinemas, from photos of the real one. Its frontage on
+  McFarlane Road is the way in, past a pylon sign (the name, the cinema's and
+  BSP's logos, "coming soon"); the car park opens out behind the
+  neighbouring shops: bays, islands with yellow kerbs, shrubs and palms,
+  round-topped lamp posts, parked cars. Along the back, a two-storey block of
+  eight shops with a glass-fronted walkway upstairs, white pillars and a
+  blue-grey roof band, and the cinema at the east end with its logo up high;
+  a smaller block down the west side. **BSP** is open (walk in: its logo on a
+  green wall, a counter, ATMs, chairs); the other shops are coming soon. All
+  in `damodarCity.ts`.
+- **Logos on buildings**: a box prop with `tex: 'logo/file.png:-z'` shows that
+  logo (from `public/neighbourhood/logos/`) on a sign board filling that face,
+  fitted without stretching; `'logo/file.png@#070707:-z'` for a board that
+  isn't white. The box's colour is the board's frame.
 - **Offers** go in `OFFERS` in `neighbourhood.ts`, by shop id, once the
   business has agreed:
 
@@ -336,7 +353,8 @@ then `npm run dev` and open `http://localhost:5173/lvts/#house`.
 | `neighbourhood.ts` | The street, shop spots and offers, visitors' characters, and talking to the server. |
 | `raiwaiPlan.ts` | Where everything in Raiwai goes (plain data, used by the engine, the minimap and the tests). |
 | `raiwai.ts` | Raiwai's 3D pieces: houses, flats, the Methodist Church, the pool, the teal building, the Lomaiviti Training Ground, the Raiwai Jame Masjid, sheds, the Nasese bus, cars, power poles, trees. |
-| `gardenCity.ts` | Garden City, the shopping complex being built after Sardaar Complex: plain data for its fence, sign, car park, building and building site. |
+| `gardenCity.ts` | Garden City, the shopping complex being built after Sardaar Complex: plain data for its fence, sign, car park, building, building site and the Westpac branch. |
+| `damodarCity.ts` | Damodar City, the centre across the road: its sign, car park, shops, the BSP branch and Damodar Cinemas. |
 | `portrait.tsx` | The little portraits on the picker, the HUD and the admin page. |
 | `../../../workers/neighbourhood/` | The Neighbourhood server (Cloudflare Worker); its own README has the setup steps. |
 | `../../pages/NeighbourhoodAdminPage.tsx` | The hidden page for approving characters. |

@@ -319,12 +319,21 @@ export const constructionSign = () => canvasTexture(256, 168, (g, w, h) => {
   g.font = '600 17px "Space Grotesk", Arial, sans-serif'; g.fillText('Shops coming soon', w / 2, 124);
 });
 
-/** On each unit's back wall. */
-export const shopComingSoon = () => canvasTexture(256, 104, (g, w, h) => {
+/** On each unit still waiting for a shop, with the centre's name in script. */
+export const shopComingSoon = (place: string) => canvasTexture(256, 104, (g, w, h) => {
   g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
   g.strokeStyle = GC_GREEN; g.lineWidth = 6; g.strokeRect(3, 3, w - 6, h - 6);
   g.textAlign = 'center'; g.textBaseline = 'middle';
   g.fillStyle = '#5b6066'; g.font = '700 16px "Space Grotesk", Arial, sans-serif'; g.fillText('THIS SHOP', w / 2, 26);
   g.fillStyle = '#2f6b23'; g.font = '800 28px "Space Grotesk", Arial, sans-serif'; g.fillText('COMING SOON', w / 2, 54, w - 20);
-  g.fillStyle = GC_GREEN; g.font = 'italic 700 22px "Brush Script MT", "Segoe Script", "Snell Roundhand", cursive'; g.fillText('Garden City', w / 2, 82);
+  g.fillStyle = GC_GREEN; g.font = 'italic 700 22px "Brush Script MT", "Segoe Script", "Snell Roundhand", cursive'; g.fillText(place, w / 2, 82);
+});
+
+// ── Damodar City (damodarCity.ts) ───────────────────────────────────────────
+/** The centre's name, on its pylon sign by the entrance. */
+export const damodarCitySign = () => canvasTexture(512, 144, (g, w, h) => {
+  g.fillStyle = '#3f4d5e'; g.fillRect(0, 0, w, h);
+  g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 6; g.strokeRect(6, 6, w - 12, h - 12);
+  g.fillStyle = '#ffffff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = '800 58px "Space Grotesk", Arial, sans-serif'; g.fillText('DAMODAR CITY', w / 2, h / 2 + 2, w - 40);
 });

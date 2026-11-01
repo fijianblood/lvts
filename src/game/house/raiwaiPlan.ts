@@ -12,6 +12,7 @@ import { MCFARLANE, SIDE_ROAD, NEIGHBOURS, MASJID } from './layout.ts';
 import { SHOP_ROW } from './shops.ts';
 import { GARDEN_CITY } from './gardenCity.ts';
 import { USP, USP_BUILDINGS, USP_TREES, USP_SIGN } from './uspCampus.ts';
+import { DAMODAR_CITY, DAMODAR_PALMS } from './damodarCity.ts';
 
 export interface HouseSpec {
   w: number;
@@ -124,6 +125,7 @@ export const ROAD_LABELS = [
   { text: 'McFarlane Road', x: 170, z: 25.8 },
   ...(GARDEN_CITY ? [{ text: 'Garden City', x: (GARDEN_CITY.x0 + GARDEN_CITY.x1) / 2, z: 37 }] : []),
   { text: 'USP', x: 246, z: 29.5 },
+  ...(DAMODAR_CITY ? [{ text: 'Damodar City', x: (DAMODAR_CITY.in0 + DAMODAR_CITY.in1) / 2, z: 47 }] : []),
   { text: 'Side road', x: (SIDE_ROAD.x0 + SIDE_ROAD.x1) / 2, z: -14, vertical: true },
 ];
 
@@ -137,6 +139,7 @@ const taken: Box[] = [
   ...(GARDEN_CITY ? [{ x0: GARDEN_CITY.x0 - 0.5, x1: GARDEN_CITY.x1 + 0.5, z0: 31.6, z1: GARDEN_CITY.z1 + 1 }] : []),   // Garden City, back to its rear wall
   { x0: MASJID.x - MASJID.w / 2, x1: MASJID.x + MASJID.w / 2, z0: 31.0, z1: MASJID.z + MASJID.d / 2 },    // the masjid and its steps
   { x0: USP.x0, x1: USP.x1, z0: USP.z0, z1: USP.z1 },                                                      // the USP campus grounds
+  ...(DAMODAR_CITY ? [{ x0: DAMODAR_CITY.x0 - 0.5, x1: DAMODAR_CITY.x1 + 0.5, z0: 31.6, z1: DAMODAR_CITY.z1 + 1 }] : []),   // Damodar City
   { x0: SIDE_ROAD.x0 - 0.5, x1: SIDE_ROAD.x1 + 0.5, z0: SIDE_ROAD.z0 - 1, z1: 22.5 },
   { x0: 92, x1: 114, z0: -34, z1: 22 },                                      // the church grounds
 ];
@@ -184,7 +187,7 @@ row(SIDE_ROAD.x0 - 1.4, SIDE_ROAD.z0 + 2, -8.5, 'e', false);
 row(SIDE_ROAD.x1 + 1.4, SIDE_ROAD.z0 + 2, 6, 'w', false);
 // blocks of flats and the tall apartment block on the hill
 for (const f of [
-  { x: -52, z: 64, floors: 4, w: 18 }, { x: -24, z: 74, floors: 3, w: 16 }, { x: 72, z: -72, floors: 3, w: 18 },
+  { x: -52, z: 64, floors: 4, w: 18 }, { x: -36, z: 76, floors: 3, w: 16 }, { x: 72, z: -72, floors: 3, w: 18 },
   { x: -88, z: 50, floors: 3, w: 16 },
 ]) {
   const it: PlanItem = { kind: 'flats', x: f.x, z: f.z, face: f.z > 22 ? 'n' : 's', w: f.w, d: 9, floors: f.floors, far: true };
@@ -233,6 +236,7 @@ export const RAIWAI_TREES: TreeSpot[] = [];
   // the tall coconut palm behind the masjid, and the USP campus's trees
   RAIWAI_TREES.push({ kind: 'palm', x: MASJID.x + 5.5, z: MASJID.z + 6, s: 7.5 });
   for (const t of USP_TREES) RAIWAI_TREES.push({ ...t, far: true });
+  for (const t of DAMODAR_PALMS) RAIWAI_TREES.push({ kind: 'palm', ...t });
   for (let i = 0; i < 260; i++) {
     const x = -110 + r() * 340, z = -110 + r() * 200;
     tryTree(x, z, !(z > 0 && z < 45 && x > -70 && x < 170) && !(x > 25 && x < 50 && z > -45));
