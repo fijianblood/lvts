@@ -95,6 +95,16 @@ translation. Please have them read over by someone you trust before you rely
 on them. Baby Aisha babbles, coos and reaches for cuddles instead of talking.
 `tests/house/talk.test.ts` checks every one of the 600 pairings.
 
+## Rotating on phones
+
+On touch devices the 🔄 button switches between landscape and portrait. Where
+the browser allows it (Android Chrome and Firefox), the game goes full screen
+and asks the phone to rotate for real (Screen Orientation `lock()`, which only
+works in full screen). Elsewhere (iPhone, iPad, most others) the game turns
+itself a quarter turn on screen, and the touch controls are remapped to match;
+turn the phone sideways to play. Pressing 🔄 again, leaving full screen, or
+physically turning the phone turns it back. Computers don't show the button.
+
 ## Chores, stars and new places
 
 Chores are optional and never touch the hunt or the prize. The mess comes back
