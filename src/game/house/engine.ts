@@ -1,4 +1,4 @@
-// The Vaqara Raiwai engine: builds the house, the compound and Raiwai from
+// The Noqublox engine: builds the house, the compound and Raiwai from
 // layout.ts, runs the first- or third-person controller against collision.ts
 // (with floor heights for slopes and stairs), animates doors, gates, windows,
 // collectibles and the family, keeps the clock, and draws the minimap.

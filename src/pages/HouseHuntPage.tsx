@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Gamepad2, Trophy, ShieldCheck, Map as MapIcon, Database } from 'lucide-react';
 import { useScrollFade } from '../hooks/useScrollFade';
 import HouseGame from '../game/house/HouseGame';
@@ -8,6 +9,12 @@ const BASE = import.meta.env.BASE_URL;
 export default function HouseHuntPage() {
   const heroRef = useScrollFade();
   const prize = prizeState();
+  // the game's name on the browser tab while the game page is open
+  useEffect(() => {
+    const before = document.title;
+    document.title = 'Noqublox | LvTS';
+    return () => { document.title = before; };
+  }, []);
   const card: React.CSSProperties = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '1.3rem 1.4rem' };
   const h3: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, color: '#0f172a', fontSize: '1rem', marginBottom: '0.6rem' };
   const p: React.CSSProperties = { color: '#475569', fontSize: '0.88rem', lineHeight: 1.7 };
@@ -20,8 +27,11 @@ export default function HouseHuntPage() {
           <Gamepad2 size={14} /> Interactive 3D Experience
         </div>
         <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(2rem,5vw,3.2rem)', color: '#0f172a', lineHeight: 1.1, marginBottom: '1rem' }}>
-          LvTS <span className="grad-text">Vaqara Raiwai</span>
+          LvTS Noqu<span className="grad-text">blox</span>
         </h1>
+        <p style={{ color: '#475569', fontSize: '1rem', fontWeight: 600, lineHeight: 1.75, marginBottom: '0.9rem' }}>
+          <em>Noqu</em> means “my” in iTaukei, so Noqublox is <em>my blox</em>: play in Raiwai, by USP and around the blocks.
+        </p>
         <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: 1.75, marginBottom: '0.9rem' }}>
           Take a first-person 3D walk-through of a Suva family home! Explore the house, discover the different rooms, find hidden technology parts and interact with the home environment.
         </p>
@@ -31,6 +41,18 @@ export default function HouseHuntPage() {
         <p style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(1rem,2.4vw,1.2rem)', color: '#0f172a', lineHeight: 1.4 }}>
           Explore. Discover. Connect. <span className="grad-text">Experience Suva family life.</span>
         </p>
+      </div>
+
+      <div style={{ maxWidth: 820, margin: '0 auto 2rem', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '1.3rem 1.4rem' }}>
+        <h2 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: '1.25rem', color: '#0f172a', marginBottom: '0.7rem' }}>
+          What is Noqu<span className="grad-text">blox</span>?
+        </h2>
+        <ul style={{ color: '#475569', fontSize: '0.92rem', lineHeight: 1.7, paddingLeft: '1.2rem', display: 'grid', gap: '0.45rem' }}>
+          <li><strong style={{ color: '#0f172a' }}>A virtual universe of Fiji, made by LvTS.</strong> Visit places here in Fiji, built in 3D. Right now that’s Raiwai, by USP and around the blocks: the family home, McFarlane Road and its shops, Garden City, Damodar City, the temple, the masjid and the USP campus.</li>
+          <li><strong style={{ color: '#0f172a' }}>Make your own character.</strong> Once LvTS approves it, it stays in the world for everyone who explores.</li>
+          <li><strong style={{ color: '#0f172a' }}>Plays in your web browser.</strong> Nothing to install, on a computer or a phone.</li>
+          <li><strong style={{ color: '#0f172a' }}>Where it’s heading:</strong> a place to program, share and play your own 3D multiplayer games, and visit more of Fiji. Not built yet.</li>
+        </ul>
       </div>
 
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>

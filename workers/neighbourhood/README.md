@@ -1,6 +1,6 @@
 # LvTS Neighbourhood server
 
-Keeps the characters visitors make in the House Hunt's character creator, so
+Keeps the characters visitors make in Noqublox's character creator, so
 they stay in the neighbourhood for everyone. A Cloudflare Worker with one
 Durable Object, which keeps the characters in its own SQLite database. It runs
 on Cloudflare's free Workers plan.
@@ -14,7 +14,7 @@ on Cloudflare's free Workers plan.
 - At most 3 new characters per visitor per day (visitors are told apart by a
   salted hash of their IP address; the address itself is never stored), and no
   new ones while 300 are waiting.
-- Only the House Hunt site (and local development) can call it from a browser.
+- Only the Noqublox site (and local development) can call it from a browser.
 
 ## Setting it up (once)
 

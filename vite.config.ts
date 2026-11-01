@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
   const base = process.env.WORKERS_CI === '1' ? '/' : '/lvts/'
   console.log(`[site] base path: ${base}${base === '/' ? ' (Cloudflare)' : ' (GitHub Pages)'}`)
 
-  // House Hunt prize codes come from the HOUSE_PRIZE_CODES secret (GitHub Actions)
+  // Noqublox prize codes come from the HOUSE_PRIZE_CODES secret (GitHub Actions)
   // or .env.local, never from the repo. They are scrambled with a fresh salt on
   // every build. See src/game/house/prizeCodec.ts.
   const env = loadEnv(mode, process.cwd(), '')
