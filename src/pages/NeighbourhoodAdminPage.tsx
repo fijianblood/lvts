@@ -1,4 +1,4 @@
-// LvTS only: approve or remove the characters visitors make for the House Hunt
+// LvTS only: approve or remove the characters visitors make for Vaqara Raiwai
 // neighbourhood. Not linked from anywhere; the admin key is what protects it
 // (checked by the server, kept in this browser tab only).
 import { useCallback, useEffect, useState } from 'react';
