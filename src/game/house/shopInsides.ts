@@ -210,11 +210,11 @@ export function shopInsides(y: number): { rooms: Room[]; barriers: Barrier[]; pr
         add(box(ua + 0.3, y, k - 1.2, ub - 0.3, y + 1.0, k - 0.7, '#8a5a36', true));
         add(box(ua + 0.06, y, f + 1.2, ua + 0.46, y + 2.0, k - 1.5, '#e9e4d8', true));
         for (const h of [0.4, 0.95, 1.5]) for (let z = f + 1.3; z < k - 1.7; z += 0.3) add(box(ua + 0.1, y + h, z, ua + 0.42, y + h + 0.2, z + 0.22, GOODS[Math.floor(r() * GOODS.length)]));
-        rooms.push({ id: `in-${s.id}-${i + 1}`, name: `${s.name}, shop ${i + 1}`, x0: ua, x1: ub, z0: F, z1: k, floor, ceiling: false, outside: false, ground: true, area: true, explore: true });
+        rooms.push({ id: `in-${s.id}-${i + 1}`, name: `${s.name}, shop ${i + 1}`, x0: ua, x1: ub, z0: F, z1: k, floor, ceiling: false, outside: false, ground: true, area: true, explore: true, cap: y + ceil - 0.05 });
       }
       continue;
     }
-    rooms.push({ id: `in-${s.id}`, name: s.name, x0: a, x1: b, z0: F, z1: k, floor, ceiling: false, outside: false, ground: true, area: true, explore: true });
+    rooms.push({ id: `in-${s.id}`, name: s.name, x0: a, x1: b, z0: F, z1: k, floor, ceiling: false, outside: false, ground: true, area: true, explore: true, cap: y + ceil - 0.05 });
   }
   return { rooms, barriers, props, doors };
 }

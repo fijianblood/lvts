@@ -50,6 +50,8 @@ export interface Room {
   ground?: boolean;
   /** Counts toward "areas explored". */
   area?: boolean;
+  /** The ceiling (world y) of a room that isn't under the house's ceilings (a shop, a centre's units, under a slab): a jump keeps your head below it. */
+  cap?: number;
 }
 
 export type OpeningKind = 'door' | 'window' | 'gap';
@@ -99,6 +101,8 @@ export interface HingedDoor {
   pair?: string;
   /** Swings the other way when you're standing where it would open (the gates, which have room on both sides). */
   bothWays?: boolean;
+  /** Starts open, and is open again after every reset (Garden City's gate, now that visitors can walk in). */
+  startOpen?: boolean;
 }
 
 export interface SlidingDoor {
@@ -236,6 +240,21 @@ export function heightAt(x: number, z: number): number {
   return groundY(z);
 }
 
+/**
+ * Upper floors: a storey over another floor (Garden City's first floor, over
+ * its shops), so one spot has two floors. heightAt() is always the floor
+ * below; you're on an upper floor once your feet are up at its level (you
+ * walk onto it from the top of its stairs), and floorAt() says which.
+ */
+export const UPPER_FLOORS: Platform[] = [];
+/** How far below an upper floor your feet can be and still count as on it (stepping up off the stairs' last tread). */
+export const UPPER_REACH = 0.6;
+/** The floor under you, with your feet at `feet`: an upper floor if you're up at its level, otherwise heightAt(). */
+export function floorAt(x: number, z: number, feet: number): number {
+  for (const p of UPPER_FLOORS) if (feet >= p.y - UPPER_REACH && x >= p.x0 && x <= p.x1 && z >= p.z0 && z <= p.z1) return p.y;
+  return heightAt(x, z);
+}
+
 // ── Raiwai, around the house (exploring) ────────────────────────────────────
 /** McFarlane Road runs past the front gate (along x); you can walk it between these ends (east: past the training ground to the masjid). */
 export const MCFARLANE = { x0: -62, x1: 216, z0: 22.3, z1: 31.6 };
@@ -331,8 +350,11 @@ const WORSHIP = (() => {
   ];
   return { barriers, props, rooms, doors };
 })();
-/** Garden City, the shopping complex after Sardaar Complex (gardenCity.ts). */
+/** Garden City, the shopping complex after Sardaar Complex (gardenCity.ts): its stairs, their landing, and its first floor. */
 const GC = gardenCity(ROAD_Y);
+RAMPS.push(...GC.ramps);
+PLATFORMS.push(...GC.platforms);
+UPPER_FLOORS.push(...GC.upper);
 /** The USP campus, open to visitors where McFarlane Road ends (uspCampus.ts). */
 const CAMPUS = uspCampus(ROAD_Y, heightAt);
 /** Damodar City, the shopping centre across the road from the gate (damodarCity.ts). */
@@ -734,6 +756,8 @@ export interface Barrier {
   /** Only in this mode (the finish line in the hunt; the edge of the map when exploring). */ mode?: GameMode;
   /** Can be jumped when exploring even though it's 'invisible' (a fence drawn as props, like Garden City's palisade). */ jump?: boolean;
   /** Never jumped, even when exploring (the places you unlock with chores keep their fences). */ noJump?: boolean;
+  /** A wall with an upper floor over it (world y of its top): anyone up on that floor walks over it. */ top?: number;
+  /** A wall of an upper floor (world y of its foot): anyone on the floor below walks under it. */ bottom?: number;
 }
 export type GameMode = 'hunt' | 'explore';
 /** Barriers that apply in a mode. */
@@ -1070,6 +1094,21 @@ export const POSTER = { x: 6.29, y: 1.55, z: 10.9, w: 1.25, h: 0.93, facing: 'ea
 // ── Small geometry helpers shared by the renderer, collision and minimap ────
 export function roomAt(x: number, z: number): Room | undefined {
   return ROOMS.find((r) => x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1);
+}
+
+/**
+ * The room you're in with your feet at `feet`. Where an upper floor is over
+ * another, it's the highest one whose floor is no higher than your feet (so a
+ * jump downstairs is still downstairs); otherwise, as roomAt, the first.
+ */
+export function roomAtLevel(x: number, z: number, feet: number): Room | undefined {
+  let best: Room | undefined, level = -Infinity;
+  for (const r of ROOMS) {
+    if (x < r.x0 || x > r.x1 || z < r.z0 || z > r.z1) continue;
+    const y = r.y ?? heightAt(x, z);
+    if (y <= feet + UPPER_REACH && y > level) { best = r; level = y; }
+  }
+  return best ?? roomAt(x, z);
 }
 
 export interface Rect { x0: number; z0: number; x1: number; z1: number }

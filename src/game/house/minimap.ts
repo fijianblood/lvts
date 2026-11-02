@@ -158,7 +158,7 @@ export class Minimap {
       }
     }
     for (const b of BARRIERS) {
-      if (b.kind === 'invisible') continue;
+      if (b.kind === 'invisible' || b.bottom !== undefined) continue;   // (an upper floor's walls would cross the rooms below)
       const r = barrierRect(b);
       g.fillStyle = barrierBlocksSight(b) ? INK.wall : b.kind === 'fence' ? INK.fence : INK.rail;
       const thin = barrierBlocksSight(b) ? 2 : 1.4;

@@ -9,14 +9,22 @@
 // open, you jump higher, and fences, garden walls, railings and low walls get a
 // top too, so you can jump them. Buildings, walls, doors, the places you unlock
 // with chores, the places of worship's walls and the edge of the map still stop you.
+//
+// Upper floors (Garden City's first floor): walls and furniture know where they
+// start (`bottom`) as well as how high they go, so on the floor below you walk
+// under the things upstairs, and upstairs you walk over the walls below.
 
-import { WALLS, PROPS, DOORS, TREES, wallSolidRects, barrierRect, barrierBlocksSight, barriersFor, heightAt, jumpTop, type Rect, type Door, type XZ, type GameMode } from './layout.ts';
+import { WALLS, PROPS, DOORS, TREES, wallSolidRects, barrierRect, barrierBlocksSight, barriersFor, heightAt, floorAt, jumpTop, type Rect, type Door, type XZ, type GameMode } from './layout.ts';
 import { PLAN, RAIWAI_TREES, POLE_RUNS, footprint } from './raiwaiPlan.ts';
 import { USP } from './uspCampus.ts';
 
-export interface Circle { x: number; z: number; r: number; /** Its top (world y), if you can jump onto it. */ top?: number }
-/** A solid box in plan; `top` (world y) if it's something you can jump onto or over (furniture), none if it always blocks (walls, fences). */
-export interface Solid extends Rect { top?: number }
+export interface Circle { x: number; z: number; r: number; /** Its top (world y), if you can jump onto it. */ top?: number; /** Where it starts (world y), if it's up on an upper floor. */ bottom?: number }
+/**
+ * A solid box in plan; `top` (world y) if it's something you can jump onto or
+ * over (furniture), none if it always blocks (walls, fences); `bottom` if it
+ * stands on an upper floor (you walk under it on the floor below).
+ */
+export interface Solid extends Rect { top?: number; bottom?: number }
 
 /** How high a jump goes (the apex above where you took off, m), and how hard you come back down (m/s²). */
 export const JUMP = { up: 1.0, kid: 0.85, gravity: 20 };
@@ -36,6 +44,8 @@ export const PLAYER_R = 0.28;
 
 /** Anything that starts this far above the floor under it is overhead (upper cabinets, roofs) and never blocks you. */
 const OVERHEAD = 1.2;
+/** Anything that starts this far above your feet is over your head: you walk under it (the floor upstairs and all on it). */
+const HEADROOM = 1.7;
 /** A crawling baby fits under anything that starts this far above the floor. */
 const CRAWL_CLEAR = 0.5;
 
@@ -85,18 +95,24 @@ export function buildStaticWorld(opts: { crawl?: boolean; mode?: GameMode } = {}
   for (const wall of WALLS) rects.push(...wallSolidRects(wall));
   const roam = opts.mode === 'explore';
   for (const b of barriersFor(opts.mode ?? 'hunt')) {
-    const top = roam ? jumpTop(b) : undefined;
-    rects.push(top === undefined ? barrierRect(b) : { ...barrierRect(b), top });
+    const top = b.top ?? (roam ? jumpTop(b) : undefined);
+    const r: Solid = barrierRect(b);
+    if (top !== undefined) r.top = top;
+    if (b.bottom !== undefined) r.bottom = b.bottom;
+    rects.push(r);
   }
   const circles: Circle[] = [];
   if (roam) { const r = roamSolids(); rects.push(...r.rects); circles.push(...r.circles); }
   for (const prim of PROPS) {
     if (prim.kind === 'box') {
       if (!prim.solid) continue;
-      const lift = prim.min[1] - heightAt((prim.min[0] + prim.max[0]) / 2, (prim.min[2] + prim.max[2]) / 2);
+      // (on an upper floor, it's how far it is off that floor)
+      const lift = prim.min[1] - floorAt((prim.min[0] + prim.max[0]) / 2, (prim.min[2] + prim.max[2]) / 2, prim.min[1]);
       if (lift >= OVERHEAD) continue;
       if (opts.crawl && (prim.crawl || lift >= CRAWL_CLEAR)) continue;
-      rects.push({ x0: prim.min[0], x1: prim.max[0], z0: prim.min[2], z1: prim.max[2], top: prim.max[1] });
+      const r: Solid = { x0: prim.min[0], x1: prim.max[0], z0: prim.min[2], z1: prim.max[2], top: prim.max[1] };
+      if (prim.min[1] - heightAt((prim.min[0] + prim.max[0]) / 2, (prim.min[2] + prim.max[2]) / 2) >= HEADROOM) r.bottom = prim.min[1];
+      rects.push(r);
     } else if (prim.kind === 'cyl' && prim.solid) {
       const [x, y, z] = prim.base;
       if (prim.axis === 'x' || prim.axis === 'z') {
@@ -106,10 +122,12 @@ export function buildStaticWorld(opts: { crawl?: boolean; mode?: GameMode } = {}
         rects.push({ x0: x - hx, x1: x + hx, z0: z - hz, z1: z + hz, top: y + prim.r });
         continue;
       }
-      const lift = y - heightAt(x, z);
+      const lift = y - floorAt(x, z, y);
       if (lift >= OVERHEAD) continue;
       if (opts.crawl && lift >= CRAWL_CLEAR) continue;
-      circles.push({ x, z, r: prim.r, top: y + prim.h });
+      const c: Circle = { x, z, r: prim.r, top: y + prim.h };
+      if (y - heightAt(x, z) >= HEADROOM) c.bottom = y;
+      circles.push(c);
     }
   }
   for (const t of TREES) {
@@ -130,9 +148,16 @@ export function buildStaticWorld(opts: { crawl?: boolean; mode?: GameMode } = {}
  * walls and anything taller than a person. Railings, fences and furniture pass under it.
  */
 export function buildCameraWorld(mode: GameMode = 'hunt'): StaticWorld {
-  const rects: Rect[] = [];
+  const rects: Solid[] = [];
   for (const wall of WALLS) rects.push(...wallSolidRects(wall));
-  for (const b of barriersFor(mode)) if (barrierBlocksSight(b)) rects.push(barrierRect(b));
+  for (const b of barriersFor(mode)) {
+    if (!barrierBlocksSight(b)) continue;
+    // an upper floor's walls, and the walls under it, only on their own floor (pass your feet to blocked())
+    const r: Solid = barrierRect(b);
+    if (b.top !== undefined) r.top = b.top;
+    if (b.bottom !== undefined) r.bottom = b.bottom;
+    rects.push(r);
+  }
   for (const prim of PROPS) {
     if (prim.kind !== 'box' || !prim.solid) continue;
     const floor = heightAt((prim.min[0] + prim.max[0]) / 2, (prim.min[2] + prim.max[2]) / 2);
@@ -216,33 +241,38 @@ export function circleHitsOBB(p: XZ, r: number, b: OBB): boolean {
   return pushFromOBB(p, r, b) !== null;
 }
 
-/** Is this solid under your feet (so you pass over it)? `feet` is -Infinity on the ground: then everything blocks. */
-const under = (top: number | undefined, feet: number) => top !== undefined && top <= feet + ON_TOP;
+/**
+ * Is this solid under your feet or over your head, so you pass it? `feet` is
+ * where your feet are; -Infinity means on the floor at `p`, and then only
+ * what's up on an upper floor (`bottom`) is passed: everything else blocks.
+ */
+function passes(s: { top?: number; bottom?: number }, feet: number, x: number, z: number): boolean {
+  if (s.top !== undefined && s.top <= feet + ON_TOP) return true;
+  return s.bottom !== undefined && s.bottom >= (feet === -Infinity ? heightAt(x, z) : feet) + HEADROOM;
+}
 
-/** True when a circle at `p` overlaps any solid (static or the given door panels). `feet`: off the ground, at this height. */
+/** True when a circle at `p` overlaps any solid (static or the given door panels). `feet`: where your feet are (see passes()). */
 export function blocked(p: XZ, r: number, world: StaticWorld, doors: OBB[], feet = -Infinity): boolean {
-  for (const q of world.rects) if (!under(q.top, feet) && pushFromRect(p, r, q.x0, q.z0, q.x1, q.z1)) return true;
-  for (const c of world.circles) if (!under(c.top, feet) && pushFromCircle(p, r, c)) return true;
+  for (const q of world.rects) if (pushFromRect(p, r, q.x0, q.z0, q.x1, q.z1) && !passes(q, feet, p[0], p[1])) return true;
+  for (const c of world.circles) if (pushFromCircle(p, r, c) && !passes(c, feet, p[0], p[1])) return true;
   for (const b of doors) if (pushFromOBB(p, r, b)) return true;
   return false;
 }
 
 /** Push `p` out of everything it overlaps. A few passes settle corners where two solids meet. */
-export function resolve(p: XZ, r: number, world: StaticWorld, doors: OBB[], passes = 4, feet = -Infinity): XZ {
+export function resolve(p: XZ, r: number, world: StaticWorld, doors: OBB[], rounds = 4, feet = -Infinity): XZ {
   let x = p[0], z = p[1];
-  for (let pass = 0; pass < passes; pass++) {
+  for (let pass = 0; pass < rounds; pass++) {
     let moved = false;
     for (const q of world.rects) {
       // cheap reject before the exact test
       if (x < q.x0 - r || x > q.x1 + r || z < q.z0 - r || z > q.z1 + r) continue;
-      if (under(q.top, feet)) continue;
       const push = pushFromRect([x, z], r, q.x0, q.z0, q.x1, q.z1);
-      if (push) { x += push[0]; z += push[1]; moved = true; }
+      if (push && !passes(q, feet, x, z)) { x += push[0]; z += push[1]; moved = true; }
     }
     for (const c of world.circles) {
-      if (under(c.top, feet)) continue;
       const push = pushFromCircle([x, z], r, c);
-      if (push) { x += push[0]; z += push[1]; moved = true; }
+      if (push && !passes(c, feet, x, z)) { x += push[0]; z += push[1]; moved = true; }
     }
     for (const b of doors) {
       const push = pushFromOBB([x, z], r, b);

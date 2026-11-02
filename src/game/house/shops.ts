@@ -32,12 +32,12 @@ export const SHOPS: ShopDef[] = [
   { id: 'jacks', name: "Jack's of Fiji", kind: 'shop', width: 8.6, wall: '#eef4dc', sign: '#8dbf1e', logo: 'jacks-of-fiji.png', blurb: 'Clothing, souvenirs and gifts.' },
   { id: 'new-world', name: 'New World IGA', kind: 'supermarket', width: 12.6, wall: '#f4f2ec', sign: '#1f8a3b', logo: 'new-world-iga.png', blurb: 'Groceries and everyday shopping.' },
   { id: 'costuless', name: 'CostULess', kind: 'supermarket', width: 12.6, wall: '#f2f0ea', sign: '#d61f26', logo: 'costuless.png', blurb: 'Groceries and household goods in bulk.' },
-  // the way into Damodar City, the centre behind the shops (damodarCity.ts): Damodar Cinemas, BSP, more shops coming
-  { id: 'damodar', name: 'Damodar City', kind: 'mall', width: 12.6, wall: '#e9ecef', sign: '#4a5a6e', blurb: 'The shopping centre with Damodar Cinemas and a BSP bank, and more shops coming soon. Walk in past the sign: the car park, the shops, the cinema, and BSP is open inside.' },
+  // the way into Damodar City, the centre behind the shops (damodarCity.ts): Damodar Cinemas, BSP, Bondwell, more shops coming
+  { id: 'damodar', name: 'Damodar City', kind: 'mall', width: 12.6, wall: '#e9ecef', sign: '#4a5a6e', blurb: 'The shopping centre with Damodar Cinemas, a BSP bank and Bondwell, the ICT shop, and more shops coming soon. Walk in past the sign: the car park, the shops, the cinema; BSP and Bondwell, right beside it, are open inside.' },
   { id: 'manubhai', name: 'R.C. Manubhai', kind: 'hardware', width: 8.6, wall: '#e8ecf6', sign: '#2b3990', logo: 'manubhai.png', blurb: 'Hardware and building supplies.' },
   { id: 'sardaar', name: 'Sardaar Complex', kind: 'complex', width: 16.6, wall: '#f1ecd9', sign: '#c8102e', blurb: 'Shops on the ground floor, offices upstairs.' },
   // a shopping complex behind its own car park, still being built: walk in through the gate (gardenCity.ts)
-  { id: 'garden-city', name: 'Garden City', kind: 'mall', width: 26, wall: '#e3e5e6', sign: '#4f9a3a', sub: 'Shops coming soon', blurb: 'A new shopping complex, still being built. Westpac is already open inside; the other shops are coming soon. Walk in through the gate and have a look round.' },
+  { id: 'garden-city', name: 'Garden City', kind: 'mall', width: 26, wall: '#e3e5e6', sign: '#4f9a3a', sub: 'Shops coming soon', blurb: 'A new shopping complex, still being built but open to visitors. Westpac is already open inside; the other shops are coming soon. Walk in through the open gate, look round the shops, and take the stairs in the last one up to the first floor.' },
 ];
 
 /** The row starts here (x, m) and runs east; 0.8 m between buildings. */

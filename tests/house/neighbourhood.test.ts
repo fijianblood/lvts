@@ -1,13 +1,13 @@
 // Run with: node --test tests/house/
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildStaticWorld, roamSolids, doorOBB, bodyOBB, blocked, PLAYER_R, type OBB, type StaticWorld } from '../../src/game/house/collision.ts';
-import { DOORS, SPAWN, RAMPS, ROOMS, PROPS, BARRIERS, heightAt, jumpTop, PARKED, MASJID, MASJID_YARD, MCFARLANE, TEMPLE, TEMPLE_GATE, WORLD_EDGE, LOOKOUT_TOP, LOOKOUT_START, type GameMode } from '../../src/game/house/layout.ts';
+import { buildStaticWorld, roamSolids, doorOBB, bodyOBB, blocked, PLAYER_R, JUMP_ROAM, type OBB, type StaticWorld } from '../../src/game/house/collision.ts';
+import { DOORS, SPAWN, RAMPS, ROOMS, PROPS, BARRIERS, heightAt, floorAt, roomAtLevel, jumpTop, PARKED, MASJID, MASJID_YARD, MCFARLANE, TEMPLE, TEMPLE_GATE, WORLD_EDGE, LOOKOUT_TOP, LOOKOUT_START, UPPER_REACH, ROAD_Y, type GameMode } from '../../src/game/house/layout.ts';
 import { LOOKOUT, climbBox } from '../../src/game/house/towers.ts';
 import { PLACES, lockOBB } from '../../src/game/house/chores.ts';
 import { SHOP_INSIDES } from '../../src/game/house/shopInsides.ts';
 import { USP, USP_BUILDINGS, uspFootprints } from '../../src/game/house/uspCampus.ts';
-import { GARDEN_CITY } from '../../src/game/house/gardenCity.ts';
+import { GARDEN_CITY, GC_UPPER, GC_STAIRS } from '../../src/game/house/gardenCity.ts';
 import { DAMODAR_CITY } from '../../src/game/house/damodarCity.ts';
 import { SHOP_SPOTS, SHOP_LINE, STREET, VISITOR_SPOTS, visitorCharacter } from '../../src/game/house/neighbourhood.ts';
 import { handle, memoryStore, LIMITS, type Ctx } from '../../workers/neighbourhood/src/registry.ts';
@@ -210,14 +210,103 @@ test('the shops along McFarlane Road: in through each door when it is open, not 
   }
 });
 
-test('Garden City: in through the gate, across the car park and into the units being built, but not the one shut off', () => {
+test('Garden City: its gate stands open; in across the car park and into every unit, the last one with the stairs up', () => {
   const map = raiwaiMap();
   const uw = (GC.x1 - GC.x0) / GC.units;
+  const gates = DOORS.filter((d) => d.id.startsWith('gc-gate'));
+  assert.equal(gates.length, 2);
+  for (const g of gates) assert.ok(g.kind === 'hinged' && g.startOpen, `${g.id} should start open`);
   assert.ok(map.near((GC.gate[0] + GC.gate[1]) / 2, GC.z0 + 1.5, 0.4), "can't get in through Garden City's gate");
   assert.ok(map.near((GC.gate[0] + GC.gate[1]) / 2, GC.walk + 1, 0.4), "can't cross the car park to the building");
-  for (let k = 0; k < GC.units - 1; k++) assert.ok(map.near(GC.x0 + (k + 0.5) * uw, (GC.build + GC.z1) / 2 + 2, 1.2), `can't walk into unit ${k + 1}`);
-  assert.equal(map.near(GC.x0 + (GC.units - 0.5) * uw, (GC.build + GC.z1) / 2, 1.0), false, 'got past the barriers into the last unit');
+  for (let k = 0; k < GC.units; k++) assert.ok(map.near(GC.x0 + (k + 0.5) * uw - (k === GC.units - 1 ? 0.8 : 0), (GC.build + GC.z1) / 2 + 2, 1.2), `can't walk into unit ${k + 1}`);
+  assert.ok(map.near((GC_STAIRS.x0 + GC.x1) / 2, GC_STAIRS.z0 + 0.3, 0.3), "can't walk up to the bottom of the stairs");
+  // the floor plan is drawn at ground level: the stairs are reached only from the bottom step, never over their side wall
+  assert.equal(map.any((x, z) => x > GC_STAIRS.x0 && x < GC.x1 && z > GC_STAIRS.z0 + 1.0 && z < GC.z1 && heightAt(x, z) < ROAD_Y + 0.4), false, 'got onto the stairs over their side');
   assert.equal(map.any((x, z) => inGardenCity(x, z) && z > GC.z1 - 0.15), false, 'walked through the back wall');
+});
+
+/**
+ * Walk Garden City on both floors: a flood fill on a 10 cm grid where each
+ * spot carries the height of your feet (the floor under you: floorAt), so the
+ * same spot can be reached downstairs and upstairs. A step to a neighbour that
+ * changes your height by more than a stair's tread is a ledge.
+ */
+function gardenCityFloors(doors: OBB[] = doorsOpen) {
+  const near = nearby(buildStaticWorld({ mode: 'explore' }));
+  const obstacles = [...doors, ...visitors];
+  const G = { x0: GC.x0 - 0.5, z0: GC.walk - 1.5, step: 0.1, nx: Math.round((GC.x1 - GC.x0 + 1) / 0.1) + 1, nz: Math.round((GC.z1 - GC.walk + 2) / 0.1) + 1 };
+  const UP = ROAD_Y + GC_UPPER.rise;
+  const band = (feet: number) => (feet > ROAD_Y + GC_UPPER.rise / 2 ? 1 : 0);
+  const seen = [new Float64Array(G.nx * G.nz).fill(NaN), new Float64Array(G.nx * G.nz).fill(NaN)];
+  const ledges: string[] = [];
+  const si = Math.round(((GC_STAIRS.x0 + GC.x1) / 2 - 0.3 - G.x0) / G.step), sj = Math.round((GC.walk + 1 - G.z0) / G.step);
+  const q: [number, number, number][] = [[si, sj, ROAD_Y]];
+  seen[0][si * G.nz + sj] = ROAD_Y;
+  while (q.length) {
+    const [i, j, feet] = q.pop()!;
+    for (const [a, b] of [[i + 1, j], [i - 1, j], [i, j + 1], [i, j - 1]]) {
+      if (a < 0 || b < 0 || a >= G.nx || b >= G.nz) continue;
+      const x = G.x0 + a * G.step, z = G.z0 + b * G.step;
+      const f = floorAt(x, z, feet);
+      if (blocked([x, z], PLAYER_R, near(x, z), obstacles, f)) continue;
+      if (Math.abs(f - feet) > 0.16) { ledges.push(`(${x.toFixed(1)}, ${z.toFixed(1)}): ${feet.toFixed(2)} to ${f.toFixed(2)}`); continue; }
+      const s = seen[band(f)];
+      if (!Number.isNaN(s[a * G.nz + b])) continue;
+      s[a * G.nz + b] = f;
+      q.push([a, b, f]);
+    }
+  }
+  const cell = (x: number, z: number) => Math.round((x - G.x0) / G.step) * G.nz + Math.round((z - G.z0) / G.step);
+  const at = (floor: 0 | 1, x: number, z: number, r = 0.25) => {
+    for (let dx = -r; dx <= r + 1e-9; dx += G.step) for (let dz = -r; dz <= r + 1e-9; dz += G.step) if (!Number.isNaN(seen[floor][cell(x + dx, z + dz)])) return true;
+    return false;
+  };
+  const any = (floor: 0 | 1, f: (x: number, z: number, feet: number) => boolean) => {
+    for (let i = 0; i < G.nx; i++) for (let j = 0; j < G.nz; j++) { const v = seen[floor][i * G.nz + j]; if (!Number.isNaN(v) && f(G.x0 + i * G.step, G.z0 + j * G.step, v)) return true; }
+    return false;
+  };
+  return { at, any, ledges, UP };
+}
+
+test('Garden City: up the stairs to the first floor, along its corridor and into every unit, with no ledge and no other way up', () => {
+  const m = gardenCityFloors();
+  const uw = (GC.x1 - GC.x0) / GC.units, ux = (k: number) => GC.x0 + k * uw;
+  const { corridor: UZ } = GC_UPPER;
+  const FZ = GC.build + 0.4;
+  assert.deepEqual(m.ledges, [], 'a ledge on the way');
+  // up the stairs to the landing at the top, and on to the first floor
+  assert.ok(m.at(1, (GC_STAIRS.x0 + GC.x1) / 2, (GC_STAIRS.z1 + GC.z1) / 2), "can't climb to the landing at the top of the stairs");
+  assert.ok(m.at(1, (GC.x0 + GC_STAIRS.x0) / 2, (FZ + UZ) / 2), "can't walk the first floor's corridor");
+  for (let k = 0; k < GC.units - 1; k++) assert.ok(m.at(1, ux(k) + uw / 2, (UZ + GC.z1) / 2), `can't walk into unit ${k + 1} upstairs`);
+  assert.ok(m.at(1, (ux(GC.units - 1) + GC_STAIRS.x0) / 2, (UZ + GC.z1) / 2), "can't walk round the stairs' lobby upstairs");
+  // upstairs you walk over the walls between the shops below, but not through the walls between the units up there
+  assert.ok(m.at(1, ux(1), (FZ + UZ) / 2, 0.1), 'the corridor upstairs is cut by a wall from downstairs');
+  assert.ok(m.at(0, ux(2) + uw / 2, UZ, 0.1), "downstairs, a unit's front upstairs is in the way");
+  assert.equal(m.any(1, (x, z) => Math.abs(x - ux(1)) < 0.2 && z > UZ + 0.4), false, 'walked through a wall between units upstairs');
+  // upstairs is all inside the building: never out over the canopy, through a wall, or into the stairwell
+  assert.equal(m.any(1, (x, z) => x < GC.x0 + 0.15 || x > GC.x1 - 0.15 || z < FZ + 0.1 || z > GC.z1 - 0.15), false, 'got out of the first floor');
+  assert.equal(m.any(1, (x, z, feet) => x > GC_STAIRS.x0 && z < GC_STAIRS.z1 - 0.3 && Math.abs(feet - heightAt(x, z)) > 0.01), false, 'fell into the stairwell, or floated over it');
+  assert.equal(m.any(1, (_x, _z, feet) => Math.abs(feet - m.UP) > 0.01 && feet > m.UP), false, 'stood higher than the first floor');
+  // downstairs never lands on the first floor's height (the only way up is the stairs)
+  assert.equal(m.any(0, (x, z, feet) => feet > ROAD_Y + 0.3 && !(x > GC_STAIRS.x0 && z < GC_STAIRS.z1)), false, 'got up off the ground floor somewhere other than the stairs');
+  // the bench upstairs in the lobby is in the way upstairs, not downstairs
+  const bench: [number, number] = [ux(GC.units - 1) + 0.7, 53.4];
+  assert.ok(m.at(0, ...bench, 0.1), 'downstairs, the bench upstairs is in the way');
+  assert.equal(m.at(1, ...bench, 0.1), false, 'walked through the bench upstairs');
+});
+
+test('Garden City: a jump never reaches the first floor, and every ceiling keeps your head under it', () => {
+  const UP = ROAD_Y + GC_UPPER.rise;
+  assert.ok(JUMP_ROAM.up < GC_UPPER.rise - UPPER_REACH, 'a jump from the ground floor could land you upstairs');
+  const room = (id: string) => ROOMS.find((r) => r.id === id)!;
+  assert.ok(room('gcunits').cap! <= ROAD_Y + 3.5, "the ground floor's ceiling is above the first floor's slab");
+  for (const id of ['gcup', 'gcup-lobby', 'gcup-0', 'gcstairs']) assert.ok(room(id).cap! <= ROAD_Y + GC_UPPER.ceiling && room(id).cap! - UP > 2.5, `${id}'s ceiling`);
+  // where the floors overlap, the room is the one at your level
+  const x = GC.x0 + 2.6, z = 52;
+  assert.equal(roomAtLevel(x, z, ROAD_Y)?.id, 'gcunits');
+  assert.equal(roomAtLevel(x, z, ROAD_Y + 1.6)?.id, 'gcunits', 'a jump downstairs is still downstairs');
+  assert.equal(roomAtLevel(x, z, UP)?.id, 'gcup-0');
+  assert.equal(roomAtLevel((GC_STAIRS.x0 + GC.x1) / 2, 50, heightAt((GC_STAIRS.x0 + GC.x1) / 2, 50))?.id, 'gcstairs');
 });
 
 test('Garden City: in through its gate and Westpac\'s doors when they are open, not when they are shut', () => {
@@ -242,8 +331,8 @@ test('Damodar City: in from the road, round the car park and along the shops; in
   assert.ok(map.near((DC.in0 + DC.in1) / 2, DC.back - 2, 0.5), "can't walk in from McFarlane Road");
   assert.ok(map.near(DC.x0 + 12, 47, 0.5) && map.near(DC.x1 - 5, 47, 0.5), "can't cross the car park");
   assert.ok(map.near(DC.x0 + 2, DC.front - 1, 0.5) && map.near(DC.x1 - 3, DC.front - 1, 0.5), "can't walk the length of the shops");
-  const insides = ROOMS.filter((r) => /^(dcu-|dcw-|dcbsp|dccinema)/.test(r.id));
-  assert.equal(insides.length, DC.units - 1 + 3 + 1 + 1, 'every shop, BSP, the cinema and the wing shops should have an inside');
+  const insides = ROOMS.filter((r) => /^(dcu-|dcw-|dcbsp|dcbondwell|dccinema)/.test(r.id));
+  assert.equal(insides.length, DC.units - 1 + 3 + 1 + 1, 'every shop, BSP, Bondwell, the cinema and the wing shops should have an inside');
   for (const r of insides) {
     const inRoom = (x: number, z: number) => x > r.x0 + 0.3 && x < r.x1 - 0.3 && z > r.z0 + 0.3 && z < r.z1 - 0.3;
     assert.ok(map.any(inRoom), `can't walk into ${r.name} (${r.id}) with its door open`);
@@ -251,6 +340,14 @@ test('Damodar City: in from the road, round the car park and along the shops; in
   }
   assert.ok(map.near(bx0 + 0.9, 59.8, 0.3), "can't walk up to BSP's ATMs");
   assert.equal(map.any((x, z) => x > bx0 && x < bx1 && z > 66.75 && z < DC.z1), false, "got behind BSP's counter");
+  // Bondwell, the ICT shop, right beside BSP (east): up to its laptops and its counter, never behind it
+  const wx0 = DC.x0 + DC.bondwell * DC.unitW, wx1 = wx0 + DC.unitW;
+  assert.equal(DC.bondwell, DC.bsp + 1, 'Bondwell should be the next unit east of BSP');
+  assert.equal(ROOMS.find((r) => r.id === 'dcbondwell')?.name, 'Bondwell, Damodar City');
+  assert.ok(map.near((wx0 + wx1) / 2, 62.2, 0.3), "can't walk between Bondwell's laptop tables");
+  assert.ok(map.near(wx0 + 1.1, 62.2, 0.2) && map.near(wx1 - 0.8, 62.2, 0.2), "can't walk down the aisles either side of Bondwell's tables");
+  assert.ok(map.near((wx0 + wx1) / 2, 65.6, 0.3), "can't walk up to Bondwell's counter");
+  assert.equal(map.any((x, z) => x > wx0 && x < wx1 && z > 66.8 && z < DC.z1), false, "got behind Bondwell's counter");
   for (const c of PARKED) assert.equal(map.near(c.x, c.z, 0.3), false, `walked through the parked car at ${c.x}, ${c.z}`);
 });
 

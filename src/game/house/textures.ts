@@ -329,6 +329,20 @@ export const shopComingSoon = (place: string) => canvasTexture(256, 104, (g, w, 
   g.fillStyle = GC_GREEN; g.font = 'italic 700 22px "Brush Script MT", "Segoe Script", "Snell Roundhand", cursive'; g.fillText(place, w / 2, 82);
 });
 
+/** Garden City's stair signs, in the centre's green: an arrow (up or down) and where it takes you. */
+export const floorSign = (big: string, small: string, dir: 1 | -1) => canvasTexture(256, 96, (g, w, h) => {
+  g.fillStyle = '#2f6b23'; g.fillRect(0, 0, w, h);
+  g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 4; g.strokeRect(5, 5, w - 10, h - 10);
+  // the arrow, drawn rather than typed so it never depends on a font
+  const ax = 44, ay = h / 2;
+  g.fillStyle = '#ffffff'; g.beginPath();
+  g.moveTo(ax, ay - dir * 26); g.lineTo(ax + 20, ay - dir * 4); g.lineTo(ax + 8, ay - dir * 4); g.lineTo(ax + 8, ay + dir * 24);
+  g.lineTo(ax - 8, ay + dir * 24); g.lineTo(ax - 8, ay - dir * 4); g.lineTo(ax - 20, ay - dir * 4); g.closePath(); g.fill();
+  g.textAlign = 'left'; g.textBaseline = 'middle';
+  g.font = '800 30px "Space Grotesk", Arial, sans-serif'; g.fillText(big, 80, 38, w - 92);
+  g.font = '600 17px "Space Grotesk", Arial, sans-serif'; g.fillText(small, 80, 70, w - 92);
+});
+
 // ── Damodar City (damodarCity.ts) ───────────────────────────────────────────
 /** The centre's name, on its pylon sign by the entrance. */
 export const damodarCitySign = () => canvasTexture(512, 144, (g, w, h) => {
