@@ -12,8 +12,13 @@ import {
   SKIN, HAIR, CLOTHES, SIZES, DEFAULT_LOOK, cleanName, visitorCharacter, loadMine, shareMine, checkMine, deleteMine, fetchNeighbours,
   offerLive, unlocked as offerUnlocked, API, type Mine, type Sharing, type ShopSpot, type VisitorLook,
 } from './neighbourhood.ts';
+import { useSharedWorld, SHARED, SHARED_CSS, CHAT_MAX, type JoinWho } from './useSharedWorld.ts';
+import { WorldPill, ChatFeed, ChatPanel } from './SharedWorld.tsx';
 
 type Phase = 'intro' | 'playing' | 'paused' | 'won' | 'nogl';
+
+/** A key pressed while typing in a box (the chat) isn't a game key. */
+const typing = (e: KeyboardEvent) => !!(e.target as HTMLElement | null)?.closest?.('input, textarea, select');
 type PauseReason = 'lock-lost' | 'poster' | 'manual';
 
 const BEST_KEY = 'lvts_househunt_best_v1';
@@ -260,7 +265,40 @@ export default function HouseGame() {
   const [rotated, setRotated] = useState(false);
   const [muted, setMuted] = useState(() => { try { return localStorage.getItem(MUTE_KEY) === '1'; } catch { return false; } });
   const [copied, setCopied] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const prize = prizeState();   // cheap: re-read on every render so a round that starts mid-visit shows up
+
+  // the shared world: everyone exploring at the same time (not the hunt, which stays your own game)
+  const inWorld = SHARED && mode === 'explore' && (phase === 'playing' || phase === 'paused');
+  const who: JoinWho | null = !inWorld ? null
+    : charId === 'me' && mine ? { kind: 'mine', look: mine.look, ...(mine.id && mine.key ? { id: mine.id, key: mine.key } : {}) }
+    : { kind: 'family', id: charId === 'me' ? 'josese' : charId };
+  const world = useSharedWorld(engineRef.current, who);
+  const openChat = useCallback(() => {
+    setChatOpen(true);
+    engineRef.current?.setUiOpen(true);
+    if (document.pointerLockElement) document.exitPointerLock();
+  }, []);
+  const closeChat = useCallback(() => {
+    setChatOpen(false);
+    engineRef.current?.setUiOpen(false);
+    if (!touch && engineRef.current?.state === 'playing') engineRef.current.requestLock();
+  }, [touch]);
+  // the chat box closes when you stop exploring, pause, or lose the connection
+  useEffect(() => {
+    if (chatOpen && (phase !== 'playing' || world.status !== 'online')) { setChatOpen(false); engineRef.current?.setUiOpen(false); }
+  }, [chatOpen, phase, world.status]);
+  // T opens the chat while you're in the shared world
+  useEffect(() => {
+    if (phase !== 'playing' || world.status !== 'online' || chatOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== 'KeyT' || e.repeat || typing(e)) return;
+      e.preventDefault();
+      openChat();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [phase, world.status, chatOpen, openChat]);
 
   const showToast = useCallback((text: string, kind: 'part' | 'gold' | 'star' | 'info') => {
     setToast({ text, kind });
@@ -497,7 +535,7 @@ export default function HouseGame() {
     if (!talk || phase !== 'playing') return;
     const onKey = (e: KeyboardEvent) => {
       const m = /^(?:Digit|Numpad)([1-9])$/.exec(e.code);
-      if (!m || e.repeat) return;
+      if (!m || e.repeat || typing(e)) return;
       e.preventDefault();
       choose(Number(m[1]) - 1);
     };
@@ -523,7 +561,7 @@ export default function HouseGame() {
   // C opens and closes the chores list
   useEffect(() => {
     if (phase !== 'playing') return;
-    const onKey = (e: KeyboardEvent) => { if (e.code === 'KeyC' && !e.repeat) setShowChores((v) => !v); };
+    const onKey = (e: KeyboardEvent) => { if (e.code === 'KeyC' && !e.repeat && !typing(e)) setShowChores((v) => !v); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [phase]);
@@ -531,7 +569,7 @@ export default function HouseGame() {
   useEffect(() => {
     if (phase !== 'playing') return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.code !== 'KeyX' || e.repeat) return;
+      if (e.code !== 'KeyX' || e.repeat || typing(e)) return;
       e.preventDefault();
       engineRef.current?.pause('manual');
       setConfirmQuit(true);
@@ -572,12 +610,14 @@ export default function HouseGame() {
             </span>
           )}
           {golden && <span className="hh-pill hh-gold" title="Golden Chip">✨ Golden Chip</span>}
+          {inWorld && <WorldPill status={world.status} count={world.players.length} />}
         </div>
         <div className={`hh-map${mapBig ? ' hh-map-big' : ''}`} onClick={toggleMap} role="button" aria-label={mapBig ? 'Shrink map' : 'Expand map'} tabIndex={-1}>
           <canvas ref={mapRef} />
           <span className="hh-map-tag">{mapBig ? 'Map · M to close' : 'M'}</span>
         </div>
         <div className="hh-cross" />
+        {inWorld && !chatOpen && <ChatFeed lines={world.lines} />}
         <div ref={promptRef} className="hh-prompt" style={{ opacity: 0 }} />
         {toast && toast.kind === 'talk' && !talk && <div className="hh-toast hh-toast-talk">{toast.lines.map((l, i) => <Line key={i} say={l} />)}</div>}
         {toast && toast.kind !== 'talk' && <div className={`hh-toast hh-toast-${toast.kind}`}>{toast.text}</div>}
@@ -589,6 +629,7 @@ export default function HouseGame() {
         )}
         <div className="hh-corner">
           {phase === 'playing' && <button type="button" className="hh-icon hh-quit" onClick={askQuit} aria-label="Quit the game" title="Quit the game">✕</button>}
+          {phase === 'playing' && inWorld && world.status === 'online' && <button type="button" className={`hh-icon${chatOpen ? ' on' : ''}`} onClick={() => (chatOpen ? closeChat() : openChat())} aria-label={chatOpen ? 'Close the chat' : 'Chat with other players'} title="Chat (T)">💬</button>}
           <button type="button" className={`hh-icon${showChores ? ' on' : ''}`} onClick={() => setShowChores((v) => !v)} aria-label="Chores and rewards" title="Chores and rewards (C)">📋</button>
           <button type="button" className="hh-icon" onClick={toggleView} aria-label={third ? 'First-person view' : 'Third-person view'} title="Switch view (V)">{third ? '👁' : '🎥'}</button>
           <button type="button" className="hh-icon" onClick={() => setMuted((m) => !m)} aria-label={muted ? 'Sound on' : 'Mute'}>{muted ? '🔇' : '🔊'}</button>
@@ -596,6 +637,8 @@ export default function HouseGame() {
           <button type="button" className="hh-icon" onClick={() => (full ? exitFull() : enterFull())} aria-label={full ? 'Exit full screen' : 'Full screen'}>{full ? '🗗' : '⛶'}</button>
         </div>
       </div>
+
+      {phase === 'playing' && chatOpen && <ChatPanel lines={world.lines} players={world.players} me={world.me} maxLength={CHAT_MAX} onSay={world.say} onReport={world.report} onClose={closeChat} touch={touch} />}
 
       {phase === 'intro' && creating && <Creator start={mine} saving={saving} onSave={(n, l) => void saveMine(n, l)} onDelete={() => void removeMine()} onCancel={() => setCreating(false)} />}
 
@@ -770,6 +813,7 @@ export default function HouseGame() {
                   <li><b>✋</b> open doors, talk to the family</li>
                   <li><b>⬆️</b> jump over things · <b>🏃</b> run</li>
                   <li><b>🗺️</b> map · <b>📋</b> chores · <b>🎥</b> view · <b>🔄</b> rotate · <b>✕</b> quit</li>
+                  {SHARED && <li><b>💬</b> chat with other players while exploring</li>}
                 </>
               ) : (
                 <>
@@ -778,6 +822,7 @@ export default function HouseGame() {
                   <li><kbd>E</kbd> open doors, talk to the family</li>
                   <li><kbd>Space</kbd> jump over things · <kbd>Shift</kbd> run</li>
                   <li><kbd>M</kbd> map · <kbd>C</kbd> chores · <kbd>V</kbd> view</li>
+                  {SHARED && <li><kbd>T</kbd> chat with other players while exploring</li>}
                 </>
               )}
             </ul>
@@ -883,7 +928,7 @@ export default function HouseGame() {
       )}
 
       </div>
-      <style>{HH_CSS}</style>
+      <style>{HH_CSS + SHARED_CSS}</style>
     </div>
   );
 }

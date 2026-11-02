@@ -465,12 +465,17 @@ const paintable = (m: THREE.Mesh) => m.isMesh && m.material instanceof THREE.Mes
 
 /** Merge the painted parts under `from` into one mesh, in `space`'s coordinates. */
 function mergePainted(from: THREE.Object3D, space: THREE.Object3D): THREE.Mesh | null {
+  const meshes: THREE.Mesh[] = [];
+  from.traverse((o) => { if (paintable(o as THREE.Mesh)) meshes.push(o as THREE.Mesh); });
+  return mergeMeshes(meshes, space);
+}
+
+/** These painted meshes as one mesh in `space` (colour and roughness on the vertices). */
+function mergeMeshes(meshes: THREE.Mesh[], space: THREE.Object3D): THREE.Mesh | null {
   space.updateMatrixWorld(true);
   const toSpace = space.matrixWorld.clone().invert();
   const parts: THREE.BufferGeometry[] = [];
-  from.traverse((o) => {
-    const m = o as THREE.Mesh;
-    if (!paintable(m)) return;
+  meshes.forEach((m) => {
     const mat = m.material as THREE.MeshStandardMaterial;
     const g = (m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone()).applyMatrix4(toSpace.clone().multiply(m.matrixWorld));
     if (!g.getAttribute('normal')) g.computeVertexNormals();
@@ -492,6 +497,33 @@ function mergePainted(from: THREE.Object3D, space: THREE.Object3D): THREE.Mesh |
  * playing) into a few meshes: the body, and the head on its own pivot. Anything
  * else (the iPad screen) is kept as it is.
  */
+/**
+ * Bake a figure that walks (the other players in the shared world): one mesh per
+ * moving part (hips, chest, head, upper and lower arms and legs), so it still
+ * swings its arms and legs but is about 11 draw calls instead of about 50.
+ */
+export function bakeMoving(rig: Rig) {
+  const parts: THREE.Object3D[] = [rig.body, rig.torso, rig.head, rig.armL, rig.elbowL, rig.armR, rig.elbowR, rig.legL, rig.kneeL, rig.legR, rig.kneeR];
+  const set = new Set(parts);
+  rig.root.updateMatrixWorld(true);
+  const owner = (o: THREE.Object3D) => { for (let q = o.parent; q; q = q.parent) if (set.has(q)) return q; return null; };
+  const groups = new Map<THREE.Object3D, THREE.Mesh[]>();
+  rig.root.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!paintable(m)) return;
+    const g = owner(m);
+    if (!g) return;
+    const list = groups.get(g);
+    if (list) list.push(m); else groups.set(g, [m]);
+  });
+  for (const [g, meshes] of groups) {
+    const merged = mergeMeshes(meshes, g);
+    if (!merged) continue;
+    for (const m of meshes) { m.removeFromParent(); m.geometry.dispose(); }
+    g.add(merged);
+  }
+}
+
 export function bakeStatic(rig: Rig) {
   rig.root.updateMatrixWorld(true);
   rig.root.attach(rig.head);

@@ -1,0 +1,28 @@
+// LvTS Neighbourhood server (see README.md in this folder).
+// A .jsonc file on purpose: Wrangler looks for wrangler.jsonc up the folders
+// before it looks for a wrangler.toml, so a .toml here lost to the website's
+// wrangler.jsonc in the repo's top folder (and `wrangler deploy` from this folder
+// would have picked up the website instead of this server).
+{
+  "name": "lvts-neighbourhood",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+
+  // One Durable Object keeps every visitor's character in its own SQLite
+  // database, and runs the shared world (the players' WebSockets).
+  "durable_objects": {
+    "bindings": [{ "name": "REGISTRY", "class_name": "Registry" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Registry"] }],
+
+  // Logs you can read in the Cloudflare dashboard (Workers → lvts-neighbourhood → Observability).
+  // Free plan: 200,000 log events a day, kept for 3 days.
+  "observability": {
+    "logs": { "enabled": true, "head_sampling_rate": 1, "invocation_logs": true, "persist": true },
+    "traces": { "enabled": false, "head_sampling_rate": 1, "persist": true }
+  }
+
+  // Secrets (set by the deploy workflow, never committed):
+  //   ADMIN_TOKEN   - the key for approving characters and the admin page (at least 16 characters)
+  //   VISITOR_SALT  - salt for hashing visitors' IP addresses (daily limit, reports and bans)
+}
