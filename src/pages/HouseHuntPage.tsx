@@ -49,9 +49,10 @@ export default function HouseHuntPage() {
         </h2>
         <ul style={{ color: '#475569', fontSize: '0.92rem', lineHeight: 1.7, paddingLeft: '1.2rem', display: 'grid', gap: '0.45rem' }}>
           <li><strong style={{ color: '#0f172a' }}>A virtual universe of Fiji, made by LvTS.</strong> Visit places here in Fiji, built in 3D. Right now that’s Raiwai, by USP and around the blocks: the family home, McFarlane Road and its shops, Garden City, Damodar City, the temple, the masjid and the USP campus.</li>
-          <li><strong style={{ color: '#0f172a' }}>Make your own character.</strong> Once LvTS approves it, it stays in the world for everyone who explores.</li>
+          <li><strong style={{ color: '#0f172a' }}>Explore together.</strong> Everyone exploring at the same time is in one shared world, up to 40 players: you see each other walking around and can chat (press T on a computer, or 💬 on a phone). Chat is filtered for rude words and personal details, and anyone can be reported to LvTS. The hunt for the Golden Chip stays a game you play on your own.</li>
+          <li><strong style={{ color: '#0f172a' }}>Make your own character.</strong> Once LvTS approves it, it stays in the world for everyone who explores, with your name over your head.</li>
           <li><strong style={{ color: '#0f172a' }}>Plays in your web browser.</strong> Nothing to install, on a computer or a phone.</li>
-          <li><strong style={{ color: '#0f172a' }}>Where it’s heading:</strong> a place to program, share and play your own 3D multiplayer games, and visit more of Fiji. Not built yet.</li>
+          <li><strong style={{ color: '#0f172a' }}>Where it’s heading:</strong> a place to program, share and play your own 3D games with other players, and visit more of Fiji. Making your own games isn’t built yet.</li>
         </ul>
       </div>
 
