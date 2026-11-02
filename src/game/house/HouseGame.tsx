@@ -699,6 +699,8 @@ export default function HouseGame() {
               <img src={`${BASE}neighbourhood/logos/${p.walletLogo}`} alt={p.wallet} />
               <span>{promoTitle(p)}<small>LvTS Noqublox reward · found in the {p.shop} shop, Damodar City</small></span>
             </div>
+            {/* (up here so it's in every screenshot people post) */}
+            <p className="hh-promo-by">{promoBy(p)}</p>
             {st.live && st.code ? (
               <>
                 <div className="hh-code-box">
@@ -711,7 +713,6 @@ export default function HouseGame() {
             ) : (
               <p className="hh-chores-note">No reward round is running right now{st.next ? `: the next code goes live on ${st.next}` : ''}. Follow <a href={CONTEST.facebookUrl} target="_blank" rel="noopener noreferrer">{CONTEST.handle}</a> to hear when it does, then come back and find the card again.</p>
             )}
-            <p className="hh-safety">{promoBy(p)}</p>
           </div>
         );
       })()}
@@ -1097,6 +1098,7 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
 .hh-promo-title img { height: 40px; width: auto; max-width: 110px; object-fit: contain; border-radius: 6px; }
 .hh-promo-title small { display: block; font-weight: 600; font-size: 0.7rem; color: #64748b; margin-top: 2px; }
 .hh-promo-code { font-size: clamp(1.8rem, 7vw, 2.3rem); letter-spacing: 0.14em; margin-bottom: 0; }
+.hh-promo-by { margin: 0 2px 6px; font-size: 0.7rem; font-weight: 700; color: #475569; }
 .hh-promo-steps { margin: 6px 0 10px 1.1rem; padding: 0; color: #334155; font-size: 0.76rem; line-height: 1.45; }
 .hh-promo-steps li { margin-bottom: 3px; }
 .hh-offer-code { color: #15803d !important; }
