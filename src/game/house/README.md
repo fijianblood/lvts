@@ -23,6 +23,17 @@ as ramps (`RAMPS`). Collision stays 2D; the camera height follows `heightAt`.
 Every place the floor height jumps is walled or railed except at stairs, and a
 test proves it.
 
+**Upper floors.** One spot has one floor (`heightAt`), except under an upper
+floor: Garden City's first floor is in `UPPER_FLOORS`, over its shops.
+`floorAt(x, z, feet)` says which floor you're on: the upper one once your feet
+are up at its level (you step onto it from the landing at the top of its
+stairs), otherwise `heightAt`. Upstairs walls and furniture know where they
+start (`bottom` in `collision.ts`), so downstairs you walk under them; the
+walls between the shops below stop at the slab (`top` on the barrier), so
+upstairs you walk over them. `roomAtLevel` picks the room at your level, for
+the areas you've explored and for the ceiling. A test walks both floors and
+proves there's no ledge and no way up but the stairs.
+
 **Jumping** (Space, or the ⬆️ button on phones). In the hunt: about a metre
 up (a bit less for the kids; Aisha crawls, so she doesn't jump). You can jump
 over or onto furniture and loose things (benches, tables, beds, crates, cement
@@ -40,7 +51,9 @@ higher ground either side, on its curb), so a jump clears them. Buildings and
 house walls, doors and gates, the places you unlock with chores (the
 vegetable garden, the bure, the treehouse), the temple's and the masjid's
 walls, the lookout tower and the edge of the map still always stop you.
-Indoors the ceiling caps the jump so your head stays under it.
+Indoors the ceiling caps the jump so your head stays under it: the house's
+ceilings, and the `cap` on the shops' insides, the centres' units and under
+Garden City's first floor. A jump downstairs never reaches the floor above.
 
 Doors and gates: the kitchen back door, the veranda gate, the side gate, the
 storeroom door and the double front gate all open with E. The veranda gate and
@@ -170,12 +183,20 @@ on them. Baby Aisha babbles, coos and reaches for cuddles instead of talking.
 - **Garden City** ('mall', after Sardaar Complex) is different: a shopping
   complex set back behind its own car park, and you can walk in. Its iron
   fence, grey pillars with lanterns and the "Garden City" sign are at the
-  road; through the iron gates (they open with E) are the car park (a corner fenced off with red water
+  road; through the iron gates (they stand open now that visitors can walk
+  in; E shuts them) are the car park (a corner fenced off with red water
   barriers), a covered walkway and five ground-floor units still being built,
-  each with a "coming soon" board (the last one is shut off behind barriers).
+  each with a "coming soon" board.
   The second unit is already open: **Westpac**, through a pair of glass
   doors, with its logo over the door and on a red back wall, a counter, two
-  ATMs, chairs and queue posts.
+  ATMs, chairs and queue posts. In the last unit, concrete stairs go up the
+  east wall (a block wall on their open side, a handrail, a "First floor"
+  sign over the bottom step) to a landing and the **first floor**: a
+  corridor along the front windows (every other one still an open hole you
+  can look out of), four units off it waiting for their shops (a doorway
+  and a "coming soon" board each, plasterboard, paint tins, a stepladder),
+  and the stairs' lobby (a bench, a pot plant, a "Way out" sign on the rail
+  round the stairwell).
   It is all plain data in `gardenCity.ts`; the signs are drawn in
   `textures.ts`, not copied from photos. When shops move in, their signs can
   go on the boards.
@@ -189,7 +210,11 @@ on them. Baby Aisha babbles, coos and reaches for cuddles instead of talking.
   blue-grey roof band, and the cinema at the east end with its logo up high;
   a smaller block down the west side. Every ground-floor shop has a glass
   door that opens with E. **BSP** is open (double doors; its logo on a green
-  wall, a counter, ATMs, chairs); the other shops are coming soon, and inside
+  wall, a counter, ATMs, chairs). Right beside it, to the east, is
+  **Bondwell**, the ICT shop (its logo from the picture they sent): a red
+  fascia and back wall with the logo, laptops on two display tables, phones
+  in a glass case, a TV, printers, a wall of accessories and the counter at
+  the back. The other shops are coming soon, and inside
   each is an empty unit being fitted out (a "coming soon" board, boxes, a
   ladder). **Damodar Cinemas** has double doors into its lobby: a red carpet,
   the ticket counter, the candy bar with popcorn, film posters, a bench and
@@ -431,8 +456,8 @@ then `npm run dev` and open `http://localhost:5173/lvts/#house`.
 | `raiwaiPlan.ts` | Where everything in Raiwai goes (plain data, used by the engine, the minimap and the tests). |
 | `raiwai.ts` | Raiwai's 3D pieces: houses, flats, the Methodist Church, the pool, the teal building, the Lomaiviti Training Ground, the Raiwai Jame Masjid, the Howell Road Hindu Temple, sheds, the Nasese bus, cars, power poles, trees. |
 | `towers.ts` | The Raiwai Lookout, the tower you can walk up when exploring: its stairs round the outside (ramps and landings), walls, rails and what's drawn. |
-| `gardenCity.ts` | Garden City, the shopping complex being built after Sardaar Complex: plain data for its fence, sign, car park, building, building site and the Westpac branch. |
-| `damodarCity.ts` | Damodar City, the centre across the road: its sign, car park, shops (with doors and insides), the BSP branch and Damodar Cinemas' lobby. |
+| `gardenCity.ts` | Garden City, the shopping complex being built after Sardaar Complex: plain data for its fence, sign, car park, building, building site, the Westpac branch, and its stairs and first floor (an upper floor). |
+| `damodarCity.ts` | Damodar City, the centre across the road: its sign, car park, shops (with doors and insides), the BSP branch, Bondwell and Damodar Cinemas' lobby. |
 | `shopInsides.ts` | The row of shops across the road, opened up: each front's walls, windows and glass doors, and what's inside by kind. Also `lvtsPlaque()`, the small LvTS logo-and-number plaque. |
 | `uspCampus.ts` | The USP campus you can walk around: its blocks, paths, trees and sign. |
 | `online.ts`, `SharedWorld.tsx` | The shared world on the game's side: the connection to the server, and the 🌐 pill, chat lines, chat box and report button. |

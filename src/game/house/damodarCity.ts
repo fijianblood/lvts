@@ -30,6 +30,8 @@ export const DAMODAR_CITY = front ? {
   units: 8, unitW: 5.5,
   /** BSP's shop (0-based, from the west): straight ahead as you come in. */
   bsp: 5,
+  /** Bondwell, the ICT shop, right beside BSP (east of it). */
+  bondwell: 6,
   /** The west wing: its shopfront faces east along this line, from z0 to the walkway. */
   wing: { x1: -10, z0: 40 },
 } : null;
@@ -42,6 +44,7 @@ const DARK_GLASS = '#2b3a44';
 const LINE = '#f1f1ec';
 const YELLOW = '#f2c230';
 const BSP_GREEN = '#0f8a43';
+const BONDWELL_RED = '#e3262b';
 
 const box = (x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, color: string, solid = false, extra: Partial<Extract<Prim, { kind: 'box' }>> = {}): Prim =>
   ({ kind: 'box', min: [x0, y0, z0], max: [x1, y1, z1], color, solid, plain: true, ...extra });
@@ -125,21 +128,69 @@ export function damodarCity(y: number): { rooms: Room[]; barriers: Barrier[]; pr
   const glassDoor = (id: string, label: string, hx: number, hz: number, width: number, closed: number, swing: number, extra: Partial<Door> = {}): Door =>
     ({ kind: 'hinged', id, label, hinge: [hx, hz], width, closed, swing, color: '#3b3f44', exterior: true, style: 'glass', height: 2.2, base: y, ...extra } as Door);
   const rooms: Room[] = [];
-  const inside = { ceiling: false, outside: false, ground: true, explore: true, area: true } as const;
+  const inside = { ceiling: false, outside: false, ground: true, explore: true, area: true, cap: y + 3.45 } as const;
+  /**
+   * Bondwell (the ICT shop) in unit u..u1: a red fascia, a red back wall with
+   * the logo; inside, laptops on two display tables, phones in a glass case,
+   * printers, a wall of accessories, a TV, and the counter at the back.
+   */
+  const bondwell = (u: number, u1: number, m: number) => {
+    const RED = BONDWELL_RED, DARKG = '#2a2d31', SCREEN = '#3d7fd6';
+    const laptop = (lx: number, lz: number) => add(
+      box(lx - 0.17, y + 0.82, lz - 0.12, lx + 0.17, y + 0.84, lz + 0.12, '#c9ccd0'),
+      box(lx - 0.17, y + 0.84, lz + 0.1, lx + 0.17, y + 1.08, lz + 0.12, DARKG),
+      box(lx - 0.15, y + 0.86, lz + 0.098, lx + 0.15, y + 1.06, lz + 0.1, SCREEN, false, { emissive: true }),
+    );
+    // (the tables leave an aisle either side, past the phones and to the accessories, and room between them)
+    const table = (tz: number) => {
+      add(box(u + 1.5, y, tz, u1 - 1.6, y + 0.8, tz + 1.1, '#f4f4f2', true), box(u + 1.5, y + 0.8, tz - 0.02, u1 - 1.6, y + 0.82, tz + 1.12, RED));
+      for (let lx = u + 1.85; lx < u1 - 1.8; lx += 0.75) laptop(lx, tz + 0.5);
+    };
+    add(
+      box(u + 0.25, y + 3.3, F, u1 - 0.25, y + 3.5, F + 0.06, RED),                                       // the fascia over the door
+      box(u + 0.4, y + 1.1, F - 0.03, u + 1.95, y + 1.68, F - 0.01, '#ffffff', false, { tex: 'logo/bondwell.png:-z' }),   // in the window
+      box(u + 0.08, y, Z - 0.25, u1 - 0.08, y + 3.5, Z - 0.2, RED),                                       // the red back wall
+      box(u + 0.9, y + 2.05, Z - 0.28, u1 - 0.9, y + 2.9, Z - 0.25, '#ffffff', false, { tex: 'logo/bondwell.png:-z' }),
+      // the counter, a till and a screen
+      box(u + 0.6, y, 66.0, u1 - 0.6, y + 1.05, 66.7, '#f4f4f2', true), box(u + 0.6, y + 0.25, 65.98, u1 - 0.6, y + 0.85, 66.0, RED),
+      box(u + 0.55, y + 1.05, 65.95, u1 - 0.55, y + 1.1, 66.75, DARKG),
+      box(m + 0.4, y + 1.1, 66.3, m + 0.85, y + 1.45, 66.34, DARKG), box(m + 0.43, y + 1.13, 66.29, m + 0.82, y + 1.42, 66.3, SCREEN, false, { emissive: true }),
+      // phones in a glass case along the west wall
+      box(u + 0.12, y, 59.6, u + 0.75, y + 1.0, 64.4, '#e8edf0', true), box(u + 0.12, y + 1.0, 59.6, u + 0.75, y + 1.02, 64.4, '#cfe3ea'),
+      // a TV on the west wall above it
+      box(u + 0.1, y + 1.6, 60.6, u + 0.16, y + 2.4, 62.0, DARKG), box(u + 0.16, y + 1.65, 60.65, u + 0.17, y + 2.35, 61.95, SCREEN, false, { emissive: true }),
+      // a wall of accessories on the east wall: a pegboard with boxes on it
+      box(u1 - 0.2, y + 0.9, 59.6, u1 - 0.12, y + 2.6, 64.4, '#d7dadd'),
+      // printers on a low shelf by the window
+      box(u1 - 1.2, y, F + 0.7, u1 - 0.3, y + 0.6, F + 1.7, '#f4f4f2', true),
+      box(u1 - 1.1, y + 0.6, F + 0.75, u1 - 0.4, y + 0.9, F + 1.15, '#5b6066'), box(u1 - 1.1, y + 0.6, F + 1.25, u1 - 0.4, y + 0.9, F + 1.65, '#f0f1f2'),
+      // lights
+      box(m - 0.8, y + 3.44, 61.5, m + 0.8, y + 3.48, 61.9, '#fffdf5', false, { emissive: true }),
+      box(m - 0.8, y + 3.44, 64.5, m + 0.8, y + 3.48, 64.9, '#fffdf5', false, { emissive: true }),
+    );
+    for (let z = 59.75; z < 64.3; z += 0.42) add(box(u + 0.3, y + 1.0, z, u + 0.38, y + 1.03, z + 0.16, '#1e2328'));          // phones under the glass
+    const ACC = ['#e3262b', '#2f6db5', '#1e2328', '#f2f3f4', '#2fbf9f'];
+    for (let h = 1.05, i = 0; h < 2.45; h += 0.38) for (let z = 59.8; z < 64.2; z += 0.55, i++) add(box(u1 - 0.32, y + h, z, u1 - 0.2, y + h + 0.26, z + 0.34, ACC[i % ACC.length]));
+    table(60.4); table(62.8);
+    rooms.push({ id: 'dcbondwell', name: 'Bondwell, Damodar City', x0: u + 0.075, x1: u1 - 0.075, z0: F, z1: Z - 0.2, floor: 'tile', ...inside });
+  };
   for (let k = 0; k < P.units; k++) {
     const u = ux(k), u1 = u + uw, m = (u + u1) / 2;
     // its sign on the balustrade, its upstairs window (a poster in some)
-    add(box(u + 0.9, y + 3.86, W - 0.03, u1 - 0.9, y + 4.62, W, k === P.bsp ? BSP_GREEN : '#ffffff', false, { tex: k === P.bsp ? 'logo/bsp.png:-z' : 'dcsoon:-z' }));
+    add(box(u + 0.9, y + 3.86, W - 0.03, u1 - 0.9, y + 4.62, W, k === P.bsp ? BSP_GREEN : '#ffffff', false, { tex: k === P.bsp ? 'logo/bsp.png:-z' : k === P.bondwell ? 'logo/bondwell.png:-z' : 'dcsoon:-z' }));
     add(box(u + 0.3, y + 3.95, F - 0.04, u1 - 0.3, y + 6.7, F, k % 3 ? DARK_GLASS : '#bfd6e0'));
     if (k % 2 === 0) add(box(u + 1.5, y + 4.6, F - 0.06, u1 - 1.5, y + 5.6, F - 0.04, '#ffffff', false, { tex: 'dcsoon:-z' }));
     if (k === P.bsp) continue;
     // downstairs: glass either side of a glass door, a "coming soon" poster; inside, waiting for its shop
     shopDoors.push({ x0: m - 0.5, x1: m + 0.5 });
-    doors.push(glassDoor(`dc-door-${k + 1}`, 'shop door', m - 0.5, F + 0.03, 1.0, 0, HALF_PI));
+    doors.push(glassDoor(`dc-door-${k + 1}`, k === P.bondwell ? 'Bondwell door' : 'shop door', m - 0.5, F + 0.03, 1.0, 0, HALF_PI));
     add(
       box(u + 0.25, y, F, m - 0.5, y + 3.3, F + 0.06, GLASS), box(m + 0.5, y, F, u1 - 0.25, y + 3.3, F + 0.06, GLASS),
       box(m - 0.5, y + 2.2, F, m + 0.5, y + 3.3, F + 0.06, GLASS),
       box(m - 0.56, y, F - 0.02, m - 0.5, y + 2.25, F + 0.08, '#3b3f44'), box(m + 0.5, y, F - 0.02, m + 0.56, y + 2.25, F + 0.08, '#3b3f44'),
+    );
+    if (k === P.bondwell) { bondwell(u, u1, m); continue; }
+    add(
       box(u + 0.4, y + 1.0, F - 0.03, u + 2.1, y + 1.85, F - 0.01, '#ffffff', false, { tex: 'dcsoon:-z' }),
       box(u + 0.25, y + 3.3, F, u1 - 0.25, y + 3.5, F + 0.06, SLATE),
       box(u + 1.6, y + 1.5, Z - 0.24, u1 - 1.6, y + 2.5, Z - 0.2, '#ffffff', false, { tex: 'dcsoon:-z' }),
@@ -269,7 +320,7 @@ export function damodarCity(y: number): { rooms: Room[]; barriers: Barrier[]; pr
     { id: 'dcin', name: 'Damodar City', x0: in0, x1: in1, z0: R, z1: K, floor: 'road', ...area },
     { id: 'dcwing', name: 'Damodar City', x0: wx1, x1: wx1 + 1.8, z0: wz0, z1: W, floor: 'concrete', ...area },
     { id: 'dcpark', name: 'Damodar City', x0, x1, z0: K, z1: W, floor: 'road', ...area, area: true },
-    { id: 'dcwalk', name: 'Damodar City', x0, x1, z0: W, z1: F, floor: 'concrete', ...area },
+    { id: 'dcwalk', name: 'Damodar City', x0, x1, z0: W, z1: F, floor: 'concrete', ...area, cap: y + 3.45 },   // under the first floor
   );
 
   // cars nosed into the bays, both rows

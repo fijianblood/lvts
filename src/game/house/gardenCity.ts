@@ -1,14 +1,21 @@
 // Garden City: the new shopping complex after Sardaar Complex, set back behind
-// its own car park. The shops are coming soon; for now it's a building site
-// you can walk into: through the gate past the "Garden City" sign, across the
-// car park (the builders have fenced off a corner with red water barriers), and
-// into the ground-floor units, where their things are lying about. The second
-// unit is already open: a Westpac bank. The last unit is shut off behind
-// barriers.
+// its own car park. The shops are coming soon, but it's open to visitors: in
+// through the open gate past the "Garden City" sign, across the car park (the
+// builders have fenced off a corner with red water barriers), and into the
+// ground-floor units, where their things are lying about. The second unit is
+// already open: a Westpac bank. In the last unit, stairs go up the east wall to
+// the first floor: a corridor along the front windows, and four more units
+// still waiting for their shops.
 //
-// Pure data, no three.js: layout.ts adds the rooms, barriers, props and parked
-// cars; the engine draws the props (the signs are textures named in `tex`).
-import type { Prim, Barrier, Room, Parked, Door, XZ } from './layout.ts';
+// The first floor is an upper floor (layout.ts UPPER_FLOORS) over the shops:
+// its walls start at its floor (`bottom`), so downstairs you walk under them,
+// and the walls between the shops below stop at its slab (`top`), so upstairs
+// you walk over them.
+//
+// Pure data, no three.js: layout.ts adds the rooms, barriers, props, parked
+// cars, stairs and floors; the engine draws the props (the signs are textures
+// named in `tex`).
+import type { Prim, Barrier, Room, Parked, Door, Platform, Ramp, XZ } from './layout.ts';
 import { SHOP_FRONTS } from './shops.ts';
 import { lvtsPlaque } from './shopInsides.ts';
 
@@ -39,6 +46,10 @@ const MARK = '#5fa8d8';
 const RED = '#d63a2f';
 const TIMBER = '#b98b55';
 const STEEL = '#9aa3aa';
+/** Upstairs: its walls (rendered outside), the stairs' treads and their edges. */
+const UPPER_WALL = '#e3e5e6';
+const TREAD = '#bdb9b0';
+const TREAD_EDGE = '#8f8a80';
 
 /** Boxes are plain (sharp edges): a building site needs no rounded furniture edges, and it keeps the triangle count down. */
 const box = (x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, color: string, solid = false, extra: Partial<Extract<Prim, { kind: 'box' }>> = {}): Prim =>
@@ -46,14 +57,23 @@ const box = (x0: number, y0: number, z0: number, x1: number, y1: number, z1: num
 const cyl = (x: number, y: number, z: number, r: number, h: number, color: string, solid = false, seg = 12, top?: number): Prim =>
   ({ kind: 'cyl', base: [x, y, z], r, h, color, solid, seg, top });
 
-/** Garden City's rooms, barriers, props and parked cars, on ground at height `y` (the road). */
-export function gardenCity(y: number): { rooms: Room[]; barriers: Barrier[]; props: Prim[]; parked: Parked[]; doors: Door[] } {
+/** The first floor: its height above the car park, how far back its corridor runs (the units' fronts), its ceiling. */
+export const GC_UPPER = { rise: 3.8, corridor: 48.6, ceiling: 7.0 };
+/** The stairs, up the east wall of the last unit: x from its wall to the building's side wall, z from the bottom tread to the landing at the top. */
+export const GC_STAIRS = { x0: 66.2, z0: 46.6, z1: 54.0 };
+
+/** Garden City's rooms, barriers, props and parked cars, on ground at height `y` (the road), and its stairs and first floor. */
+export function gardenCity(y: number): { rooms: Room[]; barriers: Barrier[]; props: Prim[]; parked: Parked[]; doors: Door[]; ramps: Ramp[]; platforms: Platform[]; upper: Platform[] } {
   const P = GARDEN_CITY;
-  if (!P) return { rooms: [], barriers: [], props: [], parked: [], doors: [] };
+  if (!P) return { rooms: [], barriers: [], props: [], parked: [], doors: [], ramps: [], platforms: [], upper: [] };
   const { x0, x1, z0: F, walk: W, build: Bf, z1: Bk } = P;
   const [g0, g1] = P.gate;
   const uw = (x1 - x0) / P.units;
   const ux = (k: number) => x0 + k * uw;
+  const UP = y + GC_UPPER.rise, UZ = GC_UPPER.corridor, ROOF = y + GC_UPPER.ceiling;
+  const { x0: LX, z0: SZ0, z1: SZ1 } = GC_STAIRS;
+  const SX1 = x1 - 0.2;                        // the stairs run up against the side wall
+  const lobby = P.units - 1;                   // the last unit: the stairs, and the way up
   const props: Prim[] = [];
   const add = (...p: Prim[]) => { props.push(...p); };
 
@@ -90,11 +110,11 @@ export function gardenCity(y: number): { rooms: Room[]; barriers: Barrier[]; pro
     box(x0 + 5.75, y, F - 0.08, x0 + 8.45, y + 2.45, F + 0.08, '#5b6066', true, { tex: 'gcboard:-z' }),
     box(x0 + 5.35, y + 2.5, F - 0.12, x0 + 8.85, y + 3.4, F + 0.12, '#f7f7f4', false, { tex: 'gcsign:-z' }),
   );
-  // the gates: a pair of iron leaves between the gate pillars, opened with E (they swing into the car park)
+  // the gates: a pair of iron leaves between the gate pillars, standing open (E shuts them; they swing into the car park)
   const gw = (g1 - g0) / 2;
   const doors: Door[] = [
-    { kind: 'hinged', id: 'gc-gate-l', label: 'Garden City gate', hinge: [g0, F], width: gw, closed: 0, swing: HALF_PI, color: BLACK, exterior: true, style: 'bars', height: 1.8, base: y, pair: 'gc-gate-r' },
-    { kind: 'hinged', id: 'gc-gate-r', label: 'Garden City gate', hinge: [g1, F], width: gw, closed: Math.PI, swing: -HALF_PI, color: BLACK, exterior: true, style: 'bars', height: 1.8, base: y, pair: 'gc-gate-l' },
+    { kind: 'hinged', id: 'gc-gate-l', label: 'Garden City gate', hinge: [g0, F], width: gw, closed: 0, swing: HALF_PI, color: BLACK, exterior: true, style: 'bars', height: 1.8, base: y, pair: 'gc-gate-r', startOpen: true },
+    { kind: 'hinged', id: 'gc-gate-r', label: 'Garden City gate', hinge: [g1, F], width: gw, closed: Math.PI, swing: -HALF_PI, color: BLACK, exterior: true, style: 'bars', height: 1.8, base: y, pair: 'gc-gate-l', startOpen: true },
   ];
   // a sign inside the gate, and a potted palm in each front corner
   add(
@@ -129,20 +149,31 @@ export function gardenCity(y: number): { rooms: Room[]; barriers: Barrier[]; pro
   );
 
   // ── the building: two storeys, the ground floor still bare, the upstairs windows half done ──
+  const FZ = Bf + 0.4, FZ1 = Bf + 0.54;   // the upstairs front wall, over the columns
   add(
-    box(x0, y + 3.5, W, x1, y + 3.8, Bk, '#c9c6bf'),                                // first-floor slab, and the canopy over the walkway
+    // the first-floor slab and the canopy over the walkway, open over the stairs
+    box(x0, y + 3.5, W, LX, y + 3.8, Bk, '#c9c6bf'),
+    box(LX, y + 3.5, W, x1, y + 3.8, SZ0, '#c9c6bf'),
+    box(LX, y + 3.5, SZ1, x1, y + 3.8, Bk, '#c9c6bf'),                            // (under the landing at the top)
     box(x0, y + 3.4, W - 0.05, x1, y + 3.9, W + 0.15, '#f2f3f1'),                  // the canopy's edge
-    box(x0, y + 3.8, Bf + 0.4, x1, y + 7.0, Bk, '#e3e5e6'),                       // upstairs
-    box(x0 - 0.1, y + 7.0, Bf + 0.2, x1 + 0.1, y + 7.6, Bk + 0.1, '#f2f3f1'),     // parapet
+    box(x0 - 0.1, ROOF, Bf + 0.2, x1 + 0.1, y + 7.6, Bk + 0.1, '#f2f3f1'),        // roof and parapet (its underside is the ceiling upstairs)
     box(x0 + 3, y + 7.05, Bf + 0.14, x1 - 3, y + 7.55, Bf + 0.2, '#4f9a3a', false, { tex: 'gcbanner:-z' }),
     lvtsPlaque(x1 - 1.4, y + 3.44, W - 0.055),                                    // the LvTS plaque, on the canopy's edge
     box(x0, y, Bf, x0 + 0.2, y + 3.5, Bk, BLOCK), box(x1 - 0.2, y, Bf, x1, y + 3.5, Bk, BLOCK),   // side walls
     box(x0, y, Bk - 0.2, x1, y + 3.5, Bk, BLOCK),                                                 // back wall
+    // upstairs: rendered outside, bare plaster inside
+    box(x0, UP, FZ, x0 + 0.2, ROOF, Bk, UPPER_WALL), box(x1 - 0.2, UP, FZ, x1, ROOF, Bk, UPPER_WALL),
+    box(x0, UP, Bk - 0.2, x1, ROOF, Bk, UPPER_WALL),
+    box(x0, UP, FZ, x1, y + 4.5, FZ1, UPPER_WALL), box(x0, y + 6.2, FZ, x1, ROOF, FZ1, UPPER_WALL),   // under and over the windows
   );
+  // the upstairs windows: every other one glazed, the rest still open holes you can look out of
   for (let k = 0; k < P.units; k++) {
     const wx0 = ux(k) + 0.6, wx1 = ux(k + 1) - 0.6;
-    add(box(wx0, y + 4.5, Bf + 0.32, wx1, y + 6.2, Bf + 0.4, k % 2 ? '#2b3a44' : '#dfe7ea'), box(wx0 - 0.1, y + 4.42, Bf + 0.28, wx1 + 0.1, y + 4.5, Bf + 0.4, '#cfd2d4'));
+    add(box(wx0 - 0.1, y + 4.42, Bf + 0.28, wx1 + 0.1, y + 4.5, FZ1 + 0.06, '#cfd2d4'));                        // the sill
+    if (k % 2) add(box(wx0, y + 4.5, Bf + 0.32, wx1, y + 6.2, FZ, '#2b3a44'));
+    else for (const fx of [wx0, wx1 - 0.06]) add(box(fx, y + 4.5, Bf + 0.34, fx + 0.06, y + 6.2, Bf + 0.4, '#cfd2d4'));   // the frame, no glass yet
   }
+  for (let k = 0; k <= P.units; k++) add(box(Math.max(x0, ux(k) - 0.6), y + 4.5, FZ, Math.min(x1, ux(k) + 0.6), y + 6.2, FZ1, UPPER_WALL));   // between the windows
   for (let k = 0; k <= P.units; k++) {
     const cx = Math.min(Math.max(ux(k), x0 + 0.25), x1 - 0.25);
     add(box(cx - 0.25, y, Bf, cx + 0.25, y + 3.5, Bf + 0.5, '#5d6268', true));                   // columns along the front
@@ -158,7 +189,7 @@ export function gardenCity(y: number): { rooms: Room[]; barriers: Barrier[]; pro
     if (k === P.westpac) continue;
     const u = ux(k), mid = u + uw / 2;
     add(
-      box(u + 1.4, y + 1.5, Bk - 0.26, u + uw - 1.4, y + 2.5, Bk - 0.2, '#ffffff', false, { tex: 'gcsoon:-z' }),
+      ...(k === lobby ? [] : [box(u + 1.4, y + 1.5, Bk - 0.26, u + uw - 1.4, y + 2.5, Bk - 0.2, '#ffffff', false, { tex: 'gcsoon:-z' })]),
       cyl(mid, y + 3.38, 51, 0.01, 0.12, BLACK, false, 4),
       box(mid - 0.08, y + 3.2, 50.92, mid + 0.08, y + 3.38, 51.08, '#fff3c4', false, { emissive: true }),
     );
@@ -243,32 +274,116 @@ export function gardenCity(y: number): { rooms: Room[]; barriers: Barrier[]; pro
     );
   }
   {
-    // 5: shut off behind red barriers, a mixer and blocks inside
-    const u = ux(4), bx0 = u + 0.25, bx1 = x1 - 0.5, n = 4;
-    for (let i = 0; i < n; i++) barrier(bx0 + ((bx1 - bx0) * i) / n, Bf + 0.55, bx0 + ((bx1 - bx0) * (i + 1)) / n - 0.02, Bf + 1.0);
+    // 5: the way up. Concrete stairs up the east wall to a landing at the top, behind a block wall on
+    // their open side (a steel rail along it upstairs, round the stairwell); a sign over the bottom step
+    const u = ux(lobby);
+    const n = Math.ceil(GC_UPPER.rise / 0.19);
+    for (let i = 0; i < n; i++) {
+      const s0 = SZ0 + ((SZ1 - SZ0) * i) / n, s1 = SZ0 + ((SZ1 - SZ0) * (i + 1)) / n;
+      add(box(LX + 0.06, y, s0, SX1, y + (GC_UPPER.rise * (i + 1)) / n, s1, i % 2 ? TREAD : TREAD_EDGE));   // each step, solid down to the floor
+    }
     add(
-      box(u + 1.6, y + 0.85, Bf + 0.5, u + 2.8, y + 1.65, Bf + 0.55, '#f6c21c', false, { tex: 'gcbuild:-z' }),
-      box(u + 2.2, y, 52.4, u + 3.0, y + 0.5, 52.9, '#3b3f44', true),
-      { kind: 'cyl', base: [u + 2.6, y + 0.9, 52.65], r: 0.45, h: 0.9, color: '#e2762b', axis: 'x', top: 0.3 },
-      box(u + 0.6, y, 54.4, u + 1.8, y + 0.6, 55.4, '#a8a7a1', true),
+      box(LX - 0.06, y, Bf + 0.5, LX + 0.06, UP, Bk - 0.2, BLOCK),                                   // the wall along the stairs' open side
+      box(LX + 0.1, y + 2.75, Bf - 0.03, SX1 - 0.25, y + 3.3, Bf + 0.03, '#2f6b23', false, { tex: 'gcup:-z' }),   // "First floor", over the bottom step
+      box(u + 0.8, y + 1.5, Bk - 0.26, u + 2.8, y + 2.5, Bk - 0.2, '#ffffff', false, { tex: 'gcup:-z' }),        // and on the back wall
+    );
+    // the handrail on the side wall, following the stairs up
+    for (let i = 0; i < n; i++) {
+      const za = SZ0 + ((SZ1 - SZ0) * i) / n, zb = SZ0 + ((SZ1 - SZ0) * (i + 1)) / n, yt = y + (GC_UPPER.rise * (i + 1)) / n;
+      add(box(SX1 - 0.08, yt + 0.88, za, SX1 - 0.03, yt + 0.93, zb + 0.02, STEEL));   // a short length over each step
+      if (i % 4 === 0) add(box(SX1 - 0.07, yt + 0.6, za + 0.1, SX1, yt + 0.64, za + 0.14, STEEL));   // and a bracket into the wall
+    }
+    // the rail round the stairwell upstairs: posts, a mid rail and a top rail on the wall, and a sign for the way down
+    for (let z = Bf + 0.7; z < SZ1; z += 0.6) add(box(LX - 0.03, UP, z - 0.03, LX + 0.03, UP + 1.05, z + 0.03, STEEL));
+    add(
+      box(LX - 0.04, UP + 1.0, FZ1, LX + 0.04, UP + 1.06, SZ1, STEEL), box(LX - 0.02, UP + 0.5, FZ1, LX + 0.02, UP + 0.54, SZ1, STEEL),
+      box(LX - 0.1, UP + 0.45, 50.4, LX - 0.06, UP + 0.95, 51.6, '#2f6b23', false, { tex: 'gcdown:-x' }),
+    );
+  }
+
+  // ── upstairs: a corridor along the front windows; four units off it still waiting for their shops, and the stairs' lobby ──
+  for (let k = 0; k <= P.units; k++) {
+    const cx = Math.min(Math.max(ux(k), x0 + 0.2), x1 - 0.2);
+    if (k > 0 && k < P.units) add(box(cx - 0.1, UP, UZ, cx + 0.1, ROOF, Bk - 0.2, BLOCK));   // between the units
+  }
+  for (let k = 0; k < P.units; k++) {
+    const u = ux(k), u1 = ux(k + 1), mid = u + uw / 2;
+    // the corridor's lights, one outside each unit
+    add(box(mid - 0.7, ROOF - 0.05, (FZ1 + UZ) / 2 - 0.15, mid + 0.7, ROOF, (FZ1 + UZ) / 2 + 0.15, '#fffdf5', false, { emissive: true }));
+    if (k === lobby) continue;
+    // its front onto the corridor: block either side of a doorway, a "coming soon" board over it
+    add(
+      box(u + 0.1, UP, UZ - 0.08, mid - 0.8, ROOF, UZ + 0.08, BLOCK), box(mid + 0.8, UP, UZ - 0.08, u1 - 0.1, ROOF, UZ + 0.08, BLOCK),
+      box(mid - 0.8, UP + 2.4, UZ - 0.08, mid + 0.8, ROOF, UZ + 0.08, BLOCK),
+      box(mid - 0.75, UP + 2.48, UZ - 0.11, mid + 0.75, UP + 3.06, UZ - 0.08, '#ffffff', false, { tex: 'gcsoon:-z' }),
+      // inside: a bare light, a stack of plasterboard, paint tins
+      cyl(mid, ROOF - 0.12, 52.2, 0.01, 0.12, BLACK, false, 4),
+      box(mid - 0.08, ROOF - 0.3, 52.12, mid + 0.08, ROOF - 0.12, 52.28, '#fff3c4', false, { emissive: true }),
+      box(u + 0.4, UP, Bk - 1.0, u + 2.8, UP + 0.35, Bk - 0.35, PANEL, true),
+      ...[0.5, 0.9].map((d) => cyl(u1 - d, UP, Bk - 0.6, 0.15, 0.32, k % 2 ? '#f2f2ee' : '#5fa8d8', true, 10)),
+    );
+    if (k % 2 === 0) {
+      // a stepladder by the side wall
+      add(
+        box(u + 0.5, UP, 50.2, u + 0.55, UP + 1.8, 50.25, STEEL), box(u + 1.05, UP, 50.2, u + 1.1, UP + 1.8, 50.25, STEEL),
+        box(u + 0.5, UP, 50.95, u + 0.55, UP + 1.6, 51.0, STEEL), box(u + 1.05, UP, 50.95, u + 1.1, UP + 1.6, 51.0, STEEL),
+        box(u + 0.48, UP, 50.18, u + 1.12, UP + 1.82, 51.02, 'transparent', true),
+      );
+      for (const h of [0.5, 1.0, 1.5]) add(box(u + 0.55, UP + h, 50.2, u + 1.05, UP + h + 0.04, 50.3, STEEL));
+    }
+  }
+  {
+    // the stairs' lobby: a bench to sit on, a pot plant, and a "coming soon" board on its back wall
+    const u = ux(lobby);
+    add(
+      box(u + 0.5, UP + 0.42, 52.4, u + 0.9, UP + 0.47, 54.4, TIMBER, true), box(u + 0.55, UP, 52.5, u + 0.85, UP + 0.42, 52.6, '#3b3f44'),
+      box(u + 0.55, UP, 54.2, u + 0.85, UP + 0.42, 54.3, '#3b3f44'),
+      cyl(u + 0.7, UP, 49.4, 0.25, 0.45, '#3c3f42', true, 10), cyl(u + 0.7, UP + 0.45, 49.4, 0.34, 0.95, '#3f8f3a', false, 7, 0),
+      box(u + 1.0, UP + 1.5, Bk - 0.26, LX - 0.6, UP + 2.5, Bk - 0.2, '#ffffff', false, { tex: 'gcsoon:-z' }),
+      cyl(u + 1.8, ROOF - 0.12, 52.2, 0.01, 0.12, BLACK, false, 4),
+      box(u + 1.72, ROOF - 0.3, 52.12, u + 1.88, ROOF - 0.12, 52.28, '#fff3c4', false, { emissive: true }),
     );
   }
 
   // the palisade is drawn as bars and pillars (props); these are its walls, which a jump clears when exploring
   const inv = (a: XZ, b: XZ): Barrier => ({ a, b, kind: 'invisible', h: 2, t: 0.12, mode: 'explore', jump: true });
-  const wall = (a: XZ, b: XZ): Barrier => ({ a, b, kind: 'facade', h: 3.5, t: 0.2, mode: 'explore' });
+  const wall = (a: XZ, b: XZ, more: Partial<Barrier> = {}): Barrier => ({ a, b, kind: 'facade', h: 3.5, t: 0.2, mode: 'explore', ...more });
+  /** Downstairs only: it stops at the first floor's slab, and upstairs you walk over it. */
+  const below = { top: y + 3.5 };
+  /** Upstairs only: it stands on the first floor, and downstairs you walk under it. */
+  const above = { bottom: UP, h: GC_UPPER.ceiling - GC_UPPER.rise };
   const barriers: Barrier[] = [
     inv([x0, F], [g0, F]), inv([g1, F], [x1 + 0.4, F]),          // the front fence, open at the gate
     inv([x0, F], [x0, Bf]), inv([x1, F], [x1, Bf]),              // the side fences
-    wall([x0, Bf], [x0, Bk]), wall([x1, Bf], [x1, Bk]), wall([x0, Bk], [x1, Bk]),
-    ...Array.from({ length: P.units - 1 }, (_, i) => wall([ux(i + 1), Bf], [ux(i + 1), Bk])),
+    wall([x0, Bf], [x0, Bk]), wall([x1, Bf], [x1, Bk]), wall([x0, Bk], [x1, Bk]),   // the side and back walls, both floors
+    ...Array.from({ length: P.units - 1 }, (_, i) => wall([ux(i + 1), Bf], [ux(i + 1), Bk], below)),
+    // the stairs: the wall on their open side, both floors (it's the stairwell's rail upstairs); under the landing at the top
+    wall([LX, Bf + 0.4], [LX, SZ1], { t: 0.12 }),
+    wall([LX, SZ1], [LX, Bk], { t: 0.12, ...below }),
+    // upstairs: the front wall, the walls between the units, and their fronts either side of a doorway
+    wall([x0, (FZ + FZ1) / 2], [x1, (FZ + FZ1) / 2], { t: FZ1 - FZ, ...above }),
+    ...Array.from({ length: P.units - 1 }, (_, i) => wall([ux(i + 1), UZ], [ux(i + 1), Bk], above)),
+    ...Array.from({ length: P.units - 1 }, (_, k) => {
+      const mid = ux(k) + uw / 2;
+      return [wall([ux(k), UZ], [mid - 0.8, UZ], { t: 0.16, ...above }), wall([mid + 0.8, UZ], [ux(k + 1), UZ], { t: 0.16, ...above })];
+    }).flat(),
   ];
 
+  const upstairs = { y: UP, floor: 'concrete', ceiling: false, outside: true, explore: true, cap: ROOF - 0.05 } as const;
   const rooms: Room[] = [
+    // (the stairs first: where rooms overlap, the first wins)
+    { id: 'gcstairs', name: 'Garden City, the stairs', x0: LX, x1, z0: SZ0, z1: Bk, floor: 'stairs', ceiling: false, outside: true, explore: true, cap: ROOF - 0.05 },
     { id: 'gcpark', name: 'Garden City', x0, x1, z0: F, z1: W, floor: 'road', ceiling: false, outside: true, ground: true, area: true, explore: true },
-    { id: 'gcwalk', name: 'Garden City', x0, x1, z0: W, z1: Bf, floor: 'concrete', ceiling: false, outside: true, ground: true, explore: true },
-    { id: 'gcunits', name: 'Garden City (being built)', x0, x1, z0: Bf, z1: Bk, floor: 'concrete', ceiling: false, outside: true, ground: true, area: true, explore: true },
+    { id: 'gcwalk', name: 'Garden City', x0, x1, z0: W, z1: Bf, floor: 'concrete', ceiling: false, outside: true, ground: true, explore: true, cap: y + 3.38 },   // under the canopy
+    { id: 'gcunits', name: 'Garden City (being built)', x0, x1, z0: Bf, z1: Bk, floor: 'concrete', ceiling: false, outside: true, ground: true, area: true, explore: true, cap: y + 3.45 },   // under the first floor
+    { id: 'gcup', name: 'Garden City, first floor', x0, x1: LX, z0: FZ, z1: UZ, area: true, ...upstairs },
+    { id: 'gcup-lobby', name: 'Garden City, first floor', x0: ux(lobby), x1: LX, z0: UZ, z1: Bk, ...upstairs },
+    ...Array.from({ length: lobby }, (_, k): Room => ({ id: `gcup-${k}`, name: 'Garden City, first floor (a shop coming soon)', x0: ux(k), x1: ux(k + 1), z0: UZ, z1: Bk, ...upstairs })),
   ];
+  // the stairs (drawn above, step by step), the landing at the top, and the first floor
+  const ramps: Ramp[] = [{ x0: LX, x1: SX1, z0: SZ0, z1: SZ1, y0: y, y1: UP, style: 'drawn' }];
+  const platforms: Platform[] = [{ x0: LX, x1: SX1, z0: SZ1, z1: Bk, y: UP }];
+  const upper: Platform[] = [{ x0, x1: LX, z0: FZ, z1: Bk, y: UP }];
 
   // a few cars nosed into the bays (the builders' ute among them)
   const parked: Parked[] = [
@@ -277,5 +392,5 @@ export function gardenCity(y: number): { rooms: Room[]; barriers: Barrier[]; pro
     { x: x0 + 19.5, z: 41.7, kind: 'suv', color: '#2f4a7a', facing: 1, across: true },
   ];
 
-  return { rooms, barriers, props, parked, doors };
+  return { rooms, barriers, props, parked, doors, ramps, platforms, upper };
 }

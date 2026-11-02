@@ -13,7 +13,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import {
   C, ROOMS, WALLS, DOORS, WINDOWS, PROPS, COLLECTIBLES, GOLDEN_SPOTS, SPAWN, EXIT_ZONE, POSTER,
   BARRIERS, TREES, NEIGHBOURS, RAMPS, NPC_SPOTS, CAT_SPOT, BACK_Y, ROAD_Y, GROUND_BREAKS, PARKED, MCFARLANE,
-  WALL_H, CEIL_H, DOOR_TOP, HOUSE, roomAt, groundY, heightAt,
+  WALL_H, CEIL_H, DOOR_TOP, HOUSE, roomAt, roomAtLevel, groundY, heightAt, floorAt,
   type GameMode, type WallRun, type Prim, type Door, type HingedDoor, type WindowSpec, type Room, type XYZ, type Barrier, type NpcSpot,
 } from './layout.ts';
 import { buildStaticWorld, buildCameraWorld, doorOBB, bodyOBB, moveAndSlide, circleHitsOBB, blocked, supportAt, airStep, jumpSpeed, JUMP, JUMP_ROAM, type OBB, type StaticWorld } from './collision.ts';
@@ -81,7 +81,7 @@ const AREAS = ROOMS.filter((r) => r.area);
 /** Signs drawn in code (Garden City, Damodar City), by the name their props give in `tex`. */
 const NAMED_TEX: Record<string, () => THREE.Texture> = {
   gcsign: T.gardenCitySign, gcboard: T.gardenCityBoard, gcbanner: T.comingSoonBanner, gcbuild: T.constructionSign,
-  gcsoon: () => T.shopComingSoon('Garden City'), dcsoon: () => T.shopComingSoon('Damodar City'), dcname: T.damodarCitySign,
+  gcsoon: () => T.shopComingSoon('Garden City'), gcup: () => T.floorSign('FIRST FLOOR', 'Up the stairs', 1), gcdown: () => T.floorSign('WAY OUT', 'Down the stairs', -1), dcsoon: () => T.shopComingSoon('Damodar City'), dcname: T.damodarCitySign,
 };
 const DEFAULT_SIGHT = 5.5;
 /** Feet this far above the floor count as up on something (walking down stairs your feet trail the steps by a few cm). */
@@ -1714,7 +1714,7 @@ export class HouseEngine {
       // exploring is just for walking about: no parts, no Golden Chip, no clock
       if (this.mode === 'explore') { it.taken = true; it.group.visible = false; it.ring.visible = false; }
     }
-    for (const d of this.doors) { d.open = 0; d.target = 0; }
+    for (const d of this.doors) d.open = d.target = d.door.kind === 'hinged' && d.door.startOpen ? 1 : 0;
     for (const w of this.windows) { w.open = 0; w.target = 0; }
     this.applyDoors();
     this.applyWindows();
@@ -1794,7 +1794,8 @@ export class HouseEngine {
   /** The highest your feet can go here: under a ceiling, low enough that your head stays below it. */
   private ceilingCap(): number {
     const [x, z] = this.pos;
-    const room = roomAt(x, z);
+    const room = roomAtLevel(x, z, this.floorY);
+    if (room?.cap !== undefined) return room.cap - this.char.eye - 0.18;
     const roofed = room ? room.ceiling : x > HOUSE.x0 - 0.2 && x < HOUSE.x1 + 0.2 && z > HOUSE.z0 - 0.2 && z < HOUSE.z1 + 0.2;   // a doorway in the house
     return roofed ? (room?.y ?? 0) + CEIL_H - this.char.eye - 0.18 : Infinity;
   }
@@ -2067,15 +2068,14 @@ export class HouseEngine {
       this.vel[1] += (fz * speed - this.vel[1]) * blend;
       if (!this.started && len > 0.05) this.started = true;
       if (Math.hypot(this.vel[0], this.vel[1]) > 0.01) {
-        // in the air or up on something, you pass over whatever is below your feet
-        const lifted = this.air || this.floorY > heightAt(this.pos[0], this.pos[1]) + LIFTED;
-        this.pos = moveAndSlide(this.pos, this.vel[0] * dt, this.vel[1] * dt, r, this.solid, this.obstacles(), lifted ? this.floorY : -Infinity);
+        // in the air or up on something you pass over whatever is below your feet; upstairs, over the walls below
+        this.pos = moveAndSlide(this.pos, this.vel[0] * dt, this.vel[1] * dt, r, this.solid, this.obstacles(), this.floorY);
       }
       const sp = Math.hypot(this.vel[0], this.vel[1]);
       this.bob += sp * dt * 2.4;
       if (this.started && this.mode === 'hunt') this.elapsed += dt;
 
-      const room = roomAt(this.pos[0], this.pos[1]);
+      const room = roomAtLevel(this.pos[0], this.pos[1], this.floorY);
       if (room?.area && !this.visited.has(room.id)) {
         this.visited.add(room.id);
         this.cb.onRooms?.(this.visited.size, this.areaTotal);
@@ -2103,7 +2103,7 @@ export class HouseEngine {
 
     // the floor under you (or what you're standing on): ease toward it so stairs and slopes feel smooth;
     // in the air, gravity until you land; walk off the edge of something and you drop
-    const ground = heightAt(this.pos[0], this.pos[1]);
+    const ground = floorAt(this.pos[0], this.pos[1], this.floorY);
     const lifted = this.air || this.floorY > ground + LIFTED;
     const floor = lifted ? Math.max(ground, supportAt(this.pos, r, this.solid, this.floorY)) : ground;
     if (this.air) {
@@ -2348,10 +2348,11 @@ export class HouseEngine {
     let best = 0.25;
     for (let d = 0.25; d <= full + 1e-6; d += 0.08) {
       const x = tx - fx * d, z = tz - fz * d, y = ty - fy * d + 0.3 * (d / full);
-      if (blocked([x, z], 0.14, this.worldCam, panels)) break;
-      if (y < heightAt(x, z) + 0.15) break;
-      const room = roomAt(x, z);
+      if (blocked([x, z], 0.14, this.worldCam, panels, this.floorY)) break;
+      if (y < floorAt(x, z, this.floorY) + 0.15) break;
+      const room = roomAtLevel(x, z, this.floorY);
       if (room?.ceiling && y > CEIL_H - 0.12) break;
+      if (room?.cap !== undefined && y > room.cap - 0.12) break;
       best = d;
     }
     this.camera.position.set(tx - fx * best, ty - fy * best + 0.3 * (best / full), tz - fz * best);
@@ -2372,7 +2373,8 @@ export class HouseEngine {
   /** For the dev-only debug hook in HouseGame. */
   debug() {
     return {
-      teleport: (x: number, z: number, yaw?: number) => { this.pos = [x, z]; this.floorY = heightAt(x, z); this.air = false; this.vy = 0; if (yaw !== undefined) this.yaw = yaw; },
+      /** `feet`: land on the floor at that height where floors overlap (upstairs at Garden City). */
+      teleport: (x: number, z: number, yaw?: number, feet?: number) => { this.pos = [x, z]; this.floorY = feet === undefined ? heightAt(x, z) : floorAt(x, z, feet); this.air = false; this.vy = 0; if (yaw !== undefined) this.yaw = yaw; },
       jump: () => this.jump(),
       /** Run the simulation `n` steps of `dt` seconds (tests: the same every time, however slow the browser is). */
       tick: (dt: number, n = 1) => { for (let i = 0; i < n; i++) this.step(dt); },
