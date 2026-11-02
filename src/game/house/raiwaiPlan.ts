@@ -14,6 +14,7 @@ import { SHOP_ROW } from './shops.ts';
 import { GARDEN_CITY } from './gardenCity.ts';
 import { USP, USP_BUILDINGS, USP_NORTH, USP_TREES, USP_SIGN } from './uspCampus.ts';
 import { DAMODAR_CITY, DAMODAR_PALMS } from './damodarCity.ts';
+import { LOOKOUT, LOOKOUT_PATH, climbBox } from './towers.ts';
 
 export interface HouseSpec {
   w: number;
@@ -243,6 +244,13 @@ export const RAIWAI_TREES: TreeSpot[] = [];
     const x = -110 + r() * 340, z = -110 + r() * 200;
     tryTree(x, z, !(z > 0 && z < 45 && x > -70 && x < 170) && !(x > 25 && x < 50 && z > -45));
   }
+}
+
+// the Raiwai Lookout and the way over to it from the footpath stay clear of trees
+{
+  const t = climbBox(LOOKOUT, 1.5), path = { x0: LOOKOUT_PATH.x0 - 1, x1: LOOKOUT_PATH.x1 + 1, z0: 31, z1: t.z0 };
+  const clear = (x: number, z: number) => !(x > t.x0 && x < t.x1 && z > t.z0 && z < t.z1) && !(x > path.x0 && x < path.x1 && z > path.z0 && z < path.z1);
+  for (let i = RAIWAI_TREES.length - 1; i >= 0; i--) if (!clear(RAIWAI_TREES[i].x, RAIWAI_TREES[i].z)) RAIWAI_TREES.splice(i, 1);
 }
 
 /** Wooden power poles: along the north verge of McFarlane Road and the east side of the side road. Each run is wired. */

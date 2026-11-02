@@ -16,7 +16,7 @@ import {
   WALL_H, CEIL_H, DOOR_TOP, HOUSE, roomAt, groundY, heightAt,
   type GameMode, type WallRun, type Prim, type Door, type HingedDoor, type WindowSpec, type Room, type XYZ, type Barrier, type NpcSpot,
 } from './layout.ts';
-import { buildStaticWorld, buildCameraWorld, doorOBB, bodyOBB, moveAndSlide, circleHitsOBB, blocked, supportAt, airStep, jumpSpeed, JUMP, type OBB, type StaticWorld } from './collision.ts';
+import { buildStaticWorld, buildCameraWorld, doorOBB, bodyOBB, moveAndSlide, circleHitsOBB, blocked, supportAt, airStep, jumpSpeed, JUMP, JUMP_ROAM, type OBB, type StaticWorld } from './collision.ts';
 import { CHARACTERS, characterById, firstName, type Character, type CharacterId, type Look } from './characters.ts';
 import { buildFigure, animate, bakeStatic, bakeMoving, cat, type Rig } from './figures.ts';
 import type { Say } from './talk.ts';
@@ -446,6 +446,8 @@ export class HouseEngine {
   private chores!: ChoreSystem;
   /** Climbed the treehouse this game (the map's been revealed). */
   private lookedOut = false;
+  /** Been up the Raiwai Lookout this time (exploring). */
+  private lookedOutTower = false;
   private talkTurn = Math.floor(Math.random() * 12);
 
   private raf = 0;
@@ -1236,6 +1238,8 @@ export class HouseEngine {
     sea.position.set(60, ROAD_Y - 0.3, SHORE - 6 + 700);
     this.raiwaiFar.add(sea);
     push(far, '#d9eef2', boxGeo(-1500, ROAD_Y - 0.28, 352, 1600, ROAD_Y - 0.26, 358));
+    // the beach: a strip of sand along the shore (exploring, you can walk down to it: the edge of the map is on the sand)
+    push(far, '#e9d9aa', boxGeo(-900, ROAD_Y - 0.01, SHORE - 9, 900, ROAD_Y + 0.004, SHORE));
   }
 
   /**
@@ -1684,6 +1688,7 @@ export class HouseEngine {
     this.endTalk();
     this.chores.reset(!!this.char.crawl);
     this.lookedOut = false;
+    this.lookedOutTower = false;
     this.pos = [SPAWN.pos[0], SPAWN.pos[2]];
     this.floorY = heightAt(this.pos[0], this.pos[1]);
     this.air = false;
@@ -1776,11 +1781,12 @@ export class HouseEngine {
   }
   setRun(on: boolean) { this.running = on; }
 
-  /** Jump (Space, or the jump button). Not in the air already, and not the baby (she crawls). */
+  /** Jump (Space, or the jump button). Not in the air already, and not the baby (she crawls). Exploring, you jump higher: over fences and walls. */
   jump() {
     if (this.state !== 'playing' || this.air || this.char.crawl) return;
     this.air = true;
-    this.vy = jumpSpeed(this.char.look.kind === 'kid' ? JUMP.kid : JUMP.up);
+    const j = this.mode === 'explore' ? JUMP_ROAM : JUMP;
+    this.vy = jumpSpeed(this.char.look.kind === 'kid' ? j.kid : j.up);
     this.started = true;
     this.sfx.jump();
   }
@@ -2083,6 +2089,12 @@ export class HouseEngine {
         this.minimap.revealAll();
         for (const it of this.items) if (!it.golden) it.seen = true;
         this.cb.onHint?.('🌳 From up here you can see everything! The whole map is clear.');
+      }
+      if (room?.id === 'lookout-top' && !this.lookedOutTower) {
+        // the top of the Raiwai Lookout: all of Raiwai below you
+        this.lookedOutTower = true;
+        this.minimap.revealAll();
+        this.cb.onHint?.('🗼 The top of the Raiwai Lookout! All of Raiwai is below you, and the whole map is clear.');
       }
       this.updateFocus();
 

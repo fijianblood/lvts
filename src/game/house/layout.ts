@@ -18,6 +18,7 @@ import { GARDEN_CITY, gardenCity } from './gardenCity.ts';
 import { uspCampus } from './uspCampus.ts';
 import { DAMODAR_CITY, damodarCity } from './damodarCity.ts';
 import { shopInsides, SHOP_DOOR_GAPS } from './shopInsides.ts';
+import { LOOKOUT, LOOKOUT_PATH, climb } from './towers.ts';
 
 export type XZ = [number, number];
 export type XYZ = [number, number, number];
@@ -219,7 +220,8 @@ export const PLATFORMS: Platform[] = [
 
 /** Stairs, walked as ramps: height runs linearly from y0 at z0 to y1 at z1. */
 /** `style` 'drawn' when something else draws the steps (the masjid's, by its builder). */
-export interface Ramp { x0: number; x1: number; z0: number; z1: number; y0: number; y1: number; style: 'tile' | 'concrete' | 'wood' | 'drawn' }
+/** A sloping floor: y0 at its low edge (z0, or x0 with axis 'x') rising or falling to y1 at the other. */
+export interface Ramp { x0: number; x1: number; z0: number; z1: number; y0: number; y1: number; style: 'tile' | 'concrete' | 'wood' | 'drawn'; axis?: 'x' }
 export const RAMPS: Ramp[] = [
   { x0: 11.1, x1: 12.28, z0: 9.6, z1: 13.0, y0: groundY(9.6), y1: 0, style: 'tile' },        // veranda stairs
   { x0: -2.65, x1: -1.52, z0: 3.25, z1: 5.25, y0: 0, y1: groundY(5.25), style: 'concrete' }, // side stairs
@@ -229,7 +231,7 @@ export const RAMPS: Ramp[] = [
 
 /** Floor height anywhere: stairs, then raised floors, then the ground. */
 export function heightAt(x: number, z: number): number {
-  for (const r of RAMPS) if (x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1) return r.y0 + (r.y1 - r.y0) * (z - r.z0) / (r.z1 - r.z0);
+  for (const r of RAMPS) if (x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1) return r.axis === 'x' ? r.y0 + (r.y1 - r.y0) * (x - r.x0) / (r.x1 - r.x0) : r.y0 + (r.y1 - r.y0) * (z - r.z0) / (r.z1 - r.z0);
   for (const p of PLATFORMS) if (x >= p.x0 && x <= p.x1 && z >= p.z0 && z <= p.z1) return p.y;
   return groundY(z);
 }
@@ -253,6 +255,43 @@ export const TEMPLE_GATE = { z: TEMPLE.z + TEMPLE.d / 2 - 0.3, half: 1.75 };
   RAMPS.push({ x0: MASJID.x + st.x0, x1: MASJID.x + st.x1, z0: MASJID.z + st.z0, z1: MASJID.z + st.z1, y0: ROAD_Y, y1: ROAD_Y + M.lift, style: 'drawn' });
   PLATFORMS.push({ x0: MASJID.x - M.sideX + 0.15, x1: MASJID.x + M.sideX - 0.15, z0: MASJID.z + st.z1, z1: MASJID.z + M.backZ - 0.15, y: ROAD_Y + M.lift });
 }
+// ── Free roam (exploring) ────────────────────────────────────────────────────
+/**
+ * The edge of the map when exploring: the hills behind the town to the north,
+ * open country east and west, and the shore to the south (raiwai.ts and the
+ * engine draw the sea from there). Everything inside it is open.
+ */
+export const WORLD_EDGE = { x0: -150, x1: 300, z0: -130, z1: 264 };
+/** The edge of the map as walls you can't jump. */
+function edgeOfMap(): Barrier[] {
+  const { x0, x1, z0, z1 } = WORLD_EDGE;
+  const e = (a: XZ, b: XZ): Barrier => ({ a, b, kind: 'invisible', h: 3, t: 0.2, mode: 'explore' });
+  return [e([x0, z0], [x1, z0]), e([x0, z1], [x1, z1]), e([x0, z0], [x0, z1]), e([x1, z0], [x1, z1])];
+}
+
+/** The Raiwai Lookout (towers.ts): walked up by stairs round its outside, to look down from its roof. */
+const LOOK = climb(LOOKOUT, groundY(LOOKOUT.cz - LOOKOUT.hz));
+RAMPS.push(...LOOK.ramps);
+PLATFORMS.push(...LOOK.platforms);
+export const LOOKOUT_TOP = LOOK.top;
+export const LOOKOUT_START = LOOK.start;
+
+/** Barrier kinds a jump can clear when exploring (fences, garden walls, railings, low walls); never walls, buildings or the map's edge. */
+const JUMPABLE = new Set<BarrierKind>(['fence', 'block', 'woven', 'picket', 'grille', 'rail', 'low']);
+/**
+ * The top of a barrier you can jump over when exploring (its height above the
+ * higher ground either side, on its curb), or undefined if it always stops you.
+ */
+export function jumpTop(b: Barrier): number | undefined {
+  if (b.noJump || !(b.jump || JUMPABLE.has(b.kind))) return undefined;
+  const [ax, az] = b.a, [bx, bz] = b.b;
+  const len = Math.hypot(bx - ax, bz - az) || 1;
+  const nx = -(bz - az) / len, nz = (bx - ax) / len, off = (b.t ?? 0.1) / 2 + 0.35;
+  let ground = -Infinity;
+  for (const f of [0, 0.5, 1]) for (const s of [-1, 1]) ground = Math.max(ground, heightAt(ax + (bx - ax) * f + nx * off * s, az + (bz - az) * f + nz * off * s));
+  return ground + (b.curb ?? 0) + b.h;
+}
+
 /** The temple's grounds and the masjid's steps and yard: rooms, walls, gates (the buildings themselves stay shut). */
 const WORSHIP = (() => {
   const tx0 = TEMPLE.x - TEMPLE.w / 2, tx1 = TEMPLE.x + TEMPLE.w / 2, tz0 = TEMPLE.z - TEMPLE.d / 2, gz = TEMPLE_GATE.z, gh = TEMPLE_GATE.half;
@@ -270,6 +309,8 @@ const WORSHIP = (() => {
     { a: [sx1, 31.6], b: [MASJID.x + MASJID.w / 2, 31.6], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
     { a: [sx0, 31.6], b: [sx0, wz - 0.15], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
     { a: [sx1, 31.6], b: [sx1, wz - 0.15], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
+    { a: [MASJID.x - MASJID.w / 2, 31.6], b: [MASJID.x - MASJID.w / 2, wz], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
+    { a: [MASJID.x + MASJID.w / 2, 31.6], b: [MASJID.x + MASJID.w / 2, wz], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
     f([mx0, wz], [sx0, wz]), f([sx1, wz], [mx1, wz]), f([mx0, wz], [mx0, bz]), f([mx1, wz], [mx1, bz]), f([mx0, bz], [mx1, bz]),
     ...rect(MASJID.x - 1.6, MASJID.z - 2.6, MASJID.x + 6.6, MASJID.z + 5.4),
     ...rect(MASJID.x - 7.0, MASJID.z - 0.6, MASJID.x - 1.6, MASJID.z + 5.4),
@@ -358,6 +399,7 @@ export const ROOMS: Room[] = [
   ...SHOPS_IN.rooms,
   // the temple's grounds, the masjid's steps and yard
   ...WORSHIP.rooms,
+  ...LOOK.rooms,
 ];
 
 // The house footprint (interior faces of the exterior walls sit 0.1 inside these).
@@ -687,7 +729,12 @@ export const PROPS: Prim[] = [
 // Walls, railings and fences outside, all axis-aligned. Each one is solid to
 // walk into; 'wall' and 'block' also block sight on the minimap.
 export type BarrierKind = 'wall' | 'block' | 'fence' | 'rail' | 'grille' | 'low' | 'invisible' | 'picket' | 'woven' | 'facade';
-export interface Barrier { a: XZ; b: XZ; kind: BarrierKind; h: number; t?: number; curb?: number; /** Only in this mode (the finish line in the hunt; the street's edges when exploring). */ mode?: GameMode }
+export interface Barrier {
+  a: XZ; b: XZ; kind: BarrierKind; h: number; t?: number; curb?: number;
+  /** Only in this mode (the finish line in the hunt; the edge of the map when exploring). */ mode?: GameMode;
+  /** Can be jumped when exploring even though it's 'invisible' (a fence drawn as props, like Garden City's palisade). */ jump?: boolean;
+  /** Never jumped, even when exploring (the places you unlock with chores keep their fences). */ noJump?: boolean;
+}
 export type GameMode = 'hunt' | 'explore';
 /** Barriers that apply in a mode. */
 export const barriersFor = (mode: GameMode) => BARRIERS.filter((b) => !b.mode || b.mode === mode);
@@ -716,8 +763,11 @@ export const BARRIERS: Barrier[] = [
   { a: [11.2, -8.6], b: [11.2, -7.4], kind: 'wall', h: 2.5, t: 0.15 },
   // boundary: chain-link on block posts; a white wall along the driveway and the road
   { a: [-2.7, -14], b: [-2.7, 21.9], kind: 'fence', h: 1.8 },
-  { a: [-2.7, -14], b: [15.65, -14], kind: 'fence', h: 1.8 },
-  { a: [15.65, -14], b: [15.65, 21.9], kind: 'fence', h: 1.8, curb: 0.6 },
+  // (where the boundary is also the vegetable garden's fence, it can't be jumped: the garden is a place you unlock)
+  { a: [-2.7, -14], b: [11.8, -14], kind: 'fence', h: 1.8 },
+  { a: [11.8, -14], b: [15.65, -14], kind: 'fence', h: 1.8, noJump: true },
+  { a: [15.65, -14], b: [15.65, -11.0], kind: 'fence', h: 1.8, curb: 0.6, noJump: true },
+  { a: [15.65, -11.0], b: [15.65, 21.9], kind: 'fence', h: 1.8, curb: 0.6 },
   { a: [-2.7, 21.9], b: [12.25, 21.9], kind: 'fence', h: 1.7, curb: 0.9 },
   { a: [12.25, 21.9], b: [12.45, 21.9], kind: 'block', h: 1.75, t: 0.3 },   // gate pillars
   { a: [15.5, 21.9], b: [15.7, 21.9], kind: 'block', h: 1.75, t: 0.3 },
@@ -727,45 +777,43 @@ export const BARRIERS: Barrier[] = [
   { a: [12.25, 21.9], b: [12.25, 23.8], kind: 'invisible', h: 1, t: 0.1, mode: 'hunt' },
   { a: [15.7, 21.9], b: [15.7, 23.8], kind: 'invisible', h: 1, t: 0.1, mode: 'hunt' },
   { a: [12.25, 23.8], b: [15.7, 23.8], kind: 'invisible', h: 1, t: 0.1, mode: 'hunt' },
-  // exploring Raiwai: out of the gate onto McFarlane Road, along it both ways, and up the side road
-  { a: [MCFARLANE.x0, 22.3], b: [TEMPLE.x - TEMPLE.w / 2, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // the neighbours' front yards (the temple's walls take over in front of it)
-  { a: [TEMPLE.x + TEMPLE.w / 2, 22.3], b: [-2.7, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
-  { a: [15.7, 22.3], b: [SIDE_ROAD.x0, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
-  { a: [SIDE_ROAD.x1, 22.3], b: [MCFARLANE.x1, 22.3], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },
-  { a: [MCFARLANE.x0, 22.3], b: [MCFARLANE.x0, 31.6], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // the west end of McFarlane Road (for now); the east end goes into the USP campus
+  // exploring: the whole of Raiwai is open, out to the edge of the map (the buildings out there are solid: collision.ts)
+  ...edgeOfMap(),
   // the shopfronts, open at each shop's door, where Damodar City's drive comes in, and at Garden City's gate
   ...lineWithGaps(SHOP_ROW.x0 - 0.4, GARDEN_CITY ? GARDEN_CITY.x0 : SHOP_ROW.x1 + 0.4, 31.6, [...SHOP_DOOR_GAPS, ...(DAMODAR_CITY ? [{ x0: DAMODAR_CITY.in0, x1: DAMODAR_CITY.in1 }] : [])]),
   ...SHOPS_IN.barriers,
   ...DC.barriers,
   ...GC.barriers,                                                                                              // Garden City: in through its gate
   { a: [MCFARLANE.x0, 31.6], b: [SHOP_ROW.x0 - 0.4, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },   // front walls across the road
-  { a: [SHOP_ROW.x1 + 0.4, 31.6], b: [MASJID.x - MASJID.w / 2, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
+  // (with a way through between the teal building and the training ground, to the lookout tower)
+  { a: [SHOP_ROW.x1 + 0.4, 31.6], b: [LOOKOUT_PATH.x0, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
+  { a: [LOOKOUT_PATH.x1, 31.6], b: [MASJID.x - MASJID.w / 2, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
+  ...LOOK.barriers,                                                                                            // the lookout tower: its walls, and the rails up its stairs
   ...WORSHIP.barriers,                                                                                         // the temple's and the masjid's walls (gates open with E)
   { a: [MASJID.x + MASJID.w / 2, 31.6], b: [MCFARLANE.x1, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
   ...CAMPUS.barriers,                                                                                          // the road goes on into the USP campus
   { a: [SIDE_ROAD.x0, SIDE_ROAD.z0], b: [SIDE_ROAD.x0, 22.3], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },   // walls along the side road
   { a: [SIDE_ROAD.x1, SIDE_ROAD.z0], b: [SIDE_ROAD.x1, 22.3], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
-  { a: [SIDE_ROAD.x0, SIDE_ROAD.z0], b: [SIDE_ROAD.x1, SIDE_ROAD.z0], kind: 'invisible', h: 1, t: 0.1, mode: 'explore' },   // its far end (for now)
 
   // ── places you unlock with stars from chores (each has one way in, shut by a lock until then) ──
   // vegetable garden behind the storeroom: a picket fence, the gate on the west side (z -12.9..-12.1)
-  { a: [11.8, -11.0], b: [15.65, -11.0], kind: 'picket', h: 0.9, t: 0.08 },
-  { a: [11.8, -14.0], b: [11.8, -12.9], kind: 'picket', h: 0.9, t: 0.08 },
-  { a: [11.8, -12.1], b: [11.8, -11.0], kind: 'picket', h: 0.9, t: 0.08 },
+  { a: [11.8, -11.0], b: [15.65, -11.0], kind: 'picket', h: 0.9, t: 0.08, noJump: true },
+  { a: [11.8, -14.0], b: [11.8, -12.9], kind: 'picket', h: 0.9, t: 0.08, noJump: true },
+  { a: [11.8, -12.1], b: [11.8, -11.0], kind: 'picket', h: 0.9, t: 0.08, noJump: true },
   // family bure: woven walls, the doorway facing the house (x -0.8..0.2)
-  { a: [-2.2, -11.2], b: [-0.8, -11.2], kind: 'woven', h: 1.55, t: 0.12 },
-  { a: [0.2, -11.2], b: [1.2, -11.2], kind: 'woven', h: 1.55, t: 0.12 },
-  { a: [-2.2, -13.7], b: [1.2, -13.7], kind: 'woven', h: 1.55, t: 0.12 },
-  { a: [-2.2, -13.7], b: [-2.2, -11.2], kind: 'woven', h: 1.55, t: 0.12 },
-  { a: [1.2, -13.7], b: [1.2, -11.2], kind: 'woven', h: 1.55, t: 0.12 },
+  { a: [-2.2, -11.2], b: [-0.8, -11.2], kind: 'woven', h: 1.55, t: 0.12, noJump: true },
+  { a: [0.2, -11.2], b: [1.2, -11.2], kind: 'woven', h: 1.55, t: 0.12, noJump: true },
+  { a: [-2.2, -13.7], b: [1.2, -13.7], kind: 'woven', h: 1.55, t: 0.12, noJump: true },
+  { a: [-2.2, -13.7], b: [-2.2, -11.2], kind: 'woven', h: 1.55, t: 0.12, noJump: true },
+  { a: [1.2, -13.7], b: [1.2, -11.2], kind: 'woven', h: 1.55, t: 0.12, noJump: true },
   // treehouse: a rail all round the deck, open only at the top of the ladder; rails up both sides of the ladder
-  { a: [1.7, 17.0], b: [4.3, 17.0], kind: 'rail', h: 0.95, t: 0.08 },
-  { a: [1.7, 19.4], b: [2.6, 19.4], kind: 'rail', h: 0.95, t: 0.08 },
-  { a: [3.4, 19.4], b: [4.3, 19.4], kind: 'rail', h: 0.95, t: 0.08 },
-  { a: [1.7, 17.0], b: [1.7, 19.4], kind: 'rail', h: 0.95, t: 0.08 },
-  { a: [4.3, 17.0], b: [4.3, 19.4], kind: 'rail', h: 0.95, t: 0.08 },
-  { a: [2.6, 19.4], b: [2.6, 20.8], kind: 'rail', h: 0.9, t: 0.08 },
-  { a: [3.4, 19.4], b: [3.4, 20.8], kind: 'rail', h: 0.9, t: 0.08 },
+  { a: [1.7, 17.0], b: [4.3, 17.0], kind: 'rail', h: 0.95, t: 0.08, noJump: true },
+  { a: [1.7, 19.4], b: [2.6, 19.4], kind: 'rail', h: 0.95, t: 0.08, noJump: true },
+  { a: [3.4, 19.4], b: [4.3, 19.4], kind: 'rail', h: 0.95, t: 0.08, noJump: true },
+  { a: [1.7, 17.0], b: [1.7, 19.4], kind: 'rail', h: 0.95, t: 0.08, noJump: true },
+  { a: [4.3, 17.0], b: [4.3, 19.4], kind: 'rail', h: 0.95, t: 0.08, noJump: true },
+  { a: [2.6, 19.4], b: [2.6, 20.8], kind: 'rail', h: 0.9, t: 0.08, noJump: true },
+  { a: [3.4, 19.4], b: [3.4, 20.8], kind: 'rail', h: 0.9, t: 0.08, noJump: true },
 ];
 
 export const barrierBlocksSight = (b: Barrier) => b.kind === 'wall' || b.kind === 'block' || b.kind === 'woven' || b.kind === 'facade';
@@ -893,6 +941,7 @@ PROPS.push(
   ...SHOPS_IN.props,
   // the temple's flag poles and the masjid's veranda posts (you bump into them)
   ...WORSHIP.props,
+  ...LOOK.props,
 
   // the way out: a green sign on the gate pillar
   box(15.2, groundY(21.9) + 1.55, 21.72, 15.7, groundY(21.9) + 1.75, 21.74, '#16a34a', false, { emissive: true, tex: 'exit:-z' }),

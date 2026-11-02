@@ -23,15 +23,24 @@ as ramps (`RAMPS`). Collision stays 2D; the camera height follows `heightAt`.
 Every place the floor height jumps is walled or railed except at stairs, and a
 test proves it.
 
-**Jumping** (Space, or the ⬆️ button on phones): about a metre up (a bit
-less for the kids; Aisha crawls, so she doesn't jump). You can jump over or
-onto furniture and loose things (benches, tables, beds, crates, cement bags,
-the red water barriers) because each knows how tall it is (`top` in
+**Jumping** (Space, or the ⬆️ button on phones). In the hunt: about a metre
+up (a bit less for the kids; Aisha crawls, so she doesn't jump). You can jump
+over or onto furniture and loose things (benches, tables, beds, crates, cement
+bags, the red water barriers) because each knows how tall it is (`top` in
 `collision.ts`); walk off whatever you're standing on and you drop. Walls,
-fences, railings, the street's edge walls, doors, the chore locks and people
-always stop you, so a jump never takes you anywhere you couldn't walk: no
-over the compound fence in a prize round, no into a locked place, no off
-the street. Indoors the ceiling caps the jump so your head stays under it.
+fences, railings, doors, the chore locks and people always stop you, so a
+jump never takes you anywhere you couldn't walk: no over the compound fence in
+a prize round, no into a locked place.
+
+**Exploring** is free roam, and you jump higher: about 2.7 m (2.4 m for the
+kids), enough to clear the compound's fences and walls at a run. Fences,
+garden and block walls, railings, low walls and Garden City's palisade get a
+top when exploring (`jumpTop` in `layout.ts`: the barrier's height above the
+higher ground either side, on its curb), so a jump clears them. Buildings and
+house walls, doors and gates, the places you unlock with chores (the
+vegetable garden, the bure, the treehouse), the temple's and the masjid's
+walls, the lookout tower and the edge of the map still always stop you.
+Indoors the ceiling caps the jump so your head stays under it.
 
 Doors and gates: the kitchen back door, the veranda gate, the side gate, the
 storeroom door and the double front gate all open with E. The veranda gate and
@@ -262,10 +271,18 @@ on them. Baby Aisha babbles, coos and reaches for cuddles instead of talking.
 
 ## Raiwai (exploring)
 
-In **Explore the neighbourhood** you leave through the front gate onto
-**McFarlane Road** in Raiwai, and can walk it both ways (x −62 to 216) and up the
-**side road** beside the neighbours to the east (x 34–40, it climbs with the
-ground). To the right as you come out of the gate (west), on the house's side
+In **Explore the neighbourhood** the whole of Raiwai is open (**free roam**):
+out of the front gate (or over the fence) onto **McFarlane Road**, along it
+both ways, up the **side road** beside the neighbours to the east, and on
+anywhere: the neighbours' yards, up the hill, round the training ground, past
+the sheds and the arena, down to the beach. The edge of the map
+(`WORLD_EDGE` in `layout.ts`) is an invisible wall: the hills to the north,
+open country east and west, the sand at the shore to the south. Every
+building out there is solid (`roamSolids` in `collision.ts`: the houses, the
+flats, the church, the pool, the teal building, the sheds, the arena, the
+apartment block, the floodlights, from their footprints in `raiwaiPlan.ts`),
+and so are the trunks of the trees and the power poles. The hunt keeps you in
+the compound as before. To the right as you come out of the gate (west), on the house's side
 of the road, is the **Howell Road Hindu Temple**, from a photo of its
 entrance: the yellow arch with red "OM SHAKTHI · PARA SHAKTHI" lettering
 between two red-and-yellow tiered pillars, the metal gate, strings of
@@ -281,7 +298,12 @@ From the gate, the places along the road to the left (east) are:
 - the green **Nasese bus** at the stop by the pool, and cars parked along both edges (you bump into them);
 - across from the training ground, the campus of **The University of the South Pacific** (USP), with its entrance sign where McFarlane Road ends to the east;
 - beyond the training ground, the commercial sheds, the arena and stadium lights, and the sea with the reef's surf;
-- up the hill to the north and west, more houses, flats and an apartment block, and the hills behind.
+- up the hill to the north and west, more houses, flats and an apartment block, and the hills behind;
+- between the teal building and the training ground, the **Raiwai Lookout** (new, `towers.ts`): a 10 m square cream tower with orange bands and stairs up its outside to a railed roof 20 m up. The stairs start at its north-west corner and wrap once round the tower (a flight up each side, a landing at each corner), so you walk all the way up; nothing on it can be jumped. At the top you get a message and the whole map is cleared, like the treehouse. There's a gap in the footpath's low wall across the road from the training ground to walk over to it.
+
+The minimap shows the street map in detail as before, over a coarser map of
+all of Raiwai when exploring (no fog out there), and the big map (M) can be
+scrolled out to anywhere.
 
 The neighbours' houses are Raiwai-style (corrugated-iron roofs, concrete bases
 on the slope, louvre windows, verandas, carports, water tanks, satellite
@@ -289,6 +311,7 @@ dishes) but made up from a seed. They are not copies of anyone's real home.
 The public places are modelled on drone photos of the area.
 
 - `raiwaiPlan.ts`: where everything goes (plain data: footprints, faces, which things only show when exploring), the signs, the road labels, trees and power poles.
+- `towers.ts`: the Raiwai Lookout (its stairs as ramps and landings, its walls and rails, and what's drawn).
 - `raiwai.ts`: the 3D pieces (houses, flats, church, pool, teal building, training ground, the masjid, the temple, sheds, bus, cars, poles, mango trees, bougainvillea).
 - `layout.ts`: `MCFARLANE`, `SIDE_ROAD`, `MASJID`, the walls along them, and `PARKED` (cars and the bus, with colliders).
 - `gardenCity.ts`: Garden City (see "Shops" above).
@@ -407,6 +430,7 @@ then `npm run dev` and open `http://localhost:5173/lvts/#house`.
 | `neighbourhood.ts` | The street, shop spots and offers, visitors' characters, and talking to the server. |
 | `raiwaiPlan.ts` | Where everything in Raiwai goes (plain data, used by the engine, the minimap and the tests). |
 | `raiwai.ts` | Raiwai's 3D pieces: houses, flats, the Methodist Church, the pool, the teal building, the Lomaiviti Training Ground, the Raiwai Jame Masjid, the Howell Road Hindu Temple, sheds, the Nasese bus, cars, power poles, trees. |
+| `towers.ts` | The Raiwai Lookout, the tower you can walk up when exploring: its stairs round the outside (ramps and landings), walls, rails and what's drawn. |
 | `gardenCity.ts` | Garden City, the shopping complex being built after Sardaar Complex: plain data for its fence, sign, car park, building, building site and the Westpac branch. |
 | `damodarCity.ts` | Damodar City, the centre across the road: its sign, car park, shops (with doors and insides), the BSP branch and Damodar Cinemas' lobby. |
 | `shopInsides.ts` | The row of shops across the road, opened up: each front's walls, windows and glass doors, and what's inside by kind. Also `lvtsPlaque()`, the small LvTS logo-and-number plaque. |
@@ -430,11 +454,17 @@ and crawling), that you can never walk off a ledge, that a shut door blocks its
 doorway, that no door or gate swings through furniture, that each shop, centre,
 bank, the cinema and the temple and masjid grounds can be reached with their
 doors open and not with them shut (and never into the temple or masjid
-buildings), that there's one LvTS plaque per building, the shared world
+buildings), free roam (from the gate out to the hills, the shore and round the
+arena, never past the edge of the map, into a building or through a parked
+car, with no ledge anywhere; jumping clears fences and walls but never the
+edge, a building, a locked place or a place of worship's walls; which
+barriers can be jumped), the Raiwai Lookout (up its stairs to its roof 20 m
+up with no step too big, and no other way up), that there's one LvTS plaque per building, the shared world
 (joining, names, moves, the chat filter, mutes, reports, bans, full and idle
 players, waking up after a sleep), and the prize-code
 scrambling and round dates. For jumping, it checks the jump itself (height,
 landing, the ceiling cap, clearing a barrier at a run, walls stopping you),
 and re-runs the walkability checks as if every piece of furniture could be
-hopped over: you still can't leave the compound in the hunt, get into a
-locked place, or get off the street when exploring.
+hopped over: you still can't leave the compound in the hunt or get into a
+locked place; and that exploring, a running jump clears the compound's fence
+while in the hunt it doesn't.

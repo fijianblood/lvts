@@ -189,7 +189,7 @@ test('from the spawn point, walking straight ahead goes in through the open half
 });
 
 // ── jumping ─────────────────────────────────────────────────────────────────
-import { airStep, supportAt, jumpSpeed, JUMP, type StaticWorld } from '../../src/game/house/collision.ts';
+import { airStep, supportAt, jumpSpeed, JUMP, JUMP_ROAM, type StaticWorld } from '../../src/game/house/collision.ts';
 
 test('a jump goes up about a metre and comes back down to the floor', () => {
   let s = { feet: 0, vy: jumpSpeed(JUMP.up), air: true };
@@ -236,11 +236,31 @@ test('running and jumping clears a waist-high barrier; walls stop you however yo
   assert.ok(run({ rects: [{ x0: 1.4, x1: 1.6, z0: -2, z1: 2 }], circles: [] }) < 1.4, 'a wall (no top) should stop you');
 });
 
-test('only furniture and loose things can be jumped: every wall, fence, railing and street edge always blocks', () => {
-  for (const mode of ['hunt', 'explore'] as const) {
-    const w = buildStaticWorld({ mode });
-    const jumpable = w.rects.filter((q) => q.top !== undefined).length + w.circles.filter((c) => c.top !== undefined).length;
-    const solidProps = PROPS.filter((p) => p.kind !== 'cone' && p.solid).length;
-    assert.ok(jumpable <= solidProps, `${mode}: ${jumpable} jumpable solids but only ${solidProps} solid props`);
-  }
+test('in the hunt only furniture and loose things can be jumped: every wall, fence and railing always blocks', () => {
+  const w = buildStaticWorld({ mode: 'hunt' });
+  const jumpable = w.rects.filter((q) => q.top !== undefined).length + w.circles.filter((c) => c.top !== undefined).length;
+  const solidProps = PROPS.filter((p) => p.kind !== 'cone' && p.solid).length;
+  assert.ok(jumpable <= solidProps, `hunt: ${jumpable} jumpable solids but only ${solidProps} solid props`);
+});
+
+test('exploring, a run and a jump clears the compound fence; in the hunt it never does', () => {
+  // run west at the compound's side fence (1.8 m) across the back yard (clear of the bure and the back steps), jumping just before it, as the engine does
+  const run = (mode: 'hunt' | 'explore') => {
+    const world = buildStaticWorld({ mode });
+    const g = heightAt(0, -9);
+    let p: XZ = [0.3, -9];
+    let s = { feet: g, vy: 0, air: false };
+    for (let i = 0; i < 300; i++) {
+      const dt = 1 / 60;
+      if (!s.air && p[0] < -2.05 && p[0] > -2.4) s = { feet: s.feet, vy: jumpSpeed(mode === 'explore' ? JUMP_ROAM.up : JUMP.up), air: true };
+      p = moveAndSlide(p, -4.4 * dt, 0, PLAYER_R, world, [], s.air || s.feet > g + 0.05 ? s.feet : -Infinity);
+      const floor = Math.max(heightAt(p[0], p[1]), supportAt(p, PLAYER_R, world, s.feet));
+      if (s.air) s = airStep(s, floor, Infinity, dt);
+      else if (floor < s.feet - 0.25) s = { ...s, air: true, vy: 0 };
+      else s = { ...s, feet: floor };
+    }
+    return p[0];
+  };
+  assert.ok(run('explore') < -4, 'exploring, a running jump should clear the side fence');
+  assert.ok(run('hunt') > -2.7, 'in the hunt the side fence should stop you');
 });
