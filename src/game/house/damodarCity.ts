@@ -229,9 +229,14 @@ export function damodarCity(y: number): { rooms: Room[]; barriers: Barrier[]; pr
       add(box(u1 - 0.36, y + h - 0.02, 59.85, u1 - 0.2, y + h, 64.35, '#c9ccd0'));
       for (let z = 60.1; z < 64.2; z += 0.38) add(box(u1 - 0.3, y + h, z, u1 - 0.22, y + h + 0.16, z + 0.09, DARKG));
     }
-    /** The card: a red envelope with a gold band and a white label, flat at height cy. */
-    const card = (cx: number, cy: number, cz: number) => {
-      add(
+    /** The card: a red envelope with a gold band and a white label, flat at height cy (or standing up against the east wall). */
+    const card = (cx: number, cy: number, cz: number, upright = false) => {
+      if (upright) add(
+        box(cx - 0.012, cy, cz - 0.16, cx + 0.012, cy + 0.22, cz + 0.16, RED),
+        box(cx - 0.016, cy + 0.09, cz - 0.16, cx - 0.012, cy + 0.13, cz + 0.16, CARD_GOLD),
+        box(cx - 0.016, cy + 0.14, cz - 0.08, cx - 0.012, cy + 0.19, cz + 0.08, '#ffffff'),
+      );
+      else add(
         box(cx - 0.16, cy, cz - 0.11, cx + 0.16, cy + 0.025, cz + 0.11, RED),
         box(cx - 0.16, cy + 0.025, cz - 0.02, cx + 0.16, cy + 0.03, cz + 0.02, CARD_GOLD),
         box(cx - 0.08, cy + 0.025, cz + 0.04, cx + 0.08, cy + 0.03, cz + 0.09, '#ffffff'),
@@ -247,10 +252,10 @@ export function damodarCity(y: number): { rooms: Room[]; barriers: Barrier[]; pr
       );
       card(u1 - 0.75, y, F + 0.5);
     } else {
-      // a tall cabinet in the back corner by the counter; the card is lying on top of it, above eye height
+      // a tall cabinet in the back corner by the counter; the card stands on top of it against the wall, its top just peeking over
       add(box(u1 - 0.75, y, 64.75, u1 - 0.12, y + 2.15, 65.8, '#eef0f2', true), box(u1 - 0.76, y + 0.3, 64.9, u1 - 0.75, y + 2.0, 65.65, '#cfe3ea'));
       for (const h of [0.6, 1.2, 1.8]) add(box(u1 - 0.74, y + h, 64.8, u1 - 0.14, y + h + 0.02, 65.75, '#c9ccd0'));
-      card(u1 - 0.45, y + 2.15, 65.3);
+      card(u1 - 0.2, y + 2.15, 65.3, true);
     }
     rooms.push({ id: `dc${id}`, name: `${T.name}, Damodar City`, x0: u + 0.075, x1: u1 - 0.075, z0: F, z1: Z - 0.2, floor: 'tile', ...inside });
   };
