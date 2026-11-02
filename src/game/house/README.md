@@ -210,11 +210,14 @@ on them. Baby Aisha babbles, coos and reaches for cuddles instead of talking.
   blue-grey roof band, and the cinema at the east end with its logo up high;
   a smaller block down the west side. Every ground-floor shop has a glass
   door that opens with E. **BSP** is open (double doors; its logo on a green
-  wall, a counter, ATMs, chairs). Right beside it, to the east, is
-  **Bondwell**, the ICT shop (its logo from the picture they sent): a red
-  fascia and back wall with the logo, laptops on two display tables, phones
-  in a glass case, a TV, printers, a wall of accessories and the counter at
-  the back. The other shops are coming soon, and inside
+  wall, a counter, ATMs, chairs). Beside it to the west is **Vodafone**, and
+  to the east **Digicel** (each with a red fascia and back wall and its logo,
+  phones on a display table and a wall of phones, the counter at the back,
+  and LvTS's hidden reward card: see "The hidden reward cards" below). Next
+  to Digicel is **Bondwell**, the ICT shop (its logo from the picture they
+  sent): a red fascia and back wall with the logo, laptops on two display
+  tables, phones in a glass case, a TV, printers, a wall of accessories and
+  the counter at the back. The other shops are coming soon, and inside
   each is an empty unit being fitted out (a "coming soon" board, boxes, a
   ladder). **Damodar Cinemas** has double doors into its lobby: a red carpet,
   the ticket counter, the candy bar with popcorn, film posters, a bench and
@@ -442,6 +445,41 @@ HOUSE_PRIZE_CODES=2026-10-01=LVTS-TEST01
 
 then `npm run dev` and open `http://localhost:5173/lvts/#house`.
 
+## The hidden reward cards (Digicel and Vodafone)
+
+LvTS's own reward, not Digicel's or Vodafone's: **LvTS runs it and pays the
+winners**. In Damodar City, a reward card is hidden in the **Digicel** shop
+($5 cashback, paid by **MyCash**) and in the **Vodafone** shop ($5 cashback,
+paid by **M-PAiSA**). A board on each shop's wall and in its window says so,
+including "Run & paid by LvTS. Not a Digicel or MyCash promotion" (and the same
+for Vodafone and M-PAiSA). Walk up to the card inside the shop and press E (it
+only works from inside, never through the window): a card shows this round's
+**8-digit code**, the steps (screenshot it, post it on the @lvtsfiji page as a
+comment on the pinned Noqublox post, for a chance to win the $5), and the safety
+line (we never ask for a PIN or a payment). The Digicel card is on the floor
+behind the pull-up banner by the window; the Vodafone card is on top of the
+tall cabinet by the counter.
+
+Codes work like the prize codes (never committed, scrambled into the build),
+from two more repository secrets:
+
+| Secret | For |
+|---|---|
+| `DIGICEL_PROMO_CODES` | the card in Digicel (MyCash) |
+| `VODAFONE_PROMO_CODES` | the card in Vodafone (M-PAiSA) |
+
+The value is the same format as `HOUSE_PRIZE_CODES`, but each code must be
+**exactly 8 digits**, one you make up: `2026-11-03=NNNNNNNN, 2026-11-10=NNNNNNNN,
+until=2026-11-30`. Anything else is skipped and named in the build log, which
+prints `[house-hunt] Digicel reward: N code(s) loaded`. With no secret set, the
+card says no reward round is running. The wording, the $5 and the wallets are in
+`promos.ts`; how winners are picked is up to LvTS, so say it in the pinned post.
+To test on your computer, put the two lines in `.env.local` like
+`HOUSE_PRIZE_CODES`.
+
+Cloudflare Workers Builds builds its own copy of the site: to have the codes
+there too, add the same three values as build variables in its settings.
+
 ## Files
 
 | File | What it is |
@@ -457,7 +495,8 @@ then `npm run dev` and open `http://localhost:5173/lvts/#house`.
 | `raiwai.ts` | Raiwai's 3D pieces: houses, flats, the Methodist Church, the pool, the teal building, the Lomaiviti Training Ground, the Raiwai Jame Masjid, the Howell Road Hindu Temple, sheds, the Nasese bus, cars, power poles, trees. |
 | `towers.ts` | The Raiwai Lookout, the tower you can walk up when exploring: its stairs round the outside (ramps and landings), walls, rails and what's drawn. |
 | `gardenCity.ts` | Garden City, the shopping complex being built after Sardaar Complex: plain data for its fence, sign, car park, building, building site, the Westpac branch, and its stairs and first floor (an upper floor). |
-| `damodarCity.ts` | Damodar City, the centre across the road: its sign, car park, shops (with doors and insides), the BSP branch, Bondwell and Damodar Cinemas' lobby. |
+| `damodarCity.ts` | Damodar City, the centre across the road: its sign, car park, shops (with doors and insides), the BSP branch, Vodafone, Digicel, Bondwell and Damodar Cinemas' lobby, and where the reward cards are hidden. |
+| `promos.ts` | LvTS's hidden reward cards in Digicel and Vodafone: the wording, the wallets, and the 8-digit codes from the secrets. |
 | `shopInsides.ts` | The row of shops across the road, opened up: each front's walls, windows and glass doors, and what's inside by kind. Also `lvtsPlaque()`, the small LvTS logo-and-number plaque. |
 | `uspCampus.ts` | The USP campus you can walk around: its blocks, paths, trees and sign. |
 | `online.ts`, `SharedWorld.tsx` | The shared world on the game's side: the connection to the server, and the 🌐 pill, chat lines, chat box and report button. |

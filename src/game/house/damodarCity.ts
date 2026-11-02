@@ -30,8 +30,12 @@ export const DAMODAR_CITY = front ? {
   units: 8, unitW: 5.5,
   /** BSP's shop (0-based, from the west): straight ahead as you come in. */
   bsp: 5,
-  /** Bondwell, the ICT shop, right beside BSP (east of it). */
-  bondwell: 6,
+  /** Vodafone, beside BSP to the west (its left, on the map). */
+  vodafone: 4,
+  /** Digicel, beside BSP to the east, between BSP and Bondwell. */
+  digicel: 6,
+  /** Bondwell, the ICT shop, next along from Digicel (east of it). */
+  bondwell: 7,
   /** The west wing: its shopfront faces east along this line, from z0 to the walkway. */
   wing: { x1: -10, z0: 40 },
 } : null;
@@ -45,6 +49,15 @@ const LINE = '#f1f1ec';
 const YELLOW = '#f2c230';
 const BSP_GREEN = '#0f8a43';
 const BONDWELL_RED = '#e3262b';
+/** Digicel's and Vodafone's shops: their red, the board their logo sits on, and the hidden reward card (promos.ts). */
+const TELCO = {
+  digicel: { name: 'Digicel', red: '#c4001a', logo: 'logo/digicel.png@#c4001a', logoBoard: '#c4001a' },
+  vodafone: { name: 'Vodafone', red: '#e60000', logo: 'logo/vodafone.png', logoBoard: '#ffffff' },
+} as const;
+const CARD_GOLD = '#f2c230';
+
+/** Where a shop's hidden reward card is (promos.ts says what it is): on the floor or a shelf, `ground` the shop's floor; it can only be picked up from inside `room` (never through the window). */
+export interface PromoSpot { id: 'digicel' | 'vodafone'; x: number; y: number; z: number; ground: number; room: string }
 
 const box = (x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, color: string, solid = false, extra: Partial<Extract<Prim, { kind: 'box' }>> = {}): Prim =>
   ({ kind: 'box', min: [x0, y0, z0], max: [x1, y1, z1], color, solid, plain: true, ...extra });
@@ -57,9 +70,9 @@ export const DAMODAR_PALMS: { x: number; z: number; s: number }[] = [
 ];
 
 /** Damodar City's rooms, barriers, props and parked cars, on ground at height `y` (the road). */
-export function damodarCity(y: number): { rooms: Room[]; barriers: Barrier[]; props: Prim[]; parked: Parked[]; doors: Door[] } {
+export function damodarCity(y: number): { rooms: Room[]; barriers: Barrier[]; props: Prim[]; parked: Parked[]; doors: Door[]; promos: PromoSpot[] } {
   const P = DAMODAR_CITY;
-  if (!P) return { rooms: [], barriers: [], props: [], parked: [], doors: [] };
+  if (!P) return { rooms: [], barriers: [], props: [], parked: [], doors: [], promos: [] };
   const { x0, x1, in0, in1, road: R, back: K, walk: W, front: F, z1: Z, unitW: uw } = P;
   const ux = (k: number) => x0 + k * uw;
   const cin = ux(P.units);                       // the cinema, from here to x1
@@ -174,22 +187,98 @@ export function damodarCity(y: number): { rooms: Room[]; barriers: Barrier[]; pr
     table(60.4); table(62.8);
     rooms.push({ id: 'dcbondwell', name: 'Bondwell, Damodar City', x0: u + 0.075, x1: u1 - 0.075, z0: F, z1: Z - 0.2, floor: 'tile', ...inside });
   };
+  const promos: PromoSpot[] = [];
+  /**
+   * Digicel or Vodafone in unit u..u1: a red fascia, its logo in the window and
+   * on a red back wall; inside, phones on a display table and a wall of phones,
+   * the counter at the back, and on the west wall the board for LvTS's reward
+   * (promos.ts) with the logo of the wallet it pays by. The reward card itself is
+   * hidden: in Digicel, on the floor behind the pull-up banner in the corner by
+   * the window; in Vodafone, on top of the tall cabinet by the counter.
+   */
+  const telcoShop = (id: 'digicel' | 'vodafone', u: number, u1: number, m: number) => {
+    const T = TELCO[id], RED = T.red, DARKG = '#2a2d31', SCREEN = '#3d7fd6';
+    const logoOn = (face: string) => ({ tex: `${T.logo}:${face}` });
+    const phone = (px: number, pz: number, py: number) => add(
+      box(px - 0.05, py, pz - 0.09, px + 0.05, py + 0.012, pz + 0.09, DARKG),
+      box(px - 0.04, py + 0.012, pz - 0.08, px + 0.04, py + 0.014, pz + 0.08, SCREEN, false, { emissive: true }),
+    );
+    add(
+      box(u + 0.25, y + 3.3, F, u1 - 0.25, y + 3.5, F + 0.06, RED),                                       // the fascia over the door
+      box(u + 0.4, y + 1.15, F - 0.03, u + 2.05, y + 1.75, F - 0.01, T.logoBoard, false, logoOn('-z')),   // in the window
+      box(m + 0.75, y + 0.95, F - 0.03, u1 - 0.45, y + 1.94, F - 0.01, '#ffffff', false, { tex: `promo-${id}:-z` }),   // the reward, in the other window
+      box(u + 0.08, y, Z - 0.25, u1 - 0.08, y + 3.5, Z - 0.2, RED),                                       // the red back wall
+      box(u + 0.9, y + 2.05, Z - 0.28, u1 - 0.9, y + 2.9, Z - 0.25, T.logoBoard, false, logoOn('-z')),
+      // the counter, a till and a screen
+      box(u + 0.6, y, 66.0, u1 - 0.6, y + 1.05, 66.7, WHITE, true), box(u + 0.6, y + 0.25, 65.98, u1 - 0.6, y + 0.85, 66.0, RED),
+      box(u + 0.55, y + 1.05, 65.95, u1 - 0.55, y + 1.1, 66.75, DARKG),
+      box(m - 0.85, y + 1.1, 66.3, m - 0.4, y + 1.45, 66.34, DARKG), box(m - 0.82, y + 1.13, 66.29, m - 0.43, y + 1.42, 66.3, SCREEN, false, { emissive: true }),
+      // phones on a display table in the middle (an aisle either side)
+      box(u + 1.6, y, 61.2, u1 - 1.9, y + 0.85, 62.6, WHITE, true), box(u + 1.6, y + 0.85, 61.18, u1 - 1.9, y + 0.87, 62.62, RED),
+      // a wall of phones on the east wall: a white panel with shelves
+      box(u1 - 0.2, y + 0.9, 59.8, u1 - 0.12, y + 2.6, 64.4, '#eef0f2'),
+      // LvTS's reward on the west wall, and the wallet it pays by over it
+      box(u + 0.1, y + 1.15, 59.6, u + 0.16, y + 2.55, 61.8, '#ffffff', false, { tex: `promo-${id}:+x` }),
+      box(u + 0.1, y + 2.62, 59.95, u + 0.16, y + 3.12, 61.45, '#ffffff', false, { tex: `logo/${id === 'digicel' ? 'mycash' : 'mpaisa'}.png:+x` }),
+      // lights
+      box(m - 0.8, y + 3.44, 61.5, m + 0.8, y + 3.48, 61.9, '#fffdf5', false, { emissive: true }),
+      box(m - 0.8, y + 3.44, 64.5, m + 0.8, y + 3.48, 64.9, '#fffdf5', false, { emissive: true }),
+    );
+    for (let px = u + 1.85; px < u1 - 2.0; px += 0.42) phone(px, 61.9, y + 0.87);
+    for (let h = 1.05; h < 2.5; h += 0.42) {
+      add(box(u1 - 0.36, y + h - 0.02, 59.85, u1 - 0.2, y + h, 64.35, '#c9ccd0'));
+      for (let z = 60.1; z < 64.2; z += 0.38) add(box(u1 - 0.3, y + h, z, u1 - 0.22, y + h + 0.16, z + 0.09, DARKG));
+    }
+    /** The card: a red envelope with a gold band and a white label, flat at height cy (or standing up against the east wall). */
+    const card = (cx: number, cy: number, cz: number, upright = false) => {
+      if (upright) add(
+        box(cx - 0.012, cy, cz - 0.16, cx + 0.012, cy + 0.22, cz + 0.16, RED),
+        box(cx - 0.016, cy + 0.09, cz - 0.16, cx - 0.012, cy + 0.13, cz + 0.16, CARD_GOLD),
+        box(cx - 0.016, cy + 0.14, cz - 0.08, cx - 0.012, cy + 0.19, cz + 0.08, '#ffffff'),
+      );
+      else add(
+        box(cx - 0.16, cy, cz - 0.11, cx + 0.16, cy + 0.025, cz + 0.11, RED),
+        box(cx - 0.16, cy + 0.025, cz - 0.02, cx + 0.16, cy + 0.03, cz + 0.02, CARD_GOLD),
+        box(cx - 0.08, cy + 0.025, cz + 0.04, cx + 0.08, cy + 0.03, cz + 0.09, '#ffffff'),
+      );
+      promos.push({ id, x: cx, y: cy, z: cz, ground: y, room: `dc${id}` });
+    };
+    if (id === 'digicel') {
+      // a pull-up banner in the front corner by the window, facing into the shop; the card is on the floor behind it
+      add(
+        box(u1 - 1.35, y, F + 0.95, u1 - 0.3, y + 0.08, F + 1.2, '#3b3f44', true),
+        box(u1 - 1.3, y + 0.08, F + 1.05, u1 - 0.35, y + 2.1, F + 1.08, RED, false, logoOn('+z')),
+        box(u1 - 0.85, y + 0.08, F + 1.0, u1 - 0.8, y + 2.1, F + 1.05, '#9aa0a6'),                     // its pole, behind
+      );
+      card(u1 - 0.75, y, F + 0.5);
+    } else {
+      // a tall cabinet in the back corner by the counter; the card stands on top of it against the wall, its top just peeking over
+      add(box(u1 - 0.75, y, 64.75, u1 - 0.12, y + 2.15, 65.8, '#eef0f2', true), box(u1 - 0.76, y + 0.3, 64.9, u1 - 0.75, y + 2.0, 65.65, '#cfe3ea'));
+      for (const h of [0.6, 1.2, 1.8]) add(box(u1 - 0.74, y + h, 64.8, u1 - 0.14, y + h + 0.02, 65.75, '#c9ccd0'));
+      card(u1 - 0.2, y + 2.15, 65.3, true);
+    }
+    rooms.push({ id: `dc${id}`, name: `${T.name}, Damodar City`, x0: u + 0.075, x1: u1 - 0.075, z0: F, z1: Z - 0.2, floor: 'tile', ...inside });
+  };
   for (let k = 0; k < P.units; k++) {
     const u = ux(k), u1 = u + uw, m = (u + u1) / 2;
     // its sign on the balustrade, its upstairs window (a poster in some)
-    add(box(u + 0.9, y + 3.86, W - 0.03, u1 - 0.9, y + 4.62, W, k === P.bsp ? BSP_GREEN : '#ffffff', false, { tex: k === P.bsp ? 'logo/bsp.png:-z' : k === P.bondwell ? 'logo/bondwell.png:-z' : 'dcsoon:-z' }));
+    const telco = k === P.digicel ? TELCO.digicel : k === P.vodafone ? TELCO.vodafone : null;
+    const sign = k === P.bsp ? 'logo/bsp.png' : k === P.bondwell ? 'logo/bondwell.png' : telco ? telco.logo : 'dcsoon';
+    add(box(u + 0.9, y + 3.86, W - 0.03, u1 - 0.9, y + 4.62, W, k === P.bsp ? BSP_GREEN : telco ? telco.logoBoard : '#ffffff', false, { tex: `${sign}:-z` }));
     add(box(u + 0.3, y + 3.95, F - 0.04, u1 - 0.3, y + 6.7, F, k % 3 ? DARK_GLASS : '#bfd6e0'));
     if (k % 2 === 0) add(box(u + 1.5, y + 4.6, F - 0.06, u1 - 1.5, y + 5.6, F - 0.04, '#ffffff', false, { tex: 'dcsoon:-z' }));
     if (k === P.bsp) continue;
     // downstairs: glass either side of a glass door, a "coming soon" poster; inside, waiting for its shop
     shopDoors.push({ x0: m - 0.5, x1: m + 0.5 });
-    doors.push(glassDoor(`dc-door-${k + 1}`, k === P.bondwell ? 'Bondwell door' : 'shop door', m - 0.5, F + 0.03, 1.0, 0, HALF_PI));
+    doors.push(glassDoor(`dc-door-${k + 1}`, k === P.bondwell ? 'Bondwell door' : telco ? `${telco.name} door` : 'shop door', m - 0.5, F + 0.03, 1.0, 0, HALF_PI));
     add(
       box(u + 0.25, y, F, m - 0.5, y + 3.3, F + 0.06, GLASS), box(m + 0.5, y, F, u1 - 0.25, y + 3.3, F + 0.06, GLASS),
       box(m - 0.5, y + 2.2, F, m + 0.5, y + 3.3, F + 0.06, GLASS),
       box(m - 0.56, y, F - 0.02, m - 0.5, y + 2.25, F + 0.08, '#3b3f44'), box(m + 0.5, y, F - 0.02, m + 0.56, y + 2.25, F + 0.08, '#3b3f44'),
     );
     if (k === P.bondwell) { bondwell(u, u1, m); continue; }
+    if (k === P.digicel) { telcoShop('digicel', u, u1, m); continue; }
+    if (k === P.vodafone) { telcoShop('vodafone', u, u1, m); continue; }
     add(
       box(u + 0.4, y + 1.0, F - 0.03, u + 2.1, y + 1.85, F - 0.01, '#ffffff', false, { tex: 'dcsoon:-z' }),
       box(u + 0.25, y + 3.3, F, u1 - 0.25, y + 3.5, F + 0.06, SLATE),
@@ -335,5 +424,5 @@ export function damodarCity(y: number): { rooms: Room[]; barriers: Barrier[]; pr
     { x: 34.6, z: W - 2.4, kind: 'suv', color: '#4b5157', facing: 1, across: true },
   ];
 
-  return { rooms, barriers, props, parked, doors };
+  return { rooms, barriers, props, parked, doors, promos };
 }

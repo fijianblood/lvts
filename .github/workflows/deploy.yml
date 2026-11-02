@@ -29,6 +29,9 @@ jobs:
           # House Hunt prize codes, set in Settings → Secrets and variables → Actions.
           # Leave it unset and the game runs with its demo code.
           HOUSE_PRIZE_CODES: ${{ secrets.HOUSE_PRIZE_CODES }}
+          # The hidden reward cards in the Digicel and Vodafone shops (8-digit codes, same format).
+          DIGICEL_PROMO_CODES: ${{ secrets.DIGICEL_PROMO_CODES }}
+          VODAFONE_PROMO_CODES: ${{ secrets.VODAFONE_PROMO_CODES }}
           # Where the neighbourhood server is (a repository variable); leave it unset for the default.
           NEIGHBOURHOOD_API: ${{ vars.NEIGHBOURHOOD_API }}
       - uses: actions/upload-pages-artifact@v3
