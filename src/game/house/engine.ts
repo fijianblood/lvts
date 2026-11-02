@@ -17,8 +17,8 @@ import {
   type GameMode, type WallRun, type Prim, type Door, type HingedDoor, type WindowSpec, type Room, type XYZ, type Barrier, type NpcSpot,
 } from './layout.ts';
 import { buildStaticWorld, buildCameraWorld, doorOBB, bodyOBB, moveAndSlide, circleHitsOBB, blocked, supportAt, airStep, jumpSpeed, JUMP, type OBB, type StaticWorld } from './collision.ts';
-import { CHARACTERS, characterById, firstName, type Character, type CharacterId } from './characters.ts';
-import { buildFigure, animate, bakeStatic, cat, type Rig } from './figures.ts';
+import { CHARACTERS, characterById, firstName, type Character, type CharacterId, type Look } from './characters.ts';
+import { buildFigure, animate, bakeStatic, bakeMoving, cat, type Rig } from './figures.ts';
 import type { Say } from './talk.ts';
 import { ChoreSystem, type ChoreCallbacks, type ChoreFocus } from './choreSystem.ts';
 import { PLACES } from './chores.ts';
@@ -272,6 +272,104 @@ function bake(group: THREE.Object3D, buckets: Buckets, scene: THREE.Object3D) {
   for (const k of keep) { k.updateMatrixWorld(true); const c = k.clone(); c.matrix.copy(k.matrixWorld); c.matrixAutoUpdate = false; scene.add(c); }
 }
 
+/** Another player in the shared world: their figure, name tag, speech bubble, and where they're heading. */
+interface Remote {
+  rig: Rig;
+  tag: THREE.Sprite;
+  bubble?: THREE.Sprite;
+  target: [number, number, number, number];
+  phase: number;
+  speed: number;
+  height: number;
+  bubbleUntil: number;
+}
+
+/** A flat picture that always faces the camera, `w` metres wide, drawn on a canvas. */
+function canvasSprite(cw: number, ch: number, w: number, draw: (g: CanvasRenderingContext2D) => void): THREE.Sprite {
+  const canvas = document.createElement('canvas');
+  canvas.width = cw; canvas.height = ch;
+  const g = canvas.getContext('2d');
+  if (g) draw(g);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+  sprite.scale.set(w, (w * ch) / cw, 1);
+  sprite.renderOrder = 5;
+  return sprite;
+}
+
+function roundRect(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  g.beginPath();
+  g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r);
+  g.closePath();
+}
+
+/** A player's name over their head (and, smaller, who they're playing as). */
+function labelSprite(name: string, sub?: string): THREE.Sprite {
+  const W = 512, H = sub ? 132 : 92;
+  const BIG = '700 46px system-ui, sans-serif', SMALL = '500 30px system-ui, sans-serif';
+  return canvasSprite(W, H, sub ? 1.15 : 1.0, (g) => {
+    /** `t` cut short (with …) to fit `max` pixels in `font`; and its width. */
+    const fit = (t: string, font: string, max: number): [string, number] => {
+      g.font = font;
+      let s = t;
+      while (s.length > 1 && g.measureText(s === t ? s : `${s}…`).width > max) s = s.slice(0, -1);
+      const out = s === t ? t : `${s.trimEnd()}…`;
+      return [out, g.measureText(out).width];
+    };
+    const [top, tw] = fit(name, BIG, W - 60);
+    const [low, lw] = sub ? fit(sub, SMALL, W - 60) : ['', 0];
+    const bw = Math.min(W - 8, Math.max(tw, lw) + 44);
+    g.fillStyle = 'rgba(15,23,42,0.72)';
+    roundRect(g, (W - bw) / 2, 4, bw, H - 8, 26);
+    g.fill();
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillStyle = '#ffffff'; g.font = BIG;
+    g.fillText(top, W / 2, sub ? 48 : H / 2 + 2);
+    if (sub) { g.fillStyle = '#cbd5e1'; g.font = SMALL; g.fillText(low, W / 2, 98); }
+  });
+}
+
+/** What a player just said, in a white bubble over their head (wrapped to a few lines). */
+function bubbleSprite(text: string): THREE.Sprite {
+  const W = 640, PAD = 28, LH = 44, MAXW = W - PAD * 2;
+  const measure = document.createElement('canvas').getContext('2d');
+  const font = '500 36px system-ui, sans-serif';
+  const lines: string[] = [];
+  if (measure) {
+    measure.font = font;
+    let cur = '';
+    for (const word of text.split(' ')) {
+      const next = cur ? `${cur} ${word}` : word;
+      if (measure.measureText(next).width <= MAXW) { cur = next; continue; }
+      if (cur) lines.push(cur);
+      cur = word;
+      while (measure.measureText(cur).width > MAXW && cur.length > 1) {   // one very long word: break it
+        let cut = cur.length;
+        while (cut > 1 && measure.measureText(cur.slice(0, cut)).width > MAXW) cut--;
+        lines.push(cur.slice(0, cut));
+        cur = cur.slice(cut);
+      }
+    }
+    if (cur) lines.push(cur);
+  } else lines.push(text);
+  const shown = lines.slice(0, 4);
+  if (lines.length > 4) shown[3] = `${shown[3].replace(/.$/, '')}…`;
+  const H = shown.length * LH + PAD * 2 + 18;
+  return canvasSprite(W, H, 1.9, (g) => {
+    g.font = font;
+    const tw = Math.max(...shown.map((l) => g.measureText(l).width));
+    const bw = Math.min(W - 6, tw + PAD * 2), bx = (W - bw) / 2, bh = H - 22;
+    g.fillStyle = 'rgba(255,255,255,0.95)';
+    roundRect(g, bx, 3, bw, bh, 22);
+    g.fill();
+    g.beginPath(); g.moveTo(W / 2 - 14, bh + 2); g.lineTo(W / 2, H - 3); g.lineTo(W / 2 + 14, bh + 2); g.closePath(); g.fill();
+    g.fillStyle = '#0f172a'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    shown.forEach((l, i) => g.fillText(l, W / 2, 3 + PAD + LH * i + LH / 2 - 4));
+  });
+}
+
 interface DoorRig { door: Door; pivot: THREE.Object3D; open: number; target: number }
 interface WindowRig { spec: WindowSpec; sashes: { pivot: THREE.Object3D; dir: number }[]; open: number; target: number }
 interface Item {
@@ -307,6 +405,11 @@ export class HouseEngine {
   private player?: Rig;
   private npcs: { id: CharacterId; char: Character; rig: Rig; spot: NpcSpot; obb?: OBB; baseQuat: THREE.Quaternion; visitor?: boolean }[] = [];
   private kitty?: THREE.Group;
+  /** Other players in the shared world (explore mode): eased towards where they last said they were. */
+  private remotes = new Map<string, Remote>();
+  private remoteSort = 0;
+  /** A chat box or panel has the keyboard and mouse: keys don't move you, and freeing the mouse doesn't pause. */
+  private uiOpen = false;
   private doors: DoorRig[] = [];
   private windows: WindowRig[] = [];
   private items: Item[] = [];
@@ -1447,6 +1550,88 @@ export class HouseEngine {
     this.kick();
   }
 
+  // ── other players (the shared world) ─────────────────────────────────────
+  /** Where you are, for the shared world: [x, feet height, z, facing]. */
+  netPos(): [number, number, number, number] { return [this.pos[0], this.floorY, this.pos[1], this.yaw]; }
+
+  /** A chat box or panel is open (keys go to it, and freeing the mouse doesn't pause the game). */
+  setUiOpen(on: boolean) {
+    this.uiOpen = on;
+    if (on) { this.keys.clear(); this.touchMove = [0, 0]; }
+  }
+
+  /** Someone else joined (or was already there): their figure, with their name over their head. */
+  remoteAdd(id: string, look: Look, name: string, sub: string | undefined, p: [number, number, number, number], crawl = false) {
+    this.remoteRemove(id);
+    const rig = buildFigure(look, crawl ? 'crawl' : 'stand');
+    bakeMoving(rig);
+    rig.root.position.set(p[0], p[1], p[2]);
+    rig.root.rotation.y = p[3];
+    rig.root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.castShadow = false; m.receiveShadow = true; } });
+    const tag = labelSprite(name, sub);
+    tag.position.set(0, (crawl ? 0.55 : look.height) + 0.32, 0);
+    rig.root.add(tag);
+    this.scene.add(rig.root);
+    this.remotes.set(id, { rig, tag, target: [...p], phase: 0, speed: 0, height: crawl ? 0.55 : look.height, bubbleUntil: 0 });
+    this.kick();
+  }
+
+  remoteMove(id: string, p: [number, number, number, number]) {
+    const r = this.remotes.get(id);
+    if (r) r.target = p;
+  }
+
+  remoteRemove(id: string) {
+    const r = this.remotes.get(id);
+    if (!r) return;
+    this.scene.remove(r.rig.root);
+    r.rig.root.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if ((o as THREE.Sprite).isSprite) { const mat = (o as THREE.Sprite).material; mat.map?.dispose(); mat.dispose(); }
+      else if (m.isMesh) m.geometry.dispose();
+    });
+    this.remotes.delete(id);
+  }
+
+  remoteClear() { for (const id of [...this.remotes.keys()]) this.remoteRemove(id); }
+
+  /** A speech bubble over their head for a few seconds. */
+  remoteSay(id: string, text: string) {
+    const r = this.remotes.get(id);
+    if (!r) return;
+    if (r.bubble) { r.rig.root.remove(r.bubble); r.bubble.material.map?.dispose(); r.bubble.material.dispose(); }
+    r.bubble = bubbleSprite(text);
+    r.bubble.position.set(0, r.height + 0.85, 0);
+    r.rig.root.add(r.bubble);
+    r.bubbleUntil = performance.now() + 7000;
+  }
+
+  /** Ease everyone towards where they last were, walk their legs, and only draw the nearest few. */
+  private stepRemotes(dt: number, now: number) {
+    const k = 1 - Math.exp(-dt * 9);
+    for (const r of this.remotes.values()) {
+      const root = r.rig.root;
+      const [tx, ty, tz, tr] = r.target;
+      const dx = tx - root.position.x, dz = tz - root.position.z;
+      const far = Math.hypot(dx, dz);
+      if (far > 12) root.position.set(tx, ty, tz);   // a jump across the map (a gap in the updates): no sliding
+      else { root.position.x += dx * k; root.position.z += dz * k; root.position.y += (ty - root.position.y) * k; }
+      const turn = Math.atan2(Math.sin(tr - root.rotation.y), Math.cos(tr - root.rotation.y));
+      root.rotation.y += turn * k;
+      const moved = far > 12 ? 0 : Math.hypot(dx * k, dz * k);
+      r.speed += (moved / Math.max(dt, 1e-3) - r.speed) * Math.min(1, dt * 8);
+      r.phase += moved * 3.4;
+      animate(r.rig, r.phase, Math.min(1, r.speed / 2.4));
+      if (r.bubble && now > r.bubbleUntil) { root.remove(r.bubble); r.bubble.material.map?.dispose(); r.bubble.material.dispose(); r.bubble = undefined; }
+    }
+    // the nearest 16 within 90 m are drawn (figures aren't cheap on a phone)
+    if ((this.remoteSort -= dt) <= 0) {
+      this.remoteSort = 0.5;
+      const list = [...this.remotes.values()].map((r) => ({ r, d: Math.hypot(r.rig.root.position.x - this.pos[0], r.rig.root.position.z - this.pos[1]) })).sort((a, b) => a.d - b.d);
+      list.forEach(({ r, d }, i) => { r.rig.root.visible = i < 16 && d < 90; });
+    }
+  }
+
   toggleView(): boolean {
     this.third = !this.third;
     if (this.player) this.player.root.visible = this.third;
@@ -1652,7 +1837,8 @@ export class HouseEngine {
 
   // ── input ────────────────────────────────────────────────────────────────
   private onKeyDown = (e: KeyboardEvent) => {
-    if (this.state !== 'playing') return;
+    if (this.state !== 'playing' || this.uiOpen) return;
+    if ((e.target as HTMLElement | null)?.closest?.('input, textarea, select')) return;
     const code = e.code;
     if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftLeft', 'ShiftRight', 'Space'].includes(code)) e.preventDefault();
     if (code === 'KeyE' || code === 'Enter' || code === 'KeyF') { e.preventDefault(); if (!e.repeat) this.interact(); return; }
@@ -1676,7 +1862,7 @@ export class HouseEngine {
   private lockWasHeld = false;
   private onLockChange = () => {
     const held = document.pointerLockElement === this.renderer.domElement;
-    if (this.lockWasHeld && !held && this.state === 'playing') this.pause('lock-lost');
+    if (this.lockWasHeld && !held && this.state === 'playing' && !this.uiOpen) this.pause('lock-lost');
     this.lockWasHeld = held;
   };
   private onBlur = () => { this.keys.clear(); };
@@ -2103,6 +2289,7 @@ export class HouseEngine {
       n.rig.head.userData.turn = next;
       n.rig.head.quaternion.copy(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), next)).multiply(n.baseQuat);
     }
+    if (this.remotes.size) this.stepRemotes(dt, now);
 
     if (this.state === 'playing' || this.state === 'intro') {
       this.revealClock -= dt;
@@ -2190,6 +2377,7 @@ export class HouseEngine {
       finish: (stepId: string) => this.chores.debugFinish(stepId),
       chores: () => this.chores.snapshot(),
       neighbours: (list: VisitorCharacter[]) => this.setNeighbours(list),
+      remotes: () => [...this.remotes.entries()].map(([id, r]) => ({ id, pos: [r.rig.root.position.x, r.rig.root.position.y, r.rig.root.position.z], visible: r.rig.root.visible, bubble: !!r.bubble })),
       mode: () => this.mode,
       raiwaiLayers: (near: boolean, far: boolean) => { this.raiwaiNear.visible = near; this.raiwaiFar.visible = far; },
       refreshShadows: () => this.refreshShadows(),
@@ -2206,6 +2394,7 @@ export class HouseEngine {
 
   dispose() {
     this.disposed = true;
+    this.remoteClear();
     cancelAnimationFrame(this.raf);
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);

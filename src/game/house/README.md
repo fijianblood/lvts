@@ -221,6 +221,23 @@ on them. Baby Aisha babbles, coos and reaches for cuddles instead of talking.
 - **Talking.** Visitors greet with "Bula!" and the family welcomes them. A
   visitor can ask the family about their declaration, but other visitors'
   characters only make small talk and never speak about faith.
+- **Exploring together (the shared world).** Everyone exploring at the same
+  time is in one Raiwai: you see the other players walk about (their character,
+  with "Visitor 12" or their approved name over their head, and "as Zane" if
+  they're playing a family member), and the 🌐 pill says how many are here.
+  Press **T** (or 💬) to chat: typed messages up to 100 characters, shown in a
+  speech bubble over the player and in the lines at the bottom left. Rude words
+  and anything that looks like contact details (phone numbers, emails, links,
+  social media, "where do you live") are never sent, and the player is told
+  why. The chat box's **Here** tab lists everyone, with a 🚩 Report button.
+  LvTS reads reports and bans players on the admin page (`#neighbours-admin`).
+  The hunt stays a game you play on your own. With no server, or when it can't
+  be reached or is full (40 players), you simply explore on your own. The game
+  side is `online.ts` (the connection) and `SharedWorld.tsx` (the screens); the
+  server side, the chat filter and the free-plan limits are in
+  `workers/neighbourhood/` and its README. Other players' figures are baked into
+  one mesh per moving part (`bakeMoving` in `figures.ts`: about 10 draw calls a
+  person), and only the nearest 16 within 90 m are drawn.
 - **The look.** See "How it looks" below.
 
 ## How it looks (and keeping it fast)
@@ -394,6 +411,7 @@ then `npm run dev` and open `http://localhost:5173/lvts/#house`.
 | `damodarCity.ts` | Damodar City, the centre across the road: its sign, car park, shops (with doors and insides), the BSP branch and Damodar Cinemas' lobby. |
 | `shopInsides.ts` | The row of shops across the road, opened up: each front's walls, windows and glass doors, and what's inside by kind. Also `lvtsPlaque()`, the small LvTS logo-and-number plaque. |
 | `uspCampus.ts` | The USP campus you can walk around: its blocks, paths, trees and sign. |
+| `online.ts`, `SharedWorld.tsx` | The shared world on the game's side: the connection to the server, and the 🌐 pill, chat lines, chat box and report button. |
 | `portrait.tsx` | The little portraits on the picker, the HUD and the admin page. |
 | `../../../workers/neighbourhood/` | The Neighbourhood server (Cloudflare Worker); its own README has the setup steps. |
 | `../../pages/NeighbourhoodAdminPage.tsx` | The hidden page for approving characters. |
@@ -412,7 +430,9 @@ and crawling), that you can never walk off a ledge, that a shut door blocks its
 doorway, that no door or gate swings through furniture, that each shop, centre,
 bank, the cinema and the temple and masjid grounds can be reached with their
 doors open and not with them shut (and never into the temple or masjid
-buildings), that there's one LvTS plaque per building, and the prize-code
+buildings), that there's one LvTS plaque per building, the shared world
+(joining, names, moves, the chat filter, mutes, reports, bans, full and idle
+players, waking up after a sleep), and the prize-code
 scrambling and round dates. For jumping, it checks the jump itself (height,
 landing, the ceiling cap, clearing a barrier at a run, walls stopping you),
 and re-runs the walkability checks as if every piece of furniture could be

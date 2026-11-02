@@ -6,6 +6,10 @@ import { cleanLook, cleanName, type VisitorCharacter, type VisitorLook } from '.
 
 export type Status = 'pending' | 'approved';
 export interface Row { id: string; name: string; look: VisitorLook; status: Status; createdAt: string; keyHash: string }
+/** A player reported from the shared world, with their last lines of chat. `target` and `reporter` are hashed visitor ids. */
+export interface ReportRow { id: string; createdAt: string; reporter: string; target: string; label: string; family?: string; why: string; lines: { at: string; text: string }[] }
+/** A visitor kept out of the shared world until `until` (ISO time). */
+export interface BanRow { visitor: string; until: string; reason: string; createdAt: string }
 
 export interface Store {
   insert(row: Row): void;
@@ -17,6 +21,14 @@ export interface Store {
   update(id: string, name: string, look: VisitorLook, status: Status): boolean;
   /** How many times this (hashed) visitor has created a character today; bumps the count. */
   bump(visitor: string, day: string): number;
+  addReport(r: ReportRow): void;
+  listReports(limit: number): ReportRow[];
+  countReports(): number;
+  removeReport(id: string): boolean;
+  ban(b: BanRow): void;
+  unban(visitor: string): boolean;
+  /** Bans still running at `now` (ISO time). */
+  listBans(now: string): BanRow[];
 }
 
 export const LIMITS = {
@@ -26,7 +38,13 @@ export const LIMITS = {
   maxPending: 300,
   /** Approved characters sent to the game (most recent first). */
   publicList: 60,
+  /** Stop keeping new reports while this many are waiting. */
+  maxReports: 500,
+  /** Longest ban, in days. */
+  maxBanDays: 365,
 };
+
+const VISITOR_RE = /^[0-9a-f]{24}$/;
 
 export interface Result { status: number; body: unknown }
 const ok = (body: unknown, status = 200): Result => ({ status, body });
@@ -44,7 +62,20 @@ export interface Ctx {
   visitor: string;
   adminToken: string | undefined;
   authorization: string | null;
+  /** The shared world: who's in it now, and removing a visitor LvTS has just banned. */
+  online?: () => unknown[];
+  onBan?: (visitor: string) => void;
 }
+
+/** The name of a visitor's own character, if the id and secret key match and LvTS has approved it. */
+export async function approvedName(store: Store, hash: (s: string) => Promise<string>, id: string, key: string): Promise<string | null> {
+  const row = store.get(id);
+  if (!row || row.status !== 'approved' || !key || !sameText(await hash(key), row.keyHash)) return null;
+  return row.name;
+}
+
+/** Is this visitor banned from the shared world right now? */
+export const isBanned = (store: Store, visitor: string, now: Date) => store.listBans(now.toISOString()).some((b) => b.visitor === visitor);
 
 function sameText(a: string, b: string) {
   if (a.length !== b.length) return false;
@@ -99,6 +130,24 @@ export async function handle(method: string, path: string, body: unknown, c: Ctx
     if (method === 'GET' && parts[1] === 'pending') return ok({ characters: c.store.list('pending', 200).map(pub) });
     if (method === 'GET' && parts[1] === 'approved') return ok({ characters: c.store.list('approved', 500).map(pub) });
     if (method === 'POST' && parts.length === 3 && parts[2] === 'approve') return c.store.setStatus(parts[1], 'approved') ? ok({ approved: parts[1] }) : err(404, 'Not found.');
+    // the shared world: reports, bans, and who's in it now
+    if (method === 'GET' && path === '/admin/reports') return ok({ reports: c.store.listReports(200) });
+    if (method === 'DELETE' && parts[1] === 'reports' && parts.length === 3) return c.store.removeReport(parts[2]) ? ok({ dismissed: parts[2] }) : err(404, 'Not found.');
+    if (method === 'GET' && path === '/admin/bans') return ok({ bans: c.store.listBans(c.now.toISOString()) });
+    if (method === 'POST' && path === '/admin/bans') {
+      const b = (body ?? {}) as Record<string, unknown>;
+      const visitor = typeof b.visitor === 'string' ? b.visitor : '';
+      const days = typeof b.days === 'number' && Number.isInteger(b.days) ? b.days : 0;
+      if (!VISITOR_RE.test(visitor)) return err(400, 'Unknown visitor.');
+      if (days < 1 || days > LIMITS.maxBanDays) return err(400, `Ban for 1 to ${LIMITS.maxBanDays} days.`);
+      const reason = typeof b.reason === 'string' ? b.reason.replace(/[\p{Cc}]/gu, '').slice(0, 120) : '';
+      const until = new Date(c.now.getTime() + days * 86_400_000).toISOString();
+      c.store.ban({ visitor, until, reason, createdAt: c.now.toISOString() });
+      c.onBan?.(visitor);
+      return ok({ banned: visitor, until });
+    }
+    if (method === 'DELETE' && parts[1] === 'bans' && parts.length === 3) return c.store.unban(parts[2]) ? ok({ unbanned: parts[2] }) : err(404, 'Not found.');
+    if (method === 'GET' && path === '/admin/online') return ok({ players: c.online?.() ?? [] });
     if ((method === 'POST' && parts.length === 3 && parts[2] === 'reject') || (method === 'DELETE' && parts.length === 2)) return c.store.remove(parts[1]) ? ok({ removed: parts[1] }) : err(404, 'Not found.');
   }
 
@@ -109,6 +158,8 @@ export async function handle(method: string, path: string, body: unknown, c: Ctx
 export function memoryStore(): Store {
   const rows = new Map<string, Row>();
   const visits = new Map<string, number>();
+  const reports = new Map<string, ReportRow>();
+  const bans = new Map<string, BanRow>();
   const byNewest = (s: Status) => [...rows.values()].filter((r) => r.status === s).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   return {
     insert: (r) => { rows.set(r.id, { ...r }); },
@@ -119,5 +170,12 @@ export function memoryStore(): Store {
     remove: (id) => rows.delete(id),
     update: (id, name, look, s) => { const r = rows.get(id); if (!r) return false; Object.assign(r, { name, look, status: s }); return true; },
     bump: (v, day) => { const k = `${v}|${day}`; const n = (visits.get(k) ?? 0) + 1; visits.set(k, n); return n; },
+    addReport: (r) => { reports.set(r.id, { ...r }); },
+    listReports: (n) => [...reports.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, n),
+    countReports: () => reports.size,
+    removeReport: (id) => reports.delete(id),
+    ban: (b) => { bans.set(b.visitor, { ...b }); },
+    unban: (v) => bans.delete(v),
+    listBans: (now) => [...bans.values()].filter((b) => b.until > now).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
   };
 }
