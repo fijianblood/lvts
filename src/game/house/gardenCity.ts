@@ -288,11 +288,10 @@ export function gardenCity(y: number): { rooms: Room[]; barriers: Barrier[]; pro
       box(u + 0.8, y + 1.5, Bk - 0.26, u + 2.8, y + 2.5, Bk - 0.2, '#ffffff', false, { tex: 'gcup:-z' }),        // and on the back wall
     );
     // the handrail on the side wall, following the stairs up
-    const rails = 8;
-    for (let i = 0; i < rails; i++) {
-      const za = SZ0 + ((SZ1 - SZ0) * i) / rails, zb = SZ0 + ((SZ1 - SZ0) * (i + 1)) / rails;
-      const ya = y + (GC_UPPER.rise * i) / rails, yb = y + (GC_UPPER.rise * (i + 1)) / rails;
-      add(box(SX1 - 0.08, Math.max(ya, yb) + 0.88, za, SX1 - 0.03, Math.max(ya, yb) + 0.93, zb, STEEL));
+    for (let i = 0; i < n; i++) {
+      const za = SZ0 + ((SZ1 - SZ0) * i) / n, zb = SZ0 + ((SZ1 - SZ0) * (i + 1)) / n, yt = y + (GC_UPPER.rise * (i + 1)) / n;
+      add(box(SX1 - 0.08, yt + 0.88, za, SX1 - 0.03, yt + 0.93, zb + 0.02, STEEL));   // a short length over each step
+      if (i % 4 === 0) add(box(SX1 - 0.07, yt + 0.6, za + 0.1, SX1, yt + 0.64, za + 0.14, STEEL));   // and a bracket into the wall
     }
     // the rail round the stairwell upstairs: posts, a mid rail and a top rail on the wall, and a sign for the way down
     for (let z = Bf + 0.7; z < SZ1; z += 0.6) add(box(LX - 0.03, UP, z - 0.03, LX + 0.03, UP + 1.05, z + 0.03, STEEL));
