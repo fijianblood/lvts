@@ -343,6 +343,30 @@ export const floorSign = (big: string, small: string, dir: 1 | -1) => canvasText
   g.font = '600 17px "Space Grotesk", Arial, sans-serif'; g.fillText(small, 80, 70, w - 92);
 });
 
+/**
+ * The board for LvTS's hidden reward in the Digicel and Vodafone shops
+ * (promos.ts): the reward, the wallet it's paid by, what to do, and that LvTS
+ * runs it, not the company whose shop it's in.
+ */
+export const promoBoard = (p: { amount: string; wallet: string; company: string; colour: string }) => canvasTexture(400, 256, (g, w, h) => {
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
+  g.fillStyle = p.colour; g.fillRect(0, 0, w, 52);
+  g.strokeStyle = p.colour; g.lineWidth = 6; g.strokeRect(3, 3, w - 6, h - 6);
+  g.textBaseline = 'middle';
+  g.fillStyle = '#ffffff'; g.textAlign = 'center';
+  g.font = '800 24px "Space Grotesk", Arial, sans-serif'; g.fillText('LvTS · NOQUBLOX REWARD', w / 2, 28, w - 24);
+  g.textAlign = 'left'; g.fillStyle = p.colour;
+  g.font = '800 92px "Space Grotesk", Arial, sans-serif'; g.fillText(p.amount, 20, 112);
+  const left = 20 + g.measureText(p.amount).width + 14;
+  g.font = '800 40px "Space Grotesk", Arial, sans-serif'; g.fillText(p.wallet, left, 94, w - left - 16);
+  g.fillStyle = '#1f2937'; g.font = '800 30px "Space Grotesk", Arial, sans-serif'; g.fillText('CASHBACK', left, 132, w - left - 16);
+  g.textAlign = 'center'; g.fillStyle = '#111827';
+  g.font = '700 21px "Space Grotesk", Arial, sans-serif'; g.fillText('A reward card is hidden in this shop!', w / 2, 178, w - 24);
+  g.font = '600 16px "Space Grotesk", Arial, sans-serif'; g.fillText('Find it, screenshot the code, post it on @lvtsfiji', w / 2, 204, w - 24);
+  g.fillStyle = '#6b7280'; g.font = '600 12px "Space Grotesk", Arial, sans-serif';
+  g.fillText(`Run & paid by LvTS. Not a ${p.company} or ${p.wallet} promotion.`, w / 2, 234, w - 24);
+});
+
 // ── Damodar City (damodarCity.ts) ───────────────────────────────────────────
 /** The centre's name, on its pylon sign by the entrance. */
 export const damodarCitySign = () => canvasTexture(512, 144, (g, w, h) => {

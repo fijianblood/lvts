@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { encodePrizeCodes } from './src/game/house/prizeCodec.ts'
+import { SHOP_PROMOS, PROMO_CODE } from './src/game/house/promos.ts'
 
 export default defineConfig(({ mode }) => {
   // The site is hosted in two places from this repo:
@@ -21,6 +22,14 @@ export default defineConfig(({ mode }) => {
   const { bundle: housePrize, warnings } = encodePrizeCodes(rawCodes, randomBytes(12).toString('hex'))
   for (const w of warnings) console.warn(`[house-hunt] ${w}`)
   console.log(`[house-hunt] ${housePrize.entries.length} prize code(s) loaded${housePrize.until ? `, contest ends ${housePrize.until}` : ''}`)
+  // The hidden reward cards in Damodar City's Digicel and Vodafone shops: 8-digit codes from
+  // DIGICEL_PROMO_CODES and VODAFONE_PROMO_CODES, the same format and scrambling (see promos.ts).
+  const shopPromos = Object.fromEntries(SHOP_PROMOS.map((p) => {
+    const { bundle, warnings: w } = encodePrizeCodes(process.env[p.secret] ?? env[p.secret], randomBytes(12).toString('hex'), PROMO_CODE)
+    for (const msg of w) console.warn(`[house-hunt] ${p.secret}: ${msg}`)
+    console.log(`[house-hunt] ${p.shop} reward: ${bundle.entries.length} code(s) loaded${bundle.until ? `, ends ${bundle.until}` : ''}`)
+    return [p.id, bundle]
+  }))
   // The neighbourhood server (workers/neighbourhood). Set NEIGHBOURHOOD_API to change it, or to 'off' for none.
   const hoodRaw = process.env.NEIGHBOURHOOD_API ?? env.NEIGHBOURHOOD_API
   const hood = hoodRaw === 'off' ? '' : hoodRaw || 'https://lvts-neighbourhood.lomavatatechfiji.workers.dev'
@@ -30,6 +39,7 @@ export default defineConfig(({ mode }) => {
     base,
     define: {
       __HOUSE_PRIZE__: JSON.stringify(housePrize),
+      __SHOP_PROMOS__: JSON.stringify(shopPromos),
       __NEIGHBOURHOOD_API__: JSON.stringify(hood),
     },
     plugins: [

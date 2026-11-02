@@ -6,6 +6,7 @@ import type { ChoreSnapshot, Work } from './choreSystem.ts';
 import type { Character } from './characters.ts';
 import { Portrait } from './portrait.tsx';
 import { CONTEST, prizeState, claimSteps } from './contest.ts';
+import { promoById, promoState, promoSteps, promoTitle, promoBy, type PromoId } from './promos.ts';
 import { COLLECTIBLES } from './layout.ts';
 import { CHARACTERS, GROUPS, characterById, firstName, setMine, getMine, type CharacterGroup } from './characters.ts';
 import {
@@ -252,6 +253,8 @@ export default function HouseGame() {
   const [saving, setSaving] = useState(false);
   const [mode, setMode] = useState<'hunt' | 'explore'>('hunt');
   const [shop, setShop] = useState<ShopSpot | null>(null);
+  /** The hidden reward card you've just found (Digicel or Vodafone), shown until you close it. */
+  const [promo, setPromo] = useState<PromoId | null>(null);
   const [tab, setTab] = useState<CharacterGroup>(() => characterById(readChar()).group);
   const [third, setThird] = useState(false);
   const [perk, setPerk] = useState<PerkPill | null>(null);
@@ -340,7 +343,8 @@ export default function HouseGame() {
           onTalk: (t) => setTalk(t ? startTalk(t) : null),
           onSay: (lines) => showSay(lines),
           onView: (t) => setThird(t),
-          onShop: (sp) => setShop((cur) => (cur?.id === sp.id ? null : sp)),
+          onShop: (sp) => { setPromo(null); setShop((cur) => (cur?.id === sp.id ? null : sp)); },
+          onPromo: (id) => { setShop(null); setPromo(id); },
           onPerk: (p) => setPerk(p),
           onChores: (c) => setChores(c),
           onWork: (w) => setWork(w),
@@ -488,6 +492,7 @@ export default function HouseGame() {
     if (!e) return;
     setMode(m);
     setShop(null);
+    setPromo(null);
     e.setMode(m);
     e.setCharacter(charId);
     e.reset();
@@ -545,6 +550,7 @@ export default function HouseGame() {
   /** Back to the start card to pick someone else. */
   const changeCharacter = () => {
     setShop(null);
+    setPromo(null);
     const e = engineRef.current;
     if (!e) return;
     e.reset();
@@ -674,6 +680,38 @@ export default function HouseGame() {
                 </ul>
               </>
             )}
+          </div>
+        );
+      })()}
+
+      {/* The hidden reward card in Digicel or Vodafone: this round's code to screenshot, and how to claim */}
+      {phase === 'playing' && promo && !talk && (() => {
+        const p = promoById(promo);
+        if (!p) return null;
+        const st = promoState(promo);
+        return (
+          <div className="hh-shop hh-promo" role="dialog" aria-label={`${promoTitle(p)}: the hidden reward card`} style={{ borderColor: p.colour }}>
+            <div className="hh-chores-head">
+              <b>🎉 You found the hidden reward card!</b>
+              <button type="button" className="hh-talk-x" onPointerDown={(e) => { e.stopPropagation(); setPromo(null); }} aria-label="Close">✕</button>
+            </div>
+            <div className="hh-promo-title" style={{ color: p.colour }}>
+              <img src={`${BASE}neighbourhood/logos/${p.walletLogo}`} alt={p.wallet} />
+              <span>{promoTitle(p)}<small>LvTS Noqublox reward · found in the {p.shop} shop, Damodar City</small></span>
+            </div>
+            {st.live && st.code ? (
+              <>
+                <div className="hh-code-box">
+                  <div className="hh-code-label">Reward code · round of {st.round}</div>
+                  <div className="hh-code hh-promo-code">{st.code}</div>
+                </div>
+                <ol className="hh-promo-steps">{promoSteps(p).map((t) => <li key={t}>{t}</li>)}</ol>
+                <a className="hh-btn hh-btn-sm hh-btn-fb" href={CONTEST.facebookUrl} target="_blank" rel="noopener noreferrer">Open {CONTEST.handle} →</a>
+              </>
+            ) : (
+              <p className="hh-chores-note">No reward round is running right now{st.next ? `: the next code goes live on ${st.next}` : ''}. Follow <a href={CONTEST.facebookUrl} target="_blank" rel="noopener noreferrer">{CONTEST.handle}</a> to hear when it does, then come back and find the card again.</p>
+            )}
+            <p className="hh-safety">{promoBy(p)}</p>
           </div>
         );
       })()}
@@ -1054,6 +1092,13 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
 .hh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .hh-shop { position: absolute; top: 56px; left: 12px; width: min(380px, 70%); max-height: calc(100% - 130px); overflow-y: auto; background: #fff; color: #0f172a; border-radius: 16px; border: 2px solid #bae6fd; box-shadow: 0 16px 40px rgba(15,23,42,0.3); padding: 10px 12px; z-index: 4; pointer-events: auto; font-size: 0.82rem; }
 .hh-is-touch .hh-shop { top: auto; left: 12px; right: 12px; bottom: 12px; width: auto; }
+.hh-promo { width: min(400px, 76%); border-width: 3px; }
+.hh-promo-title { display: flex; align-items: center; gap: 10px; margin: 6px 2px 4px; font-weight: 800; font-size: 1.15rem; line-height: 1.15; }
+.hh-promo-title img { height: 40px; width: auto; max-width: 110px; object-fit: contain; border-radius: 6px; }
+.hh-promo-title small { display: block; font-weight: 600; font-size: 0.7rem; color: #64748b; margin-top: 2px; }
+.hh-promo-code { font-size: clamp(1.8rem, 7vw, 2.3rem); letter-spacing: 0.14em; margin-bottom: 0; }
+.hh-promo-steps { margin: 6px 0 10px 1.1rem; padding: 0; color: #334155; font-size: 0.76rem; line-height: 1.45; }
+.hh-promo-steps li { margin-bottom: 3px; }
 .hh-offer-code { color: #15803d !important; }
 .hh-pick-perk { font-size: 0.78rem; color: #475569; line-height: 1.45; margin-bottom: 0.9rem; min-height: 2.3em; }
 @keyframes hh-pop { from { transform: translate(-50%, -8px) scale(.9); opacity: 0; } to { transform: translate(-50%, 0) scale(1); opacity: 1; } }

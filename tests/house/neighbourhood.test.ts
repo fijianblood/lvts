@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildStaticWorld, roamSolids, doorOBB, bodyOBB, blocked, PLAYER_R, JUMP_ROAM, type OBB, type StaticWorld } from '../../src/game/house/collision.ts';
-import { DOORS, SPAWN, RAMPS, ROOMS, PROPS, BARRIERS, heightAt, floorAt, roomAtLevel, jumpTop, PARKED, MASJID, MASJID_YARD, MCFARLANE, TEMPLE, TEMPLE_GATE, WORLD_EDGE, LOOKOUT_TOP, LOOKOUT_START, UPPER_REACH, ROAD_Y, type GameMode } from '../../src/game/house/layout.ts';
+import { DOORS, SPAWN, RAMPS, ROOMS, PROPS, BARRIERS, PROMO_SPOTS, heightAt, floorAt, roomAtLevel, jumpTop, PARKED, MASJID, MASJID_YARD, MCFARLANE, TEMPLE, TEMPLE_GATE, WORLD_EDGE, LOOKOUT_TOP, LOOKOUT_START, UPPER_REACH, ROAD_Y, type GameMode } from '../../src/game/house/layout.ts';
 import { LOOKOUT, climbBox } from '../../src/game/house/towers.ts';
 import { PLACES, lockOBB } from '../../src/game/house/chores.ts';
 import { SHOP_INSIDES } from '../../src/game/house/shopInsides.ts';
@@ -324,15 +324,15 @@ test('Garden City: Westpac is open, its ATMs within reach', () => {
   assert.equal(map.any((x, z) => x > u + 0.6 && x < u + 4.6 && z > 54.35 && z < GC.z1), false, "got behind Westpac's counter");
 });
 
-test('Damodar City: in from the road, round the car park and along the shops; into every shop, BSP and the cinema through their doors', () => {
+test('Damodar City: in from the road, round the car park and along the shops; into every shop, BSP, Vodafone, Digicel, Bondwell and the cinema through their doors', () => {
   const map = raiwaiMap();
   const shut = reach('explore', visitors, RAIWAI_G, [14, 25], false, doorsShut);
   const bx0 = DC.x0 + DC.bsp * DC.unitW, bx1 = bx0 + DC.unitW;
   assert.ok(map.near((DC.in0 + DC.in1) / 2, DC.back - 2, 0.5), "can't walk in from McFarlane Road");
   assert.ok(map.near(DC.x0 + 12, 47, 0.5) && map.near(DC.x1 - 5, 47, 0.5), "can't cross the car park");
   assert.ok(map.near(DC.x0 + 2, DC.front - 1, 0.5) && map.near(DC.x1 - 3, DC.front - 1, 0.5), "can't walk the length of the shops");
-  const insides = ROOMS.filter((r) => /^(dcu-|dcw-|dcbsp|dcbondwell|dccinema)/.test(r.id));
-  assert.equal(insides.length, DC.units - 1 + 3 + 1 + 1, 'every shop, BSP, Bondwell, the cinema and the wing shops should have an inside');
+  const insides = ROOMS.filter((r) => /^(dcu-|dcw-|dcbsp|dcbondwell|dcdigicel|dcvodafone|dccinema)/.test(r.id));
+  assert.equal(insides.length, DC.units - 1 + 3 + 1 + 1, 'every shop, BSP, Vodafone, Digicel, Bondwell, the cinema and the wing shops should have an inside');
   for (const r of insides) {
     const inRoom = (x: number, z: number) => x > r.x0 + 0.3 && x < r.x1 - 0.3 && z > r.z0 + 0.3 && z < r.z1 - 0.3;
     assert.ok(map.any(inRoom), `can't walk into ${r.name} (${r.id}) with its door open`);
@@ -340,15 +340,40 @@ test('Damodar City: in from the road, round the car park and along the shops; in
   }
   assert.ok(map.near(bx0 + 0.9, 59.8, 0.3), "can't walk up to BSP's ATMs");
   assert.equal(map.any((x, z) => x > bx0 && x < bx1 && z > 66.75 && z < DC.z1), false, "got behind BSP's counter");
-  // Bondwell, the ICT shop, right beside BSP (east): up to its laptops and its counter, never behind it
+  // side by side along the block, west to east: Vodafone, BSP, Digicel, Bondwell
+  assert.equal(DC.vodafone, DC.bsp - 1, 'Vodafone should be the next unit west of BSP');
+  assert.equal(DC.digicel, DC.bsp + 1, 'Digicel should be the next unit east of BSP');
+  assert.equal(DC.bondwell, DC.digicel + 1, 'Bondwell should be the next unit east of Digicel');
+  for (const [id, name] of [['dcvodafone', 'Vodafone, Damodar City'], ['dcdigicel', 'Digicel, Damodar City']]) assert.equal(ROOMS.find((r) => r.id === id)?.name, name);
+  // Bondwell, the ICT shop: up to its laptops and its counter, never behind it
   const wx0 = DC.x0 + DC.bondwell * DC.unitW, wx1 = wx0 + DC.unitW;
-  assert.equal(DC.bondwell, DC.bsp + 1, 'Bondwell should be the next unit east of BSP');
   assert.equal(ROOMS.find((r) => r.id === 'dcbondwell')?.name, 'Bondwell, Damodar City');
   assert.ok(map.near((wx0 + wx1) / 2, 62.2, 0.3), "can't walk between Bondwell's laptop tables");
   assert.ok(map.near(wx0 + 1.1, 62.2, 0.2) && map.near(wx1 - 0.8, 62.2, 0.2), "can't walk down the aisles either side of Bondwell's tables");
   assert.ok(map.near((wx0 + wx1) / 2, 65.6, 0.3), "can't walk up to Bondwell's counter");
   assert.equal(map.any((x, z) => x > wx0 && x < wx1 && z > 66.8 && z < DC.z1), false, "got behind Bondwell's counter");
   for (const c of PARKED) assert.equal(map.near(c.x, c.z, 0.3), false, `walked through the parked car at ${c.x}, ${c.z}`);
+});
+
+test('Damodar City: a reward card is hidden in Digicel and in Vodafone, inside, within reach once you find it, and only through the door', () => {
+  const map = raiwaiMap();
+  const shut = reach('explore', visitors, RAIWAI_G, [14, 25], false, doorsShut);
+  assert.equal(PROMO_SPOTS.length, 2);
+  for (const sp of PROMO_SPOTS) {
+    const room = ROOMS.find((r) => r.id === sp.room)!;
+    assert.equal(sp.room, `dc${sp.id}`);
+    assert.ok(sp.x > room.x0 && sp.x < room.x1 && sp.z > room.z0 && sp.z < room.z1, `${sp.id}'s card isn't inside its shop`);
+    // (the engine only offers it from inside the shop, so outside the window doesn't count)
+    const reachable = (x: number, z: number) => x > room.x0 && x < room.x1 && z > room.z0 && z < room.z1 && Math.hypot(x - sp.x, z - sp.z) < 1.3;
+    assert.ok(map.any(reachable), `can't get within reach of ${sp.id}'s card`);
+    assert.equal(shut.any(reachable), false, `reached ${sp.id}'s card with the door shut`);
+    // hidden: not out in the open in the middle of the shop, but in a corner (by a wall, behind or on something)
+    assert.ok(Math.min(sp.x - room.x0, room.x1 - sp.x) < 1.0, `${sp.id}'s card is out in the open`);
+  }
+  // Digicel's is on the floor behind the banner; Vodafone's on top of the cabinet, over your head
+  const by = Object.fromEntries(PROMO_SPOTS.map((s) => [s.id, s]));
+  assert.ok(Math.abs(by.digicel.y - by.digicel.ground) < 0.05);
+  assert.ok(by.vodafone.y - by.vodafone.ground > 1.9);
 });
 
 test('the Howell Road Hindu Temple: to the right out of the gate; into its grounds through its gate when open, not when shut, never onto its base', () => {

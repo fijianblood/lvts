@@ -359,6 +359,8 @@ UPPER_FLOORS.push(...GC.upper);
 const CAMPUS = uspCampus(ROAD_Y, heightAt);
 /** Damodar City, the shopping centre across the road from the gate (damodarCity.ts). */
 const DC = damodarCity(ROAD_Y);
+/** The hidden reward cards in Damodar City's Digicel and Vodafone shops (what they are: promos.ts). */
+export const PROMO_SPOTS = DC.promos;
 /** The shops along McFarlane Road, open to walk into (shopInsides.ts). */
 const SHOPS_IN = shopInsides(ROAD_Y);
 

@@ -67,7 +67,11 @@ function validDate(text: string): boolean {
   return !Number.isNaN(d.getTime()) && d.toISOString().length > 0;
 }
 
-export function encodePrizeCodes(raw: string | undefined, salt: string): { bundle: PrizeBundle; warnings: string[] } {
+/** What a code must look like: by default 4-32 letters, digits or dashes (the shops' reward codes pass their own: 8 digits). */
+export interface CodeRule { re: RegExp; says: string }
+const ANY_CODE: CodeRule = { re: CODE_RE, says: '4-32 letters, digits or dashes' };
+
+export function encodePrizeCodes(raw: string | undefined, salt: string, rule: CodeRule = ANY_CODE): { bundle: PrizeBundle; warnings: string[] } {
   const warnings: string[] = [];
   const entries: PrizeEntry[] = [];
   let until: string | null = null;
@@ -80,7 +84,7 @@ export function encodePrizeCodes(raw: string | undefined, salt: string): { bundl
       continue;
     }
     if (!validDate(left)) { warnings.push(`ignored an entry with a bad date (want YYYY-MM-DD): ${left}`); continue; }
-    if (!CODE_RE.test(right)) { warnings.push(`ignored the code for ${left}: use 4-32 letters, digits or dashes`); continue; }
+    if (!rule.re.test(right)) { warnings.push(`ignored the code for ${left}: use ${rule.says}`); continue; }
     const bytes = new TextEncoder().encode(right);
     const key = keystream(salt + left, bytes.length);
     entries.push({ from: left, data: toBase64(bytes.map((b, i) => b ^ key[i])) });

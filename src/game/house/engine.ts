@@ -11,7 +11,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import {
-  C, ROOMS, WALLS, DOORS, WINDOWS, PROPS, COLLECTIBLES, GOLDEN_SPOTS, SPAWN, EXIT_ZONE, POSTER,
+  C, ROOMS, WALLS, DOORS, WINDOWS, PROPS, COLLECTIBLES, GOLDEN_SPOTS, SPAWN, EXIT_ZONE, POSTER, PROMO_SPOTS,
   BARRIERS, TREES, NEIGHBOURS, RAMPS, NPC_SPOTS, CAT_SPOT, BACK_Y, ROAD_Y, GROUND_BREAKS, PARKED, MCFARLANE,
   WALL_H, CEIL_H, DOOR_TOP, HOUSE, roomAt, roomAtLevel, groundY, heightAt, floorAt,
   type GameMode, type WallRun, type Prim, type Door, type HingedDoor, type WindowSpec, type Room, type XYZ, type Barrier, type NpcSpot,
@@ -23,6 +23,7 @@ import type { Say } from './talk.ts';
 import { ChoreSystem, type ChoreCallbacks, type ChoreFocus } from './choreSystem.ts';
 import { PLACES } from './chores.ts';
 import { SHOP_SPOTS, SHOP_LINE, VISITOR_SPOTS, shopBox, visitorCharacter, type ShopSpot, type VisitorCharacter } from './neighbourhood.ts';
+import { SHOP_PROMOS, type PromoId } from './promos.ts';
 import { Minimap } from './minimap.ts';
 import { shopTall } from './shopInsides.ts';
 import { Sfx } from './audio.ts';
@@ -68,6 +69,8 @@ export interface EngineCallbacks extends ChoreCallbacks {
   onView?: (third: boolean) => void;
   /** You walked up to a shop on the street and pressed E. */
   onShop?: (spot: ShopSpot) => void;
+  /** Found the hidden reward card in Digicel or Vodafone (promos.ts). */
+  onPromo?: (id: PromoId) => void;
   /** A perk's live readout for the HUD (warmer/colder, the Golden Chip's room), or null. */
   onPerk?: (pill: PerkPill | null) => void;
 }
@@ -75,12 +78,15 @@ export interface EngineCallbacks extends ChoreCallbacks {
 export interface EngineOptions { touch: boolean; baseUrl: string }
 
 const REACH = 1.8;
+/** How close you have to be to a hidden reward card to pick it up. */
+const PROMO_REACH = 1.5;
 const PICKUP = 0.85;
 const LOOK = 0.0022;
 const AREAS = ROOMS.filter((r) => r.area);
 /** Signs drawn in code (Garden City, Damodar City), by the name their props give in `tex`. */
 const NAMED_TEX: Record<string, () => THREE.Texture> = {
   gcsign: T.gardenCitySign, gcboard: T.gardenCityBoard, gcbanner: T.comingSoonBanner, gcbuild: T.constructionSign,
+  ...Object.fromEntries(SHOP_PROMOS.map((p) => [`promo-${p.id}`, () => T.promoBoard(p)])),
   gcsoon: () => T.shopComingSoon('Garden City'), gcup: () => T.floorSign('FIRST FLOOR', 'Up the stairs', 1), gcdown: () => T.floorSign('WAY OUT', 'Down the stairs', -1), dcsoon: () => T.shopComingSoon('Damodar City'), dcname: T.damodarCitySign,
 };
 const DEFAULT_SIGHT = 5.5;
@@ -377,7 +383,7 @@ interface Item {
   golden: boolean; taken: boolean; seen: boolean; phase: number; base: number;
 }
 interface Burst { mesh: THREE.InstancedMesh; vel: THREE.Vector3[]; t: number }
-type FocusKind = 'door' | 'window' | 'poster' | 'npc' | 'cat' | 'shop' | ChoreFocus;
+type FocusKind = 'door' | 'window' | 'poster' | 'npc' | 'cat' | 'shop' | 'promo' | ChoreFocus;
 
 export class HouseEngine {
   state: GameState = 'intro';
@@ -1829,6 +1835,9 @@ export class HouseEngine {
       this.sfx.pickup();
     } else if (f.kind === 'shop') {
       this.cb.onShop?.(SHOP_SPOTS[f.index]);
+    } else if (f.kind === 'promo') {
+      this.cb.onPromo?.(PROMO_SPOTS[f.index].id);
+      this.sfx.pickup();
     } else if (f.kind === 'chore' || f.kind === 'tool' || f.kind === 'lock') {
       this.chores.interact(f.kind, f.index);
     } else if (f.kind === 'cat') {
@@ -2223,6 +2232,11 @@ export class HouseEngine {
       const x = Math.max(sp.x0 + 0.5, Math.min(this.pos[0], sp.x1 - 0.5));
       consider('shop', i, x, SHOP_LINE, 3.6);
     });
+    // the hidden reward cards: you have to be inside the shop and come close for the prompt (never through the window)
+    if (this.mode === 'explore') {
+      const here = roomAtLevel(this.pos[0], this.pos[1], this.floorY)?.id;
+      PROMO_SPOTS.forEach((p, i) => { if (here === p.room) consider('promo', i, p.x, p.z, PROMO_REACH, 0.5); });
+    }
     this.chores.candidates(consider);
     const b = best as { kind: FocusKind; index: number; score: number } | null;
     this.focus = b ? { kind: b.kind, index: b.index } : null;
@@ -2233,6 +2247,7 @@ export class HouseEngine {
     if (b?.kind === 'poster') text = `${key} · Read the poster: how a database index works`;
     if (b?.kind === 'npc') text = this.talkingTo === b.index ? `${key} · Say goodbye` : `${key} · Talk to ${firstName(this.npcs[b.index].char)}`;
     if (b?.kind === 'cat') text = `${key} · Pet the cat`;
+    if (b?.kind === 'promo') text = `${key} · You found a hidden reward card! Pick it up`;
     if (b?.kind === 'shop') { const sp = SHOP_SPOTS[b.index]; text = `${key} · ${sp.kind === 'empty' ? `Look at ${sp.name}` : `Visit ${sp.name}`}${sp.offers.length ? ' · offers inside' : ''}`; }
     if (b?.kind === 'chore' || b?.kind === 'tool' || b?.kind === 'lock') text = this.chores.prompt(b.kind, b.index, key);
     this.setPrompt(text);
