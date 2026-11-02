@@ -254,7 +254,8 @@ export function gardenCity(y: number): { rooms: Room[]; barriers: Barrier[]; pro
     );
   }
 
-  const inv = (a: XZ, b: XZ): Barrier => ({ a, b, kind: 'invisible', h: 2, t: 0.12, mode: 'explore' });
+  // the palisade is drawn as bars and pillars (props); these are its walls, which a jump clears when exploring
+  const inv = (a: XZ, b: XZ): Barrier => ({ a, b, kind: 'invisible', h: 2, t: 0.12, mode: 'explore', jump: true });
   const wall = (a: XZ, b: XZ): Barrier => ({ a, b, kind: 'facade', h: 3.5, t: 0.2, mode: 'explore' });
   const barriers: Barrier[] = [
     inv([x0, F], [g0, F]), inv([g1, F], [x1 + 0.4, F]),          // the front fence, open at the gate

@@ -3,11 +3,16 @@
 //
 // Jumping: furniture and other loose things know how tall they are (`top`), so
 // once you're off the ground you can pass over anything lower than your feet
-// and land on top of it. Walls, fences, railings, the street's edges, doors,
-// the chore locks and people have no top: they always stop you, so a jump can
-// never take you anywhere you couldn't walk.
+// and land on top of it. In the hunt, walls, fences, railings, doors, the chore
+// locks and people have no top: they always stop you, so a jump can never take
+// you anywhere you couldn't walk. Exploring is free roam: the whole of Raiwai is
+// open, you jump higher, and fences, garden walls, railings and low walls get a
+// top too, so you can jump them. Buildings, walls, doors, the places you unlock
+// with chores, the places of worship's walls and the edge of the map still stop you.
 
-import { WALLS, PROPS, DOORS, TREES, wallSolidRects, barrierRect, barrierBlocksSight, barriersFor, heightAt, type Rect, type Door, type XZ, type GameMode } from './layout.ts';
+import { WALLS, PROPS, DOORS, TREES, wallSolidRects, barrierRect, barrierBlocksSight, barriersFor, heightAt, jumpTop, type Rect, type Door, type XZ, type GameMode } from './layout.ts';
+import { PLAN, RAIWAI_TREES, POLE_RUNS, footprint } from './raiwaiPlan.ts';
+import { USP } from './uspCampus.ts';
 
 export interface Circle { x: number; z: number; r: number; /** Its top (world y), if you can jump onto it. */ top?: number }
 /** A solid box in plan; `top` (world y) if it's something you can jump onto or over (furniture), none if it always blocks (walls, fences). */
@@ -15,6 +20,8 @@ export interface Solid extends Rect { top?: number }
 
 /** How high a jump goes (the apex above where you took off, m), and how hard you come back down (m/s²). */
 export const JUMP = { up: 1.0, kid: 0.85, gravity: 20 };
+/** Exploring: a big jump (about 2.7 m; 2.4 m for the kids), enough to clear the compound's fences and walls at a run. */
+export const JUMP_ROAM = { up: 2.7, kid: 2.4 };
 /** Take-off speed for a jump that peaks `apex` m up. */
 export const jumpSpeed = (apex: number) => Math.sqrt(2 * JUMP.gravity * apex);
 /** You stand on anything whose top is within this of your feet. */
@@ -41,6 +48,34 @@ const TRUNK: Record<string, number> = { palm: 0.18, banana: 0.2, bush: 0.15, bre
 
 export interface StaticWorld { rects: Solid[]; circles: Circle[] }
 
+/** The house's compound, which free roam leaves exactly as it is. */
+const COMPOUND = { x0: -2.7, x1: 15.65, z0: -14, z1: 21.9 };
+const TREE_TRUNK: Record<string, number> = { mango: 0.3, palm: 0.2, breadfruit: 0.28, bougainvillea: 0.2 };
+
+/**
+ * What free roam adds when exploring: Raiwai's buildings out across the map
+ * (houses, flats, the church, the pool, the teal building, sheds, the arena,
+ * the apartment block, the floodlights) as solid boxes you can't jump, and the
+ * trunks of its trees and its power poles. The training ground is open grass;
+ * the masjid, the temple and the USP campus's blocks have their own walls.
+ */
+export function roamSolids(): StaticWorld {
+  const rects: Solid[] = [];
+  for (const it of PLAN) {
+    if (it.kind === 'field' || it.kind === 'masjid' || it.kind === 'temple') continue;
+    const f = footprint(it);
+    if (it.kind === 'campus' && f.x0 >= USP.x0 && f.x1 <= USP.x1 && f.z0 >= USP.z0 && f.z1 <= USP.z1) continue;
+    rects.push({ x0: f.x0, x1: f.x1, z0: f.z0, z1: f.z1 });
+  }
+  const circles: Circle[] = [];
+  for (const t of RAIWAI_TREES) circles.push({ x: t.x, z: t.z, r: (TREE_TRUNK[t.kind] ?? 0.2) * (t.kind === 'palm' ? 1 : t.s) });
+  for (const run of POLE_RUNS) for (const [x, z] of run) {
+    if (x > COMPOUND.x0 && x < COMPOUND.x1 && z > COMPOUND.z0 && z < COMPOUND.z1) continue;
+    circles.push({ x, z, r: 0.16 });
+  }
+  return { rects, circles };
+}
+
 /**
  * Everything solid that never moves. With `crawl`, the world as a crawling
  * baby sees it: table skirts and anything raised off the floor don't block.
@@ -48,8 +83,13 @@ export interface StaticWorld { rects: Solid[]; circles: Circle[] }
 export function buildStaticWorld(opts: { crawl?: boolean; mode?: GameMode } = {}): StaticWorld {
   const rects: Solid[] = [];
   for (const wall of WALLS) rects.push(...wallSolidRects(wall));
-  for (const b of barriersFor(opts.mode ?? 'hunt')) rects.push(barrierRect(b));
+  const roam = opts.mode === 'explore';
+  for (const b of barriersFor(opts.mode ?? 'hunt')) {
+    const top = roam ? jumpTop(b) : undefined;
+    rects.push(top === undefined ? barrierRect(b) : { ...barrierRect(b), top });
+  }
   const circles: Circle[] = [];
+  if (roam) { const r = roamSolids(); rects.push(...r.rects); circles.push(...r.circles); }
   for (const prim of PROPS) {
     if (prim.kind === 'box') {
       if (!prim.solid) continue;

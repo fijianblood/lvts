@@ -1,7 +1,8 @@
 // The minimap: a plan of the house and compound hidden under fog, cleared by
 // what the player can actually see (rays stopped by walls and shut doors),
 // with a breadcrumb trail of the path walked.
-import { ROOMS, WALLS, BARRIERS, EXIT_ZONE, MCFARLANE, barrierRect, barrierBlocksSight, type WallRun, type Rect, type Room, type GameMode } from './layout.ts';
+import { ROOMS, WALLS, BARRIERS, EXIT_ZONE, MCFARLANE, SIDE_ROAD, WORLD_EDGE, barrierRect, barrierBlocksSight, type WallRun, type Rect, type Room, type GameMode } from './layout.ts';
+import { LOOKOUT } from './towers.ts';
 import { GARDEN_CITY } from './gardenCity.ts';
 import { USP } from './uspCampus.ts';
 import { DAMODAR_CITY } from './damodarCity.ts';
@@ -15,6 +16,9 @@ const B = { x0: -64.0, x1: Math.max(MCFARLANE.x1, USP.x1) + 4, z0: -44.0, z1: Ma
 /** The big map in the hunt shows just the compound. */
 const HUNT_FRAME = { x0: -4.0, x1: 17.0, z0: -15.0, z1: 24.5 };
 const PPM = 8;               // base-map pixels per metre (the map is ~340 m by 110 m, so this keeps its canvases to ~2.4 Mpx)
+/** Exploring is free roam: the whole of Raiwai, out to the edge of the map, as a coarser layer under the detailed one (no fog out there). */
+const W = WORLD_EDGE;
+const WPPM = 2;              // ~900 by 790 px
 const GRID = 0.1;            // sight-grid cell, metres
 const RAYS = 110;
 const CELL = 0.5;            // 'have I seen this spot?' grid, metres (read back without touching the canvas)
@@ -77,9 +81,14 @@ export class Minimap {
   /** Mark the way out (the hunt); not when exploring. */
   showExit = true;
   private mode: GameMode = 'hunt';
+  /** All of Raiwai, coarse (exploring). */
+  private world: HTMLCanvasElement;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
+    this.world = document.createElement('canvas');
+    this.world.width = Math.ceil((W.x1 - W.x0) * WPPM); this.world.height = Math.ceil((W.z1 - W.z0) * WPPM);
+    this.drawWorld();
     const w = Math.ceil((B.x1 - B.x0) * PPM), h = Math.ceil((B.z1 - B.z0) * PPM);
     this.base = document.createElement('canvas');
     this.base.width = w; this.base.height = h;
@@ -95,6 +104,29 @@ export class Minimap {
     for (const b of BARRIERS) if (barrierBlocksSight(b)) this.markRect(barrierRect(b));
     this.drawBase();
     this.reset();
+  }
+
+  /** The whole of Raiwai at a glance: open ground, the roads, the training ground, every building, the lookout tower. */
+  private drawWorld() {
+    const g = this.world.getContext('2d');
+    if (!g) return;
+    const wx = (x: number) => (x - W.x0) * WPPM, wz = (z: number) => (z - W.z0) * WPPM;
+    const rect = (x0: number, z0: number, x1: number, z1: number, fill: string) => { g.fillStyle = fill; g.fillRect(wx(x0), wz(z0), (x1 - x0) * WPPM, (z1 - z0) * WPPM); };
+    rect(W.x0, W.z0, W.x1, W.z1, INK.outside);
+    rect(W.x0, W.z1 - 6, W.x1, W.z1, '#f2e2b8');                                          // the beach before the sea
+    rect(MCFARLANE.x0 - 90, MCFARLANE.z0, MCFARLANE.x1 + 60, 29, INK.road);                // McFarlane Road
+    rect(SIDE_ROAD.x0, SIDE_ROAD.z0, SIDE_ROAD.x1, MCFARLANE.z0, INK.road);
+    const ink: Partial<Record<string, string>> = { church: '#f4f3ef', pool: '#7fcfe3', field: '#9fd18a', teal: '#2fbf9f', masjid: '#2a9d99', campus: '#ecebe6', temple: '#e8a33b', shed: '#b4babd', arena: '#d6d3cc' };
+    for (const it of PLAN) {
+      const f = footprint(it);
+      rect(f.x0, f.z0, f.x1, f.z1, ink[it.kind] ?? it.spec?.roof ?? '#c3c8cb');
+      g.strokeStyle = 'rgba(15,23,42,0.35)'; g.lineWidth = 1;
+      g.strokeRect(wx(f.x0), wz(f.z0), (f.x1 - f.x0) * WPPM, (f.z1 - f.z0) * WPPM);
+    }
+    for (const sp of SHOP_SPOTS) { const b = shopBox(sp); rect(b.x0, b.z0, b.x1, b.z1, sp.wall); }
+    const L = LOOKOUT;
+    rect(L.cx - L.hx - 1.4, L.cz - L.hz - 1.4, L.cx + L.hx + 1.4, L.cz + L.hz + 1.4, INK.stairs);
+    rect(L.cx - L.hx, L.cz - L.hz, L.cx + L.hx, L.cz + L.hz, '#e0592a');
   }
 
   /** Exploring zooms the big map out to take in the street; the hunt keeps to the compound. */
@@ -265,8 +297,8 @@ export class Minimap {
       // the hunt: the compound; exploring: about 90 m of Raiwai round where you are
       const half = 45, aspect = c.height / Math.max(1, c.width);
       const F = this.mode === 'hunt' ? HUNT_FRAME : {
-        x0: Math.min(Math.max(px - half, B.x0), B.x1 - half * 2), x1: Math.min(Math.max(px - half, B.x0), B.x1 - half * 2) + half * 2,
-        z0: Math.min(Math.max(pz - half * aspect, B.z0), B.z1 - half * 2 * aspect), z1: Math.min(Math.max(pz - half * aspect, B.z0), B.z1 - half * 2 * aspect) + half * 2 * aspect,
+        x0: Math.min(Math.max(px - half, W.x0), W.x1 - half * 2), x1: Math.min(Math.max(px - half, W.x0), W.x1 - half * 2) + half * 2,
+        z0: Math.min(Math.max(pz - half * aspect, W.z0), W.z1 - half * 2 * aspect), z1: Math.min(Math.max(pz - half * aspect, W.z0), W.z1 - half * 2 * aspect) + half * 2 * aspect,
       };
       const fx = (F.x1 - F.x0) * PPM, fz = (F.z1 - F.z0) * PPM;
       scale = Math.min(c.width / fx, c.height / fz) * 0.96;
@@ -280,6 +312,7 @@ export class Minimap {
     }
     g.setTransform(scale, 0, 0, scale, ox, oy);
     g.imageSmoothingEnabled = true;
+    if (this.mode === 'explore') g.drawImage(this.world, this.mx(W.x0), this.my(W.z0), (W.x1 - W.x0) * PPM, (W.z1 - W.z0) * PPM);
     g.drawImage(this.base, 0, 0);
     g.drawImage(this.fog, 0, 0);
 
@@ -345,9 +378,9 @@ export class Minimap {
         for (const it of PLAN) {
           if (!it.label) continue;
           const f = footprint(it);
-          const lx = Math.min(Math.max((f.x0 + f.x1) / 2, B.x0 + 8), B.x1 - 8), lz = Math.min(Math.max((f.z0 + f.z1) / 2, B.z0 + 2), B.z1 - 2);
-          label(it.label, this.mx(lx), this.my(lz));
+          label(it.label, this.mx((f.x0 + f.x1) / 2), this.my((f.z0 + f.z1) / 2));
         }
+        label(LOOKOUT.name, this.mx(LOOKOUT.cx), this.my(LOOKOUT.cz - LOOKOUT.hz - 3));
         g.font = `800 ${12 / scale * dpr}px "Syne", "Space Grotesk", sans-serif`;
         g.fillStyle = 'rgba(255,255,255,0.95)';
         g.textAlign = 'left';

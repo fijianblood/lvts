@@ -1,8 +1,10 @@
 // Run with: node --test tests/house/
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildStaticWorld, doorOBB, bodyOBB, blocked, PLAYER_R, type OBB, type StaticWorld } from '../../src/game/house/collision.ts';
-import { DOORS, SPAWN, RAMPS, ROOMS, PROPS, heightAt, roomAt, SIDE_ROAD, PARKED, MASJID, MASJID_YARD, MCFARLANE, TEMPLE, TEMPLE_GATE, type GameMode } from '../../src/game/house/layout.ts';
+import { buildStaticWorld, roamSolids, doorOBB, bodyOBB, blocked, PLAYER_R, type OBB, type StaticWorld } from '../../src/game/house/collision.ts';
+import { DOORS, SPAWN, RAMPS, ROOMS, PROPS, BARRIERS, heightAt, jumpTop, PARKED, MASJID, MASJID_YARD, MCFARLANE, TEMPLE, TEMPLE_GATE, WORLD_EDGE, LOOKOUT_TOP, LOOKOUT_START, type GameMode } from '../../src/game/house/layout.ts';
+import { LOOKOUT, climbBox } from '../../src/game/house/towers.ts';
+import { PLACES, lockOBB } from '../../src/game/house/chores.ts';
 import { SHOP_INSIDES } from '../../src/game/house/shopInsides.ts';
 import { USP, USP_BUILDINGS, uspFootprints } from '../../src/game/house/uspCampus.ts';
 import { GARDEN_CITY } from '../../src/game/house/gardenCity.ts';
@@ -13,8 +15,6 @@ import { cleanName, cleanLook } from '../../workers/neighbourhood/src/rules.ts';
 
 const doorsOpen: OBB[] = DOORS.map((d) => doorOBB(d, 1));
 const doorsShut: OBB[] = DOORS.map((d) => doorOBB(d, 0));
-/** Somewhere with a floor you're meant to walk on when exploring (the street, a shop, a centre, the campus…). */
-const onFloor = (x: number, z: number) => !!roomAt(x, z)?.explore;
 /** The temple's plot: its grounds behind the gate, and the strip between its gate and the road. */
 const inTemplePlot = (x: number, z: number) => x > TEMPLE.x - TEMPLE.w / 2 - 0.05 && x < TEMPLE.x + TEMPLE.w / 2 + 0.05 && z > TEMPLE.z - TEMPLE.d / 2 - 0.05;
 /** The temple's raised base and steps, and the masjid's two buildings (never walked into). */
@@ -30,11 +30,30 @@ const FINE: Grid = { x0: -12.5, z0: -14.6, step: 0.1, nx: 450, nz: 470 };
 const RAIWAI_G: Grid = { x0: -63, z0: -42, step: 0.2, nx: 1685, nz: 575 };
 /** As if you could jump over every piece of furniture and every loose thing (more than a jump can really do). */
 const hopAll = (w: StaticWorld): StaticWorld => ({ rects: w.rects.filter((q) => q.top === undefined), circles: w.circles.filter((c) => c.top === undefined) });
+/** The whole free-roam map (exploring), on a 50 cm grid. */
+const WORLD_G: Grid = { x0: WORLD_EDGE.x0 + 0.5, z0: WORLD_EDGE.z0 + 0.5, step: 0.5, nx: Math.floor((WORLD_EDGE.x1 - WORLD_EDGE.x0 - 1) / 0.5) + 1, nz: Math.floor((WORLD_EDGE.z1 - WORLD_EDGE.z0 - 1) / 0.5) + 1 };
+/** The world's solids sorted into 4 m squares, so a spot is only tested against what's near it. */
+function nearby(world: StaticWorld, cell = 4): (x: number, z: number) => StaticWorld {
+  const buckets = new Map<number, StaticWorld>();
+  const key = (i: number, j: number) => i * 100003 + j;
+  const pad = PLAYER_R + 0.05;
+  const put = (x0: number, z0: number, x1: number, z1: number, add: (w: StaticWorld) => void) => {
+    for (let i = Math.floor((x0 - pad) / cell); i <= Math.floor((x1 + pad) / cell); i++) for (let j = Math.floor((z0 - pad) / cell); j <= Math.floor((z1 + pad) / cell); j++) {
+      let b = buckets.get(key(i, j));
+      if (!b) buckets.set(key(i, j), (b = { rects: [], circles: [] }));
+      add(b);
+    }
+  };
+  for (const r of world.rects) put(r.x0, r.z0, r.x1, r.z1, (b) => b.rects.push(r));
+  for (const c of world.circles) put(c.x - c.r, c.z - c.r, c.x + c.r, c.z + c.r, (b) => b.circles.push(c));
+  const none: StaticWorld = { rects: [], circles: [] };
+  return (x, z) => buckets.get(key(Math.floor(x / cell), Math.floor(z / cell))) ?? none;
+}
 function reach(mode: GameMode, extra: OBB[] = [], G: Grid = FINE, start: [number, number] = [SPAWN.pos[0], SPAWN.pos[2]], jumping = false, doors: OBB[] = doorsOpen) {
-  const world = jumping ? hopAll(buildStaticWorld({ mode })) : buildStaticWorld({ mode });
+  const near = nearby(jumping ? hopAll(buildStaticWorld({ mode })) : buildStaticWorld({ mode }));
   const obstacles = [...doors, ...extra];
   const seen = new Uint8Array(G.nx * G.nz);
-  const free = (i: number, j: number) => !blocked([G.x0 + i * G.step, G.z0 + j * G.step], PLAYER_R, world, obstacles);
+  const free = (i: number, j: number) => { const x = G.x0 + i * G.step, z = G.z0 + j * G.step; return !blocked([x, z], PLAYER_R, near(x, z), obstacles); };
   const si = Math.round((start[0] - G.x0) / G.step), sj = Math.round((start[1] - G.z0) / G.step);
   const q = [[si, sj]];
   seen[si * G.nz + sj] = 1;
@@ -47,7 +66,7 @@ function reach(mode: GameMode, extra: OBB[] = [], G: Grid = FINE, start: [number
     }
   }
   const at = (x: number, z: number) => { const i = Math.round((x - G.x0) / G.step), j = Math.round((z - G.z0) / G.step); return i >= 0 && j >= 0 && i < G.nx && j < G.nz && seen[i * G.nz + j] === 1; };
-  const near = (x: number, z: number, r: number) => {
+  const close = (x: number, z: number, r: number) => {
     for (let dx = -r; dx <= r; dx += G.step) for (let dz = -r; dz <= r; dz += G.step) if (Math.hypot(dx, dz) <= r && at(x + dx, z + dz)) return true;
     return false;
   };
@@ -63,14 +82,17 @@ function reach(mode: GameMode, extra: OBB[] = [], G: Grid = FINE, start: [number
       for (const [a, b] of [[i + 1, j], [i, j + 1]]) {
         if (!seen[a * G.nz + b]) continue;
         const xa = G.x0 + a * G.step, za = G.z0 + b * G.step;
+        // two spots on the same stairs; or, on a coarse grid, a spot on stairs beside the landing it meets
+        const onRamp = ([px, pz]: number[]) => RAMPS.some((r) => px >= r.x0 && px <= r.x1 && pz >= r.z0 && pz <= r.z1);
         if (RAMPS.some((r) => [[x, z], [xa, za]].every(([px, pz]) => px >= r.x0 && px <= r.x1 && pz >= r.z0 && pz <= r.z1))) continue;
+        if (G.step > 0.25 && (onRamp([x, z]) || onRamp([xa, za]))) continue;
         const d = Math.abs(heightAt(xa, za) - heightAt(x, z));
         if (d > 0.1) out.push(`(${x.toFixed(1)}, ${z.toFixed(1)}) drops ${d.toFixed(2)} m`);
       }
     }
     return out;
   };
-  return { at, near, any, cliffs };
+  return { at, near: close, any, cliffs };
 }
 
 test('the hunt keeps you in the compound: you never get out onto the street', () => {
@@ -84,53 +106,96 @@ test('jumping never gets you out of the compound in the hunt, even hopping over 
   assert.equal(hunt.any((x, z) => z < 21.9 && (x < -2.75 || x > 15.75)), false, 'jumped over the compound fence');
 });
 
-test('exploring: from the house out of the gate onto McFarlane Road, and not into the yards', () => {
+test('exploring: from the house out of the gate onto McFarlane Road, with no ledge on the way', () => {
   const map = reach('explore', visitors, FINE);
   assert.ok(map.near(14, 26, 0.5), "can't get from the house out of the gate onto McFarlane Road");
-  assert.equal(map.any((x, z) => z > SHOP_LINE + 0.05 && !onFloor(x, z)), false, 'got through a wall across the road (somewhere with no floor)');
-  assert.equal(map.any((x, z) => z > 21 && z < 22.25 && (x < -2.7 || x > 15.7)), false, "walked into the neighbours' front yards");
   assert.deepEqual(map.cliffs().slice(0, 6), [], 'a ledge on the way to the street');
 });
 
 let raiwai: ReturnType<typeof reach> | undefined;
 const raiwaiMap = () => (raiwai ??= reach('explore', visitors, RAIWAI_G, [14, 25]));
+let world: ReturnType<typeof reach> | undefined;
+const worldMap = () => (world ??= reach('explore', visitors, WORLD_G, [14, 25]));
 const GC = GARDEN_CITY!;
 const inGardenCity = (x: number, z: number) => x > GC.x0 - 0.05 && x < GC.x1 + 0.05 && z < GC.z1 + 0.05;
-const inCampus = (x: number, z: number) => x > USP.x0 - 0.05 && x < USP.x1 + 0.05 && z > USP.z0 - 0.05 && z < USP.z1 + 0.05;
 const DC = DAMODAR_CITY!;
-/** Damodar City: its way in from the road, and everything behind the shops. */
-const inDamodar = (x: number, z: number) => (x > DC.in0 - 0.05 && x < DC.in1 + 0.05 && z < DC.back + 0.05) || (x > DC.x0 - 0.05 && x < DC.x1 + 0.05 && z > DC.back - 0.05 && z < DC.z1 + 0.05);
+const inCompound = (x: number, z: number) => x > -2.75 && x < 15.75 && z > -14.05 && z < 21.95;
+/** Inside a solid box (a building), away from its walls. */
+const inside = (r: { x0: number; x1: number; z0: number; z1: number }, pad = 0.35) => (x: number, z: number) => x > r.x0 + pad && x < r.x1 - pad && z > r.z0 + pad && z < r.z1 - pad;
+const lookoutBox = climbBox(LOOKOUT);
 
-test('exploring Raiwai: McFarlane Road end to end, up the side road, and no further', () => {
-  const map = raiwaiMap();
-  const inSide = (x: number) => x > SIDE_ROAD.x0 - 0.05 && x < SIDE_ROAD.x1 + 0.05;
-  const inCompound = (x: number) => x > -2.75 && x < 15.75;
-  assert.ok(map.near(STREET.x0 + 0.6, 26, 0.6) && map.near(STREET.x1 - 0.6, 26, 0.6), "can't reach both ends of McFarlane Road");
-  for (const sp of SHOP_SPOTS) assert.ok(map.near((sp.x0 + sp.x1) / 2, SHOP_LINE - 0.4, 0.6), `can't walk up to ${sp.name}`);
-  assert.equal(map.any((x, z) => x < STREET.x0 - 0.05 || (x > STREET.x1 + 0.05 && !inCampus(x, z))), false, 'walked off the end of McFarlane Road');
-  assert.equal(map.any((x, z) => z > STREET.z1 + 0.05 && !onFloor(x, z)), false, 'got over a wall across the road (somewhere with no floor)');
-  assert.ok(map.near((SIDE_ROAD.x0 + SIDE_ROAD.x1) / 2, SIDE_ROAD.z0 + 0.8, 0.6), "can't walk up the side road to its end");
-  assert.equal(map.any((_x, z) => z < SIDE_ROAD.z0 - 0.05), false, 'walked past the end of the side road');
-  assert.equal(map.any((x, z) => z < 22.25 && !inSide(x) && !inCompound(x) && !inTemplePlot(x, z)), false, "left the side road or McFarlane Road into someone's yard");
-  for (const c of PARKED) assert.equal(map.near(c.x, c.z, 0.3), false, `walked through the parked ${c.kind} at x ${c.x}`);
-  // (the compound itself is checked on the fine grid above; this coarser grid only looks outside it)
-  const outside = map.cliffs().filter((m) => { const [x, z] = m.slice(1, m.indexOf(')')).split(',').map(Number); return !(inCompound(x) && z < 22.3); });
-  assert.deepEqual(outside.slice(0, 6), [], 'a ledge on McFarlane Road or the side road');
+test('free roam: from the gate you can walk anywhere in Raiwai, out to the hills and the shore, but never past the edge or into a building', () => {
+  const map = worldMap();
+  const places: [string, number, number][] = [
+    ['McFarlane Road, west past where it used to stop', -100, 26], ['McFarlane Road, east past the USP campus', 285, 26],
+    ['the side road, and on up past its end', 37, -110], ['the hills to the north-west', -140, -120], ['the north-east corner', 290, -120],
+    ['the training ground', 158, 61], ['behind the sheds', 110, 150], ['the shore', 100, 258], ['round the arena', 215, 240],
+    ['the back of the shops', -20, 40], ['round behind Garden City', 55, 60], ['the neighbours\' yards across the side road', 46, 5],
+  ];
+  for (const [name, x, z] of places) assert.ok(map.near(x, z, 1.0), `can't walk to ${name} (${x}, ${z})`);
+  assert.equal(map.any((x, z) => x < WORLD_EDGE.x0 || x > WORLD_EDGE.x1 || z < WORLD_EDGE.z0 || z > WORLD_EDGE.z1), false, 'walked off the edge of the map');
+  for (const r of roamSolids().rects) assert.equal(map.any(inside(r)), false, `walked into the building at ${((r.x0 + r.x1) / 2).toFixed(0)}, ${((r.z0 + r.z1) / 2).toFixed(0)}`);
+  for (const b of USP_BUILDINGS) for (const r of Object.values(uspFootprints(b))) assert.equal(map.any(inside(r, 0.1)), false, `walked into the USP block at ${b.x}, ${b.z}`);
+  for (const c of PARKED) assert.equal(map.near(c.x, c.z, 0.3), false, `walked through the parked ${c.kind} at ${c.x}, ${c.z}`);
+  const outside = map.cliffs().filter((m) => { const [x, z] = m.slice(1, m.indexOf(')')).split(',').map(Number); return !inCompound(x, z); });
+  assert.deepEqual(outside.slice(0, 6), [], 'a ledge out in Raiwai');
 });
 
-test('jumping never gets you off the street when exploring, even hopping over every piece of furniture and every car', () => {
-  const map = reach('explore', visitors, RAIWAI_G, [14, 25], true);
-  const inSide = (x: number) => x > SIDE_ROAD.x0 - 0.05 && x < SIDE_ROAD.x1 + 0.05;
-  const inCompound = (x: number) => x > -2.75 && x < 15.75;
-  assert.equal(map.any((x, z) => x < STREET.x0 - 0.05 || (x > STREET.x1 + 0.05 && !inCampus(x, z))), false, 'jumped off the end of McFarlane Road or over the campus wall');
-  assert.equal(map.any((x, z) => z > STREET.z1 + 0.05 && !onFloor(x, z)), false, 'jumped over a wall across the road (somewhere with no floor)');
-  for (const b of USP_BUILDINGS) for (const r of Object.values(uspFootprints(b))) {
-    assert.equal(map.any((x, z) => x > r.x0 + 0.1 && x < r.x1 - 0.1 && z > r.z0 + 0.1 && z < r.z1 - 0.1), false, `jumped into the block at ${b.x}, ${b.z}`);
+test('free roam: jumping clears fences and walls, but never the edge of the map, a building, a locked place, or a place of worship\'s walls', () => {
+  // with every door and gate shut, and the chores' places still locked
+  const hop = reach('explore', [...visitors, ...PLACES.map(lockOBB)], WORLD_G, [14, 25], true, doorsShut);
+  assert.equal(hop.any((x, z) => x < WORLD_EDGE.x0 || x > WORLD_EDGE.x1 || z < WORLD_EDGE.z0 || z > WORLD_EDGE.z1), false, 'jumped off the edge of the map');
+  for (const r of roamSolids().rects) assert.equal(hop.any(inside(r)), false, `jumped into the building at ${((r.x0 + r.x1) / 2).toFixed(0)}, ${((r.z0 + r.z1) / 2).toFixed(0)}`);
+  for (const b of USP_BUILDINGS) for (const r of Object.values(uspFootprints(b))) assert.equal(hop.any(inside(r, 0.1)), false, `jumped into the USP block at ${b.x}, ${b.z}`);
+  assert.equal(hop.any(templeBase), false, "jumped onto the temple's base");
+  assert.equal(hop.any(masjidBuildings), false, 'jumped into the masjid');
+  assert.equal(hop.any((x, z) => inTemplePlot(x, z) && z < TEMPLE_GATE.z - 0.2), false, "jumped over the temple's walls with its gate shut");
+  assert.equal(hop.any(masjidYard), false, "jumped over the masjid's walls with its gate shut");
+  for (const pl of PLACES) {
+    const r = ROOMS.find((q) => q.id === pl.id)!;
+    assert.equal(hop.any(inside(r, 0.3)), false, `jumped into the locked ${pl.name}`);
   }
-  assert.equal(map.any((x, z) => z < 22.25 && !inSide(x) && !inCompound(x) && !inTemplePlot(x, z)), false, "jumped into someone's yard");
-  assert.equal(map.any(templeBase), false, "jumped onto the temple's base");
-  assert.equal(map.any(masjidBuildings), false, 'jumped into the masjid');
-  assert.equal(map.any((x, z) => inGardenCity(x, z) && z > GC.z1 - 0.15), false, "jumped through Garden City's back wall");
+  assert.equal(hop.any((x, z) => inGardenCity(x, z) && z > GC.z1 - 0.15), false, "jumped through Garden City's back wall");
+  // and jumping does get you over the compound's fences and Garden City's palisade, gate shut or not
+  assert.ok(hop.near(-8, 0, 1) && hop.near(20, -5, 1), "can't jump the compound's fences");
+  assert.ok(hop.any((x, z) => inGardenCity(x, z) && z > GC.z0 + 1 && z < GC.walk), "can't jump Garden City's palisade with its gate shut");
+});
+
+test('exploring: fences, garden walls, railings and low walls can be jumped; walls, buildings, gates, worship walls, the tower and the edge of the map never', () => {
+  const ok = new Set(['fence', 'block', 'woven', 'picket', 'grille', 'rail', 'low']);
+  for (const b of BARRIERS) {
+    const top = jumpTop(b);
+    if (top === undefined) continue;
+    assert.ok(ok.has(b.kind) || b.jump, `a ${b.kind} at [${b.a}] can be jumped`);
+    assert.ok(!b.noJump, `a locked place's ${b.kind} at [${b.a}] can be jumped`);
+    assert.ok(top > Math.max(heightAt(...b.a), heightAt(...b.b)), `the ${b.kind} at [${b.a}] has its top below the ground`);
+  }
+  const near = (b: (typeof BARRIERS)[number], r: { x0: number; x1: number; z0: number; z1: number }) => [b.a, b.b].every(([x, z]) => x >= r.x0 - 0.01 && x <= r.x1 + 0.01 && z >= r.z0 - 0.01 && z <= r.z1 + 0.01);
+  for (const b of BARRIERS.filter((q) => q.mode === 'explore')) {
+    if (near(b, lookoutBox)) assert.equal(jumpTop(b), undefined, `the lookout's ${b.kind} at [${b.a}] can be jumped`);
+    if ([b.a, b.b].some(([x, z]) => x <= WORLD_EDGE.x0 || x >= WORLD_EDGE.x1 || z <= WORLD_EDGE.z0 || z >= WORLD_EDGE.z1)) assert.equal(jumpTop(b), undefined, 'the edge of the map can be jumped');
+  }
+  for (const b of BARRIERS.filter((q) => q.kind === 'facade' || q.kind === 'wall')) assert.equal(jumpTop(b), undefined, `a ${b.kind} at [${b.a}] can be jumped`);
+});
+
+test('the Raiwai Lookout: up its stairs from the north-west corner to its roof 20 m up, with no ledge on the way, and no other way up', () => {
+  const map = worldMap();
+  const [sx, sz] = LOOKOUT_START;
+  const xw = LOOKOUT.cx - LOOKOUT.hx, xe = LOOKOUT.cx + LOOKOUT.hx, zn = LOOKOUT.cz - LOOKOUT.hz, zs = LOOKOUT.cz + LOOKOUT.hz;
+  assert.ok(map.near(sx, sz, 0.6), "can't walk to the bottom of the lookout's stairs");
+  assert.ok(map.near(LOOKOUT.cx, LOOKOUT.cz, 0.5), "can't walk up onto the lookout's roof");
+  assert.equal(Math.round((LOOKOUT_TOP - heightAt(sx, sz)) * 10) / 10, 20, 'the roof should be 20 m up');
+  assert.equal(heightAt(LOOKOUT.cx, LOOKOUT.cz), LOOKOUT_TOP);
+  // the way up is one long climb, never a jump: every step up the strip is small
+  const strip: [number, number][] = [];
+  for (let x = xw; x <= xe + 0.7; x += 0.25) strip.push([x, zn - 0.7]);
+  for (let z = zn - 0.7; z <= zs + 0.7; z += 0.25) strip.push([xe + 0.7, z]);
+  for (let x = xe + 0.7; x >= xw - 0.7; x -= 0.25) strip.push([x, zs + 0.7]);
+  for (let z = zs + 0.7; z >= zn + 0.3; z -= 0.25) strip.push([xw - 0.7, z]);
+  strip.push([xw + 0.4, zn + 2]);
+  for (let i = 1; i < strip.length; i++) assert.ok(Math.abs(heightAt(...strip[i]) - heightAt(...strip[i - 1])) < 0.16, `a step on the lookout's stairs at ${strip[i]}`);
+  // with the stairs' rails and the walls taken away, the roof is a 20 m wall: a jump (2.7 m) never gets you up
+  assert.ok(LOOKOUT_TOP - heightAt(sx, sz) > 2.7 * 5);
 });
 
 test('the shops along McFarlane Road: in through each door when it is open, not when it is shut', () => {
@@ -152,7 +217,6 @@ test('Garden City: in through the gate, across the car park and into the units b
   assert.ok(map.near((GC.gate[0] + GC.gate[1]) / 2, GC.walk + 1, 0.4), "can't cross the car park to the building");
   for (let k = 0; k < GC.units - 1; k++) assert.ok(map.near(GC.x0 + (k + 0.5) * uw, (GC.build + GC.z1) / 2 + 2, 1.2), `can't walk into unit ${k + 1}`);
   assert.equal(map.near(GC.x0 + (GC.units - 0.5) * uw, (GC.build + GC.z1) / 2, 1.0), false, 'got past the barriers into the last unit');
-  assert.equal(map.any((x, z) => z > GC.z0 + 0.05 && x > GC.x0 - 1 && x < GC.x1 + 1 && !inGardenCity(x, z)), false, "got out of Garden City over its fences");
   assert.equal(map.any((x, z) => inGardenCity(x, z) && z > GC.z1 - 0.15), false, 'walked through the back wall');
 });
 
@@ -168,7 +232,7 @@ test('Garden City: Westpac is open, its ATMs within reach', () => {
   const u = GC.x0 + GC.westpac * ((GC.x1 - GC.x0) / GC.units);
   assert.ok(map.near(u + 0.95, 47.7, 0.3) && map.near(u + 0.95, 48.8, 0.3), "can't walk up to Westpac's ATMs");
   assert.ok(map.near(u + 2.6, 53.0, 0.3), "can't walk up to Westpac's counter");
-  assert.equal(map.any((x, z) => x > u + 0.6 && x < u + 4.6 && z > 54.35), false, "got behind Westpac's counter");
+  assert.equal(map.any((x, z) => x > u + 0.6 && x < u + 4.6 && z > 54.35 && z < GC.z1), false, "got behind Westpac's counter");
 });
 
 test('Damodar City: in from the road, round the car park and along the shops; into every shop, BSP and the cinema through their doors', () => {
@@ -186,8 +250,7 @@ test('Damodar City: in from the road, round the car park and along the shops; in
     assert.equal(shut.any(inRoom), false, `walked into ${r.name} (${r.id}) with its door shut`);
   }
   assert.ok(map.near(bx0 + 0.9, 59.8, 0.3), "can't walk up to BSP's ATMs");
-  assert.equal(map.any((x, z) => x > bx0 && x < bx1 && z > 66.75), false, "got behind BSP's counter");
-  assert.equal(map.any((x, z) => z > DC.back + 0.05 && x > DC.x0 - 2 && x < DC.x1 + 2 && !inDamodar(x, z)), false, 'got out of Damodar City');
+  assert.equal(map.any((x, z) => x > bx0 && x < bx1 && z > 66.75 && z < DC.z1), false, "got behind BSP's counter");
   for (const c of PARKED) assert.equal(map.near(c.x, c.z, 0.3), false, `walked through the parked car at ${c.x}, ${c.z}`);
 });
 
@@ -215,7 +278,7 @@ test('the Raiwai Jame Masjid: McFarlane Road goes on to it; up its steps and thr
   assert.equal(open.any((x, z) => z > SHOP_LINE + 0.05 && z < MASJID.z + MASJID_YARD.wallZ && x > MASJID.x - MASJID.w / 2 && x < MASJID.x + MASJID.w / 2 && !(x > MASJID.x + steps.x0 - 0.05 && x < MASJID.x + steps.x1 + 0.05)), false, 'stepped off the side of the masjid steps');
 });
 
-test('the USP campus: in from the end of McFarlane Road, round the plaza and all round the buildings, not through them or over the wall', () => {
+test('the USP campus: in from the end of McFarlane Road, round the plaza and all round the buildings, not through them', () => {
   assert.equal(USP.x0, MCFARLANE.x1, "the campus doesn't start where McFarlane Road ends");
   const map = raiwaiMap();
   assert.ok(map.near(USP.x0 + 8, 26, 0.5), "can't walk from McFarlane Road into the campus");
@@ -231,7 +294,6 @@ test('the USP campus: in from the end of McFarlane Road, round the plaza and all
       assert.equal(map.any((x, z) => x > r.x0 + 0.1 && x < r.x1 - 0.1 && z > r.z0 + 0.1 && z < r.z1 - 0.1), false, `walked into the block at ${b.x}, ${b.z}`);
     }
   }
-  assert.equal(map.any((x, z) => x > STREET.x1 + 0.05 && !inCampus(x, z)), false, 'got over the campus wall');
 });
 
 test('the LvTS plaque: once on each shop, centre, cinema and USP block, small, and never on a place of worship', () => {

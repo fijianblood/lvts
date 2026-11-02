@@ -90,12 +90,12 @@ const FAMILY_ID = /^[a-z][a-z-]{1,23}$/;
 const round = (v: number, d = 100) => Math.round(v * d) / d;
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
-/** A position from a message, kept inside Raiwai and rounded; null if it isn't one. */
+/** A position from a message, kept inside Raiwai (the whole free-roam map, with room to spare; up to the lookout's roof) and rounded; null if it isn't one. */
 export function cleanPos(raw: unknown): [number, number, number, number] | null {
   if (!Array.isArray(raw) || raw.length !== 4 || !raw.every((v) => typeof v === 'number' && Number.isFinite(v))) return null;
   const [x, y, z, r] = raw as number[];
   const yaw = Math.atan2(Math.sin(r), Math.cos(r));
-  return [round(clamp(x, -120, 320)), round(clamp(y, -30, 60)), round(clamp(z, -120, 140)), round(yaw, 1000)];
+  return [round(clamp(x, -160, 320)), round(clamp(y, -30, 60)), round(clamp(z, -140, 280)), round(yaw, 1000)];
 }
 
 const pub = (s: Saved): Pub => {

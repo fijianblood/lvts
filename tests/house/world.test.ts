@@ -126,6 +126,9 @@ test('world: moves go out together, kept inside Raiwai, and not too often', asyn
   const s = last(b, 's')!;
   assert.deepEqual(s.m, [[ida, 5.12, -3.6, 21, Math.round(Math.atan2(Math.sin(7), Math.cos(7)) * 1000) / 1000]]);
   assert.deepEqual(cleanPos([9999, -99, 0, 0]), [320, -30, 0, 0]);
+  // the whole free-roam map fits: the edge of the map, and the lookout's roof
+  assert.deepEqual(cleanPos([-150, 16.4, 264, 0]), [-150, 16.4, 264, 0]);
+  assert.deepEqual(cleanPos([300, -3.6, -130, 0]), [300, -3.6, -130, 0]);
   assert.equal(cleanPos([1, 2, 3]), null);
   assert.equal(cleanPos(['1', 2, 3, 4]), null);
   assert.deepEqual(a.saved?.player?.p, [5.12, -3.6, 21, s.m[0][4]], 'position not saved for after a sleep');
