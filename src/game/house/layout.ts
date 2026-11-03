@@ -17,6 +17,7 @@ import { SHOP_ROW } from './shops.ts';
 import { GARDEN_CITY, gardenCity } from './gardenCity.ts';
 import { uspCampus } from './uspCampus.ts';
 import { DAMODAR_CITY, damodarCity } from './damodarCity.ts';
+import { LOMA, lomaCastle } from './playground.ts';
 import { shopInsides, SHOP_DOOR_GAPS } from './shopInsides.ts';
 import { LOOKOUT, LOOKOUT_PATH, climb } from './towers.ts';
 
@@ -52,6 +53,8 @@ export interface Room {
   area?: boolean;
   /** The ceiling (world y) of a room that isn't under the house's ceilings (a shop, a centre's units, under a slab): a jump keeps your head below it. */
   cap?: number;
+  /** A bouncy floor (Loma Castle): landing throws you back up, walking bounces you, and a jump goes higher. */
+  bouncy?: boolean;
 }
 
 export type OpeningKind = 'door' | 'window' | 'gap';
@@ -136,7 +139,9 @@ export type Prim =
   | { kind: 'box'; min: XYZ; max: XYZ; color: string; solid?: boolean; emissive?: boolean; tex?: string; crawl?: boolean; plain?: boolean }
   /** `axis`: 'y' (default) stands up from `base`; 'x' or 'z' lies along that axis, centred on `base` (wheels, a satellite dish). */
   | { kind: 'cyl'; base: XYZ; r: number; h: number; color: string; solid?: boolean; seg?: number; top?: number; axis?: 'x' | 'y' | 'z' }
-  | { kind: 'cone'; base: XYZ; r: number; h: number; color: string; seg?: number; opacity?: number; flip?: boolean };
+  | { kind: 'cone'; base: XYZ; r: number; h: number; color: string; seg?: number; opacity?: number; flip?: boolean }
+  /** A sloping slab (a slide, the top of a wall beside it): its top runs from y0 at z0 to y1 at z1 (along x with axis 'x'), `thick` deep. Never solid. */
+  | { kind: 'slope'; x0: number; x1: number; z0: number; z1: number; y0: number; y1: number; thick: number; color: string; axis?: 'x' };
 
 export interface Collectible {
   id: string;
@@ -225,7 +230,11 @@ export const PLATFORMS: Platform[] = [
 /** Stairs, walked as ramps: height runs linearly from y0 at z0 to y1 at z1. */
 /** `style` 'drawn' when something else draws the steps (the masjid's, by its builder). */
 /** A sloping floor: y0 at its low edge (z0, or x0 with axis 'x') rising or falling to y1 at the other. */
-export interface Ramp { x0: number; x1: number; z0: number; z1: number; y0: number; y1: number; style: 'tile' | 'concrete' | 'wood' | 'drawn'; axis?: 'x' }
+export interface Ramp {
+  x0: number; x1: number; z0: number; z1: number; y0: number; y1: number; style: 'tile' | 'concrete' | 'wood' | 'drawn'; axis?: 'x';
+  /** A slide: on it you sit and slide down, and can't walk back up (Loma Castle's). */
+  slide?: boolean;
+}
 export const RAMPS: Ramp[] = [
   { x0: 11.1, x1: 12.28, z0: 9.6, z1: 13.0, y0: groundY(9.6), y1: 0, style: 'tile' },        // veranda stairs
   { x0: -2.65, x1: -1.52, z0: 3.25, z1: 5.25, y0: 0, y1: groundY(5.25), style: 'concrete' }, // side stairs
@@ -294,6 +303,15 @@ RAMPS.push(...LOOK.ramps);
 PLATFORMS.push(...LOOK.platforms);
 export const LOOKOUT_TOP = LOOK.top;
 export const LOOKOUT_START = LOOK.start;
+
+/** Loma Castle Playground (playground.ts): the bouncy castle's floor and step, the slide, its platform and steps. */
+const PLAY = lomaCastle(groundY(LOMA.z0));
+RAMPS.push(...PLAY.ramps);
+PLATFORMS.push(...PLAY.platforms);
+/** The playground's benches and swings, which you sit on with E. */
+export const SEATS = PLAY.seats;
+/** The playground's swings (the engine draws them: they move). */
+export const SWINGS = PLAY.swings;
 
 /** Barrier kinds a jump can clear when exploring (fences, garden walls, railings, low walls); never walls, buildings or the map's edge. */
 const JUMPABLE = new Set<BarrierKind>(['fence', 'block', 'woven', 'picket', 'grille', 'rail', 'low']);
@@ -424,6 +442,8 @@ export const ROOMS: Room[] = [
   // the temple's grounds, the masjid's steps and yard
   ...WORSHIP.rooms,
   ...LOOK.rooms,
+  // Loma Castle Playground: the bouncy castle, the slide, the playground round them
+  ...PLAY.rooms,
 ];
 
 // The house footprint (interior faces of the exterior walls sit 0.1 inside these).
@@ -815,11 +835,14 @@ export const BARRIERS: Barrier[] = [
   { a: [SHOP_ROW.x1 + 0.4, 31.6], b: [LOOKOUT_PATH.x0, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
   { a: [LOOKOUT_PATH.x1, 31.6], b: [MASJID.x - MASJID.w / 2, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
   ...LOOK.barriers,                                                                                            // the lookout tower: its walls, and the rails up its stairs
+  ...PLAY.barriers,                                                                                            // Loma Castle Playground: its fence, the castle's walls, the slide's
   ...WORSHIP.barriers,                                                                                         // the temple's and the masjid's walls (gates open with E)
   { a: [MASJID.x + MASJID.w / 2, 31.6], b: [MCFARLANE.x1, 31.6], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
   ...CAMPUS.barriers,                                                                                          // the road goes on into the USP campus
   { a: [SIDE_ROAD.x0, SIDE_ROAD.z0], b: [SIDE_ROAD.x0, 22.3], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },   // walls along the side road
-  { a: [SIDE_ROAD.x1, SIDE_ROAD.z0], b: [SIDE_ROAD.x1, 22.3], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
+  // (open opposite Loma Castle Playground's gate)
+  { a: [SIDE_ROAD.x1, SIDE_ROAD.z0], b: [SIDE_ROAD.x1, LOMA.gate[0]], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
+  { a: [SIDE_ROAD.x1, LOMA.gate[1]], b: [SIDE_ROAD.x1, 22.3], kind: 'low', h: 0.9, t: 0.2, mode: 'explore' },
 
   // ── places you unlock with stars from chores (each has one way in, shut by a lock until then) ──
   // vegetable garden behind the storeroom: a picket fence, the gate on the west side (z -12.9..-12.1)
@@ -968,6 +991,7 @@ PROPS.push(
   // the temple's flag poles and the masjid's veranda posts (you bump into them)
   ...WORSHIP.props,
   ...LOOK.props,
+  ...PLAY.props,
 
   // the way out: a green sign on the gate pillar
   box(15.2, groundY(21.9) + 1.55, 21.72, 15.7, groundY(21.9) + 1.75, 21.74, '#16a34a', false, { emissive: true, tex: 'exit:-z' }),

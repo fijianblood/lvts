@@ -367,6 +367,39 @@ export const promoBoard = (p: { amount: string; wallet: string; company: string;
   g.fillText(`Run & paid by LvTS. Not a ${p.company} or ${p.wallet} promotion.`, w / 2, 234, w - 24);
 });
 
+// ── Loma Castle Playground (playground.ts) ──────────────────────────────────
+/** The arch over the playground's gate: its name in big, bright letters. */
+export const lomaSign = () => canvasTexture(512, 112, (g, w, h) => {
+  g.fillStyle = '#facc15'; g.fillRect(0, 0, w, h);
+  g.strokeStyle = '#e02424'; g.lineWidth = 8; g.strokeRect(4, 4, w - 8, h - 8);
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  const words = ['L', 'O', 'M', 'A'], colours = ['#e02424', '#1f6fe0', '#22a35a', '#e02424'];
+  g.font = '900 46px "Space Grotesk", Arial, sans-serif';
+  const lw = g.measureText('LOMA ').width, cw = g.measureText('CASTLE').width;
+  let x = w / 2 - (lw + cw) / 2;
+  words.forEach((c, i) => { g.fillStyle = colours[i]; const cwid = g.measureText(c).width; g.fillText(c, x + cwid / 2, 44); x += cwid; });
+  x += g.measureText(' ').width;
+  g.fillStyle = '#1f6fe0'; g.fillText('CASTLE', x + cw / 2, 44);
+  g.fillStyle = '#7c2d12'; g.font = '800 26px "Space Grotesk", Arial, sans-serif'; g.fillText('PLAYGROUND', w / 2, 86, w - 40);
+});
+/** The banner over the bouncy castle's doorway. */
+export const lomaCastleBanner = () => canvasTexture(256, 96, (g, w, h) => {
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#e02424'; for (let x = 0; x < w; x += 32) g.fillRect(x, 0, 16, 12);
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = '#1f6fe0'; g.font = '900 34px "Space Grotesk", Arial, sans-serif'; g.fillText('LOMA CASTLE', w / 2, 48, w - 20);
+  g.fillStyle = '#7c2d12'; g.font = '700 15px "Space Grotesk", Arial, sans-serif'; g.fillText('Bounce! Shoes off, have fun', w / 2, 78, w - 20);
+});
+/** At the bottom of the slide's steps. */
+export const lomaSlideSign = () => canvasTexture(256, 256, (g, w, h) => {
+  g.fillStyle = '#facc15'; g.fillRect(0, 0, w, h);
+  g.strokeStyle = '#1f2937'; g.lineWidth = 8; g.strokeRect(4, 4, w - 8, h - 8);
+  g.fillStyle = '#e02424'; g.beginPath(); g.moveTo(w / 2, 34); g.lineTo(w / 2 + 50, 104); g.lineTo(w / 2 + 18, 104); g.lineTo(w / 2 + 18, 150); g.lineTo(w / 2 - 18, 150); g.lineTo(w / 2 - 18, 104); g.lineTo(w / 2 - 50, 104); g.closePath(); g.fill();
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#1f2937';
+  g.font = '900 40px "Space Grotesk", Arial, sans-serif'; g.fillText('SLIDE', w / 2, 186);
+  g.font = '700 20px "Space Grotesk", Arial, sans-serif'; g.fillText('Up the steps', w / 2, 222);
+});
+
 // ── Damodar City (damodarCity.ts) ───────────────────────────────────────────
 /** The centre's name, on its pylon sign by the entrance. */
 export const damodarCitySign = () => canvasTexture(512, 144, (g, w, h) => {
