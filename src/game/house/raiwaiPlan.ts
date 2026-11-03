@@ -10,6 +10,7 @@
 // The houses are Raiwai-style but made up from a seed: they aren't copies of
 // anyone's real home. Public places are modelled on drone photos of the area.
 import { MCFARLANE, SIDE_ROAD, NEIGHBOURS, MASJID, TEMPLE } from './layout.ts';
+import { LOMA } from './playground.ts';
 import { SHOP_ROW } from './shops.ts';
 import { GARDEN_CITY } from './gardenCity.ts';
 import { USP, USP_BUILDINGS, USP_NORTH, USP_TREES, USP_SIGN } from './uspCampus.ts';
@@ -130,6 +131,7 @@ export const ROAD_LABELS = [
   { text: 'USP', x: 246, z: 29.5 },
   ...(DAMODAR_CITY ? [{ text: 'Damodar City', x: (DAMODAR_CITY.in0 + DAMODAR_CITY.in1) / 2, z: 47 }] : []),
   { text: 'Side road', x: (SIDE_ROAD.x0 + SIDE_ROAD.x1) / 2, z: -14, vertical: true },
+  { text: LOMA.name, x: (LOMA.x0 + LOMA.x1) / 2, z: LOMA.z1 - 1.2 },
 ];
 
 // ── the houses, both sides of the roads ───────────────────────────────────
@@ -145,6 +147,7 @@ const taken: Box[] = [
   ...(DAMODAR_CITY ? [{ x0: DAMODAR_CITY.x0 - 0.5, x1: DAMODAR_CITY.x1 + 0.5, z0: 31.6, z1: DAMODAR_CITY.z1 + 1 }] : []),   // Damodar City
   { x0: SIDE_ROAD.x0 - 0.5, x1: SIDE_ROAD.x1 + 0.5, z0: SIDE_ROAD.z0 - 1, z1: 22.5 },
   { x0: 92, x1: 114, z0: -34, z1: 22 },                                      // the church grounds
+  { x0: SIDE_ROAD.x1, x1: LOMA.x1 + 1, z0: LOMA.z0 - 1, z1: LOMA.z1 + 0.5 }, // Loma Castle Playground, and the way to it from the side road
 ];
 
 let seed = 1000;
@@ -251,6 +254,11 @@ export const RAIWAI_TREES: TreeSpot[] = [];
   const t = climbBox(LOOKOUT, 1.5), path = { x0: LOOKOUT_PATH.x0 - 1, x1: LOOKOUT_PATH.x1 + 1, z0: 31, z1: t.z0 };
   const clear = (x: number, z: number) => !(x > t.x0 && x < t.x1 && z > t.z0 && z < t.z1) && !(x > path.x0 && x < path.x1 && z > path.z0 && z < path.z1);
   for (let i = RAIWAI_TREES.length - 1; i >= 0; i--) if (!clear(RAIWAI_TREES[i].x, RAIWAI_TREES[i].z)) RAIWAI_TREES.splice(i, 1);
+}
+// and none in Loma Castle Playground
+for (let i = RAIWAI_TREES.length - 1; i >= 0; i--) {
+  const t = RAIWAI_TREES[i];
+  if (t.x > SIDE_ROAD.x1 && t.x < LOMA.x1 + 1 && t.z > LOMA.z0 - 0.5 && t.z < LOMA.z1 + 0.5) RAIWAI_TREES.splice(i, 1);
 }
 
 /** Wooden power poles: along the north verge of McFarlane Road and the east side of the side road. Each run is wired. */

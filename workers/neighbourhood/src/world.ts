@@ -4,12 +4,13 @@
 //
 // The messages (JSON). From a player:
 //   { t: 'join', who: { kind: 'family', id } | { kind: 'mine', look, id?, key? }, p: [x, y, z, yaw] }
-//   { t: 'm', p: [x, y, z, yaw] }          where I am now (a few times a second while moving)
+//   { t: 'm', p: [x, y, z, yaw, pose?] }   where I am now (a few times a second while moving); pose, when
+//                                          not standing: 1 sitting on a seat, 2 on the ground, 3 on a swing
 //   { t: 'c', text }                       say something
 //   { t: 'report', id, why }               report a player to LvTS
 // From the world:
 //   { t: 'welcome', you, label, max, players: [Pub] }    { t: 'join', p: Pub }    { t: 'leave', id }
-//   { t: 's', m: [[id, x, y, z, yaw], ...] }             everyone who moved since last time
+//   { t: 's', m: [[id, x, y, z, yaw, pose?], ...] }      everyone who moved since last time
 //   { t: 'c', id, text }    { t: 'no', why, text }    { t: 'muted', until }    { t: 'reported', id }
 // "ping" is answered with "pong" by the platform without waking the world.
 
@@ -42,13 +43,17 @@ export const REPORT_WHY = ['rude', 'personal', 'spam', 'other'] as const;
 export type ReportWhy = (typeof REPORT_WHY)[number];
 
 /** A player as everyone else sees them. `f` is the family member they play as; `l` their own character's look. */
-export interface Pub { id: string; n: string; f?: string; l?: VisitorLook; p: [number, number, number, number] }
+/** A position: x, y, z, facing, and how they're posed when they aren't standing (POSES). */
+export type Pos = [number, number, number, number] | [number, number, number, number, number];
+/** The poses a player can be in besides standing: sitting on a seat, sitting on the ground, on a swing. */
+export const POSES = 3;
+export interface Pub { id: string; n: string; f?: string; l?: VisitorLook; p: Pos }
 
 /** What's kept with each connection, so the world can be rebuilt after the Durable Object sleeps. */
 export interface Saved {
   visitor: string;
   joinedAt: number;
-  player?: { id: string; num: number; label: string; family?: string; look?: VisitorLook; p: [number, number, number, number]; mutedUntil: number };
+  player?: { id: string; num: number; label: string; family?: string; look?: VisitorLook; p: Pos; mutedUntil: number };
 }
 
 /** One connection, as the world sees it (a WebSocket in the Durable Object; a fake in tests). */
@@ -90,12 +95,18 @@ const FAMILY_ID = /^[a-z][a-z-]{1,23}$/;
 const round = (v: number, d = 100) => Math.round(v * d) / d;
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
-/** A position from a message, kept inside Raiwai (the whole free-roam map, with room to spare; up to the lookout's roof) and rounded; null if it isn't one. */
-export function cleanPos(raw: unknown): [number, number, number, number] | null {
-  if (!Array.isArray(raw) || raw.length !== 4 || !raw.every((v) => typeof v === 'number' && Number.isFinite(v))) return null;
-  const [x, y, z, r] = raw as number[];
+/**
+ * A position from a message, kept inside Raiwai (the whole free-roam map, with
+ * room to spare; up to the lookout's roof) and rounded; null if it isn't one.
+ * A fifth number is how they're posed: kept when it's one of the poses (1 to
+ * POSES), dropped otherwise (standing).
+ */
+export function cleanPos(raw: unknown): Pos | null {
+  if (!Array.isArray(raw) || (raw.length !== 4 && raw.length !== 5) || !raw.every((v) => typeof v === 'number' && Number.isFinite(v))) return null;
+  const [x, y, z, r, pose] = raw as number[];
   const yaw = Math.atan2(Math.sin(r), Math.cos(r));
-  return [round(clamp(x, -160, 320)), round(clamp(y, -30, 60)), round(clamp(z, -140, 280)), round(yaw, 1000)];
+  const at: [number, number, number, number] = [round(clamp(x, -160, 320)), round(clamp(y, -30, 60)), round(clamp(z, -140, 280)), round(yaw, 1000)];
+  return Number.isInteger(pose) && pose >= 1 && pose <= POSES ? [...at, pose] : at;
 }
 
 const pub = (s: Saved): Pub => {

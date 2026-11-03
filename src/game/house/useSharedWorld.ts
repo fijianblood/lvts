@@ -89,7 +89,7 @@ export function useSharedWorld(engine: HouseEngine | null, who: JoinWho | null) 
         sync();
         if (wp) add({ kind: 'sys', text: `${wp.label} left` });
       },
-      moves: (m) => { for (const [id, x, y, z, r] of m) engine.remoteMove(id, [x, y, z, r]); },
+      moves: (m) => { for (const [id, ...p] of m) engine.remoteMove(id, p); },
       chat: (id, text) => {
         if (id === link.me) { add({ kind: 'me', who: 'You', text }); return; }
         engine.remoteSay(id, text);

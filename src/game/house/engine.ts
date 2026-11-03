@@ -11,14 +11,14 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import {
-  C, ROOMS, WALLS, DOORS, WINDOWS, PROPS, COLLECTIBLES, GOLDEN_SPOTS, SPAWN, EXIT_ZONE, POSTER, PROMO_SPOTS,
+  C, ROOMS, WALLS, DOORS, WINDOWS, PROPS, COLLECTIBLES, GOLDEN_SPOTS, SPAWN, EXIT_ZONE, POSTER, PROMO_SPOTS, SEATS, SWINGS,
   BARRIERS, TREES, NEIGHBOURS, RAMPS, NPC_SPOTS, CAT_SPOT, BACK_Y, ROAD_Y, GROUND_BREAKS, PARKED, MCFARLANE,
   WALL_H, CEIL_H, DOOR_TOP, HOUSE, roomAt, roomAtLevel, groundY, heightAt, floorAt,
   type GameMode, type WallRun, type Prim, type Door, type HingedDoor, type WindowSpec, type Room, type XYZ, type Barrier, type NpcSpot,
 } from './layout.ts';
-import { buildStaticWorld, buildCameraWorld, doorOBB, bodyOBB, moveAndSlide, circleHitsOBB, blocked, supportAt, airStep, jumpSpeed, JUMP, JUMP_ROAM, type OBB, type StaticWorld } from './collision.ts';
+import { buildStaticWorld, buildCameraWorld, doorOBB, bodyOBB, moveAndSlide, circleHitsOBB, blocked, supportAt, airStep, jumpSpeed, JUMP, JUMP_ROAM, BOUNCE, SLIDE_SPEED, rebound, type OBB, type StaticWorld } from './collision.ts';
 import { CHARACTERS, characterById, firstName, type Character, type CharacterId, type Look } from './characters.ts';
-import { buildFigure, animate, bakeStatic, bakeMoving, cat, type Rig } from './figures.ts';
+import { buildFigure, animate, applyPose, bakeStatic, bakeMoving, cat, type Rig } from './figures.ts';
 import type { Say } from './talk.ts';
 import { ChoreSystem, type ChoreCallbacks, type ChoreFocus } from './choreSystem.ts';
 import { PLACES } from './chores.ts';
@@ -80,6 +80,26 @@ export interface EngineOptions { touch: boolean; baseUrl: string }
 const REACH = 1.8;
 /** How close you have to be to a hidden reward card to pick it up. */
 const PROMO_REACH = 1.5;
+/**
+ * How you're posed, as friends see it in the shared world: standing (or
+ * walking), sitting on a seat, sitting on the ground (or going down the slide),
+ * or on a swing.
+ */
+export const Pose = { stand: 0, seat: 1, floor: 2, swing: 3 } as const;
+/** Sitting on a swing: the height of the seat below the hips (as on a bench), and how far you can swing (radians). */
+const SWING_SEAT = 0.45;
+const SWING_MAX = 0.95;
+/** How long a swing takes to swing there and back, from its rope's length (a pendulum). */
+const swingRate = (rope: number) => Math.sqrt(JUMP.gravity / rope) * 0.75;
+/** The slide under you, if you're on one: the way down it (a unit vector). */
+function slideAt(x: number, z: number, feet: number): [number, number] | null {
+  for (const r of RAMPS) {
+    if (!r.slide || x < r.x0 || x > r.x1 || z < r.z0 || z > r.z1) continue;
+    if (Math.abs(heightAt(x, z) - feet) > 0.5) continue;
+    return r.axis === 'x' ? [r.y1 < r.y0 ? 1 : -1, 0] : [0, r.y1 < r.y0 ? 1 : -1];
+  }
+  return null;
+}
 const PICKUP = 0.85;
 const LOOK = 0.0022;
 const AREAS = ROOMS.filter((r) => r.area);
@@ -87,6 +107,7 @@ const AREAS = ROOMS.filter((r) => r.area);
 const NAMED_TEX: Record<string, () => THREE.Texture> = {
   gcsign: T.gardenCitySign, gcboard: T.gardenCityBoard, gcbanner: T.comingSoonBanner, gcbuild: T.constructionSign,
   ...Object.fromEntries(SHOP_PROMOS.map((p) => [`promo-${p.id}`, () => T.promoBoard(p)])),
+  lomasign: T.lomaSign, lomacastle: T.lomaCastleBanner, lomaslide: T.lomaSlideSign,
   gcsoon: () => T.shopComingSoon('Garden City'), gcup: () => T.floorSign('FIRST FLOOR', 'Up the stairs', 1), gcdown: () => T.floorSign('WAY OUT', 'Down the stairs', -1), dcsoon: () => T.shopComingSoon('Damodar City'), dcname: T.damodarCitySign,
 };
 const DEFAULT_SIGHT = 5.5;
@@ -283,7 +304,13 @@ interface Remote {
   rig: Rig;
   tag: THREE.Sprite;
   bubble?: THREE.Sprite;
-  target: [number, number, number, number];
+  /** Where they are: x, feet height, z, facing, and how they're posed (Pose: 0 when missing). */
+  target: number[];
+  crawl: boolean;
+  pose: number;
+  /** The swing they're on (an index into SWINGS), and how far through its swing it is. */
+  swing?: number;
+  swingT: number;
   phase: number;
   speed: number;
   height: number;
@@ -383,7 +410,7 @@ interface Item {
   golden: boolean; taken: boolean; seen: boolean; phase: number; base: number;
 }
 interface Burst { mesh: THREE.InstancedMesh; vel: THREE.Vector3[]; t: number }
-type FocusKind = 'door' | 'window' | 'poster' | 'npc' | 'cat' | 'shop' | 'promo' | ChoreFocus;
+type FocusKind = 'door' | 'window' | 'poster' | 'npc' | 'cat' | 'shop' | 'promo' | 'seat' | ChoreFocus;
 
 export class HouseEngine {
   state: GameState = 'intro';
@@ -413,6 +440,16 @@ export class HouseEngine {
   private kitty?: THREE.Group;
   /** Other players in the shared world (explore mode): eased towards where they last said they were. */
   private remotes = new Map<string, Remote>();
+  /** Sitting: on the ground (Z), on a bench or a swing (E: SEATS), facing `yaw`; null when standing. */
+  private seat: { kind: 'floor' | 'bench' | 'swing'; i: number; yaw: number } | null = null;
+  /** Going down the slide (you sit on it till the bottom). */
+  private sliding = false;
+  /** On a swing: how far it swings (radians) and where it is in its swing. */
+  private swingAmp = 0;
+  private swingT = 0;
+  /** The swings, drawn here because they move: each one's pivot, its angle now, and who's on it ('me', a friend's id, or null). */
+  private swingRigs: { pivot: THREE.Group; angle: number; rider: string | null }[] = [];
+  private posed = 0;
   private remoteSort = 0;
   /** A chat box or panel has the keyboard and mouse: keys don't move you, and freeing the mouse doesn't pause. */
   private uiOpen = false;
@@ -623,6 +660,7 @@ export class HouseEngine {
     // furniture
     const glow: THREE.BufferGeometry[] = [];
     for (const prim of PROPS) this.addPrim(prim, solid, glow);
+    this.buildSwings();
     // the signs drawn in code (coming-soon boards, the LvTS plaques…): one mesh per texture
     for (const [name, list] of this.namedPlanes) this.scene.add(new THREE.Mesh(mergeGeometries(list), new THREE.MeshStandardMaterial({ map: this.named.get(name) })));
     this.namedPlanes.clear();
@@ -728,6 +766,19 @@ export class HouseEngine {
       if (prim.tex) { this.addTexturedBox(prim, solid); return; }
       if (prim.emissive) { glow.push(boxGeo(x0, y0, z0, x1, y1, z1)); return; }
       push(solid, prim.color, prim.plain ? boxGeo(x0, y0, z0, x1, y1, z1) : furnBox(x0, y0, z0, x1, y1, z1));
+      return;
+    }
+    if (prim.kind === 'slope') {
+      // a box sheared so its top runs from y0 to y1 along z (or x): a slide, the top of a wall beside it
+      const alongX = prim.axis === 'x';
+      const g = boxGeo(prim.x0, -prim.thick, prim.z0, prim.x1, 0, prim.z1);
+      const pos = g.getAttribute('position');
+      for (let i = 0; i < pos.count; i++) {
+        const t = alongX ? (pos.getX(i) - prim.x0) / (prim.x1 - prim.x0) : (pos.getZ(i) - prim.z0) / (prim.z1 - prim.z0);
+        pos.setY(i, pos.getY(i) + prim.y0 + (prim.y1 - prim.y0) * t);
+      }
+      g.computeVertexNormals();
+      push(solid, prim.color, g);
       return;
     }
     if (prim.kind === 'cyl') {
@@ -1469,7 +1520,130 @@ export class HouseEngine {
   }
 
   /** Who you play. Only takes effect between runs. */
+  /** Loma Castle's swings: two ropes and a seat on a pivot under the beam, swung by whoever's on it. */
+  private buildSwings() {
+    const rope = paint('#2f343a'), seat = paint('#e02424');
+    for (const sw of SWINGS) {
+      const pivot = new THREE.Group();
+      pivot.position.set(sw.x, sw.pivot, sw.z);
+      for (const dx of [-0.26, 0.26]) pivot.add(new THREE.Mesh(boxGeo(dx - 0.012, -sw.rope + 0.04, -0.012, dx + 0.012, 0, 0.012), rope));
+      const board = new THREE.Mesh(boxGeo(-0.32, -sw.rope - 0.03, -0.13, 0.32, -sw.rope + 0.03, 0.13), seat);
+      board.castShadow = true;
+      pivot.add(board);
+      this.scene.add(pivot);
+      this.swingRigs.push({ pivot, angle: 0, rider: null });
+    }
+  }
+
+  /** How you're posed now (Pose). */
+  private poseNow(): number {
+    if (this.seat?.kind === 'swing') return Pose.swing;
+    if (this.seat?.kind === 'bench') return Pose.seat;
+    if (this.seat?.kind === 'floor' || this.sliding) return Pose.floor;
+    return Pose.stand;
+  }
+
+  /** Your figure in its pose (sitting, or standing to walk). */
+  private applyMyPose() {
+    const p = this.poseNow();
+    if (p === this.posed) return;
+    this.posed = p;
+    if (!this.player) return;
+    if (p === Pose.seat) applyPose(this.player, 'sit', SEATS[this.seat!.i].seat);
+    else if (p === Pose.swing) applyPose(this.player, 'sit', SWING_SEAT);
+    else if (p === Pose.floor) applyPose(this.player, 'floor');
+    else applyPose(this.player, this.char.crawl ? 'crawl' : 'stand');
+  }
+
+  /** Your eyes' height above your feet: lower when you sit. */
+  private eyeNow(): number {
+    const p = this.poseNow();
+    if (p === Pose.stand) return this.char.eye;
+    const hip = this.player?.hip ?? this.char.eye * 0.55;
+    const seat = p === Pose.floor ? 0.1 : p === Pose.seat ? SEATS[this.seat!.i].seat : SWING_SEAT;
+    return this.char.eye - hip + seat;
+  }
+
+  /** On the bouncy castle (its floor, or bouncing over it)? */
+  private onBouncy(): boolean { return !!roomAtLevel(this.pos[0], this.pos[1], this.floorY)?.bouncy; }
+
+  /** Sit down where you are (Z, or 🪑 on a phone), or get up again. */
+  toggleSit() {
+    if (this.state !== 'playing') return;
+    if (this.seat) { this.standUp(); return; }
+    if (this.air || this.sliding || this.char.crawl) return;
+    this.seat = { kind: 'floor', i: -1, yaw: this.yaw };
+    this.vel = [0, 0];
+    this.started = true;
+    this.applyMyPose();
+    this.sfx.sit();
+  }
+
+  /** Sit on a bench or a swing (SEATS). */
+  private sitOn(i: number) {
+    const s = SEATS[i];
+    if (s.swing !== undefined) {
+      const rig = this.swingRigs[s.swing];
+      if (rig.rider && rig.rider !== 'me') { this.cb.onHint?.('Someone is already on that swing. Try another one!'); return; }
+      rig.rider = 'me';
+      this.seat = { kind: 'swing', i, yaw: s.yaw };
+      this.swingAmp = 0.3;
+      this.swingT = 0;
+      this.cb.onHint?.('🎠 On the swing! Hold W (or push forward) to swing higher, S to slow down, E to get off.');
+    } else {
+      this.seat = { kind: 'bench', i, yaw: s.yaw };
+      this.pos = [s.x, s.z];
+      this.floorY = heightAt(s.x, s.z);
+    }
+    this.yaw = s.yaw;
+    this.vel = [0, 0];
+    this.air = false;
+    this.vy = 0;
+    this.started = true;
+    this.applyMyPose();
+    this.sfx.sit();
+  }
+
+  /** Get up from wherever you're sitting (off the bench or swing, onto your feet beside it). */
+  private standUp() {
+    const st = this.seat;
+    if (!st) return;
+    this.seat = null;
+    if (st.kind !== 'floor') {
+      const s = SEATS[st.i];
+      if (s.swing !== undefined) { this.swingRigs[s.swing].rider = null; }
+      this.pos = [s.stand[0], s.stand[1]];
+      this.floorY = heightAt(s.stand[0], s.stand[1]);
+    }
+    this.applyMyPose();
+  }
+
+  /** On a swing: W swings you higher, S slows you down; you go where the seat goes. */
+  private ride(dt: number, push: number) {
+    const s = SEATS[this.seat!.i], sw = SWINGS[s.swing!], rig = this.swingRigs[s.swing!];
+    if (push > 0.1) this.swingAmp = Math.min(SWING_MAX, this.swingAmp + dt * 0.35);
+    else if (push < -0.1) this.swingAmp = Math.max(0.04, this.swingAmp - dt * 0.6);
+    else this.swingAmp = Math.max(0.12, this.swingAmp - dt * 0.03);
+    this.swingT += dt;
+    const a = this.swingAmp * Math.sin(swingRate(sw.rope) * this.swingT);
+    rig.angle = a;
+    this.pos = [sw.x, sw.z - sw.rope * Math.sin(a)];
+    this.floorY = sw.pivot - sw.rope * Math.cos(a) + 0.03 - SWING_SEAT;
+    this.vel = [0, 0];
+  }
+
+  /** Swings nobody is on settle; each one is drawn at its angle. */
+  private stepSwings(dt: number) {
+    for (const rig of this.swingRigs) {
+      if (!rig.rider) rig.angle *= Math.exp(-dt * 1.2);
+      rig.pivot.rotation.x = rig.angle;
+    }
+  }
+
   setCharacter(id: string) {
+    this.standUp();
+    this.sliding = false;
+    this.posed = Pose.stand;
     this.char = characterById(id);
     for (const n of this.npcs) n.rig.root.visible = n.id !== this.char.id;
     if (this.player) {
@@ -1562,7 +1736,10 @@ export class HouseEngine {
 
   // ── other players (the shared world) ─────────────────────────────────────
   /** Where you are, for the shared world: [x, feet height, z, facing]. */
-  netPos(): [number, number, number, number] { return [this.pos[0], this.floorY, this.pos[1], this.yaw]; }
+  netPos(): number[] {
+    const p = this.poseNow();
+    return [this.pos[0], this.floorY, this.pos[1], this.seat ? this.seat.yaw : this.yaw, ...(p ? [p] : [])];
+  }
 
   /** A chat box or panel is open (keys go to it, and freeing the mouse doesn't pause the game). */
   setUiOpen(on: boolean) {
@@ -1571,7 +1748,7 @@ export class HouseEngine {
   }
 
   /** Someone else joined (or was already there): their figure, with their name over their head. */
-  remoteAdd(id: string, look: Look, name: string, sub: string | undefined, p: [number, number, number, number], crawl = false) {
+  remoteAdd(id: string, look: Look, name: string, sub: string | undefined, p: number[], crawl = false) {
     this.remoteRemove(id);
     const rig = buildFigure(look, crawl ? 'crawl' : 'stand');
     bakeMoving(rig);
@@ -1582,11 +1759,11 @@ export class HouseEngine {
     tag.position.set(0, (crawl ? 0.55 : look.height) + 0.32, 0);
     rig.root.add(tag);
     this.scene.add(rig.root);
-    this.remotes.set(id, { rig, tag, target: [...p], phase: 0, speed: 0, height: crawl ? 0.55 : look.height, bubbleUntil: 0 });
+    this.remotes.set(id, { rig, tag, target: [...p], crawl, pose: Pose.stand, swingT: Math.random() * 3, phase: 0, speed: 0, height: crawl ? 0.55 : look.height, bubbleUntil: 0 });
     this.kick();
   }
 
-  remoteMove(id: string, p: [number, number, number, number]) {
+  remoteMove(id: string, p: number[]) {
     const r = this.remotes.get(id);
     if (r) r.target = p;
   }
@@ -1594,6 +1771,7 @@ export class HouseEngine {
   remoteRemove(id: string) {
     const r = this.remotes.get(id);
     if (!r) return;
+    if (r.swing !== undefined && this.swingRigs[r.swing]?.rider === id) this.swingRigs[r.swing].rider = null;
     this.scene.remove(r.rig.root);
     r.rig.root.traverse((o) => {
       const m = o as THREE.Mesh;
@@ -1619,9 +1797,32 @@ export class HouseEngine {
   /** Ease everyone towards where they last were, walk their legs, and only draw the nearest few. */
   private stepRemotes(dt: number, now: number) {
     const k = 1 - Math.exp(-dt * 9);
-    for (const r of this.remotes.values()) {
+    for (const [id, r] of this.remotes) {
       const root = r.rig.root;
       const [tx, ty, tz, tr] = r.target;
+      // how they're posed: sitting on a seat or a swing, on the ground, or standing
+      const pose = r.target[4] ?? Pose.stand;
+      if (pose !== r.pose) {
+        r.pose = pose;
+        applyPose(r.rig, pose === Pose.floor ? 'floor' : pose === Pose.seat || pose === Pose.swing ? 'sit' : r.crawl ? 'crawl' : 'stand', pose === Pose.seat ? 0.46 : SWING_SEAT);
+        if (r.swing !== undefined && this.swingRigs[r.swing]?.rider === id) this.swingRigs[r.swing].rider = null;
+        r.swing = pose === Pose.swing ? SWINGS.findIndex((sw) => Math.abs(sw.x - tx) < 0.8 && Math.abs(sw.z - tz) < 2.6) : undefined;
+        if (r.swing === -1) r.swing = undefined;
+      }
+      // on a swing: it swings them (here, from its own clock: near enough to theirs)
+      if (r.swing !== undefined) {
+        const sw = SWINGS[r.swing], rig = this.swingRigs[r.swing];
+        if (!rig.rider || rig.rider === id) {
+          rig.rider = id;
+          r.swingT += dt;
+          const a = 0.5 * Math.sin(swingRate(sw.rope) * r.swingT);
+          rig.angle = a;
+          root.position.set(sw.x, sw.pivot - sw.rope * Math.cos(a) + 0.03 - SWING_SEAT, sw.z - sw.rope * Math.sin(a));
+          root.rotation.y = tr;
+          if (r.bubble && now > r.bubbleUntil) { root.remove(r.bubble); r.bubble.material.map?.dispose(); r.bubble.material.dispose(); r.bubble = undefined; }
+          continue;
+        }
+      }
       const dx = tx - root.position.x, dz = tz - root.position.z;
       const far = Math.hypot(dx, dz);
       if (far > 12) root.position.set(tx, ty, tz);   // a jump across the map (a gap in the updates): no sliding
@@ -1695,6 +1896,10 @@ export class HouseEngine {
     this.chores.reset(!!this.char.crawl);
     this.lookedOut = false;
     this.lookedOutTower = false;
+    this.standUp();
+    this.sliding = false;
+    this.applyMyPose();
+    for (const rig of this.swingRigs) if (rig.rider === 'me') rig.rider = null;
     this.pos = [SPAWN.pos[0], SPAWN.pos[2]];
     this.floorY = heightAt(this.pos[0], this.pos[1]);
     this.air = false;
@@ -1789,10 +1994,12 @@ export class HouseEngine {
 
   /** Jump (Space, or the jump button). Not in the air already, and not the baby (she crawls). Exploring, you jump higher: over fences and walls. */
   jump() {
-    if (this.state !== 'playing' || this.air || this.char.crawl) return;
+    if (this.state !== 'playing') return;
+    if (this.seat) { this.standUp(); return; }
+    if (this.air || this.char.crawl) return;
     this.air = true;
     const j = this.mode === 'explore' ? JUMP_ROAM : JUMP;
-    this.vy = jumpSpeed(this.char.look.kind === 'kid' ? j.kid : j.up);
+    this.vy = jumpSpeed((this.char.look.kind === 'kid' ? j.kid : j.up) * (this.onBouncy() ? BOUNCE.jump : 1));
     this.started = true;
     this.sfx.jump();
   }
@@ -1817,6 +2024,10 @@ export class HouseEngine {
   interact() {
     if (this.state !== 'playing' || !this.focus) return;
     const f = this.focus;
+    if (f.kind === 'seat') {
+      if (this.seat) this.standUp(); else this.sitOn(f.index);
+      return;
+    }
     if (f.kind === 'door') {
       const d = this.doors[f.index];
       d.target = d.target > 0.5 ? 0 : 1;
@@ -1861,6 +2072,7 @@ export class HouseEngine {
     if (code === 'KeyM' && !e.repeat) { this.toggleMap(); return; }
     if (code === 'KeyV' && !e.repeat) { this.toggleView(); return; }
     if (code === 'Space') { if (!e.repeat) this.jump(); return; }
+    if (code === 'KeyZ') { if (!e.repeat) this.toggleSit(); return; }
     this.keys.add(code);
   };
   private onKeyUp = (e: KeyboardEvent) => { this.keys.delete(e.code); };
@@ -2072,11 +2284,25 @@ export class HouseEngine {
       const len = Math.hypot(fx, fz);
       if (len > 1) { fx /= len; fz /= len; }
       const speed = run ? this.char.run : this.char.walk;
+      // sitting: on a swing W and S swing you; on a bench or the ground, moving gets you up
+      if (this.seat?.kind === 'swing') this.ride(dt, fwd);
+      else if (this.seat && Math.hypot(fwd, side) > 0.1) this.standUp();
+      const seated = !!this.seat;
+      if (seated) { fx = 0; fz = 0; this.vel = [0, 0]; }
       const blend = 1 - Math.exp(-dt * 12);
       this.vel[0] += (fx * speed - this.vel[0]) * blend;
       this.vel[1] += (fz * speed - this.vel[1]) * blend;
+      // on the slide: down it you go, sitting, steering only a little
+      const down = !seated && !this.air ? slideAt(this.pos[0], this.pos[1], this.floorY) : null;
+      if (down) {
+        const along = this.vel[0] * down[0] + this.vel[1] * down[1];
+        const sx = this.vel[0] - along * down[0], sz = this.vel[1] - along * down[1];
+        const v = Math.max(along, SLIDE_SPEED);
+        this.vel = [down[0] * v + sx * 0.4, down[1] * v + sz * 0.4];
+      }
+      if (this.sliding !== !!down) { this.sliding = !!down; this.applyMyPose(); }
       if (!this.started && len > 0.05) this.started = true;
-      if (Math.hypot(this.vel[0], this.vel[1]) > 0.01) {
+      if (!seated && Math.hypot(this.vel[0], this.vel[1]) > 0.01) {
         // in the air or up on something you pass over whatever is below your feet; upstairs, over the walls below
         this.pos = moveAndSlide(this.pos, this.vel[0] * dt, this.vel[1] * dt, r, this.solid, this.obstacles(), this.floorY);
       }
@@ -2112,17 +2338,29 @@ export class HouseEngine {
 
     // the floor under you (or what you're standing on): ease toward it so stairs and slopes feel smooth;
     // in the air, gravity until you land; walk off the edge of something and you drop
+    // (on a swing, the swing holds you up)
     const ground = floorAt(this.pos[0], this.pos[1], this.floorY);
     const lifted = this.air || this.floorY > ground + LIFTED;
     const floor = lifted ? Math.max(ground, supportAt(this.pos, r, this.solid, this.floorY)) : ground;
-    if (this.air) {
+    if (this.seat?.kind === 'swing') {
+      // nothing: ride() put you where the seat is
+    } else if (this.air) {
+      const falling = this.vy;
       const s = airStep({ feet: this.floorY, vy: this.vy, air: true }, floor, this.ceilingCap(), dt);
       this.floorY = s.feet; this.vy = s.vy; this.air = s.air;
+      // the bouncy castle throws you back up
+      const up = !s.air && this.onBouncy() ? rebound(falling) : 0;
+      if (up) { this.air = true; this.vy = up; this.sfx.boing(); }
+    } else if (this.sliding) {
+      this.floorY = floor;   // down the slide: right on it, however fast
     } else if (floor < this.floorY - 0.25) {
       this.air = true; this.vy = 0;
     } else {
       this.floorY = Math.abs(floor - this.floorY) > 1.2 ? floor : this.floorY + (floor - this.floorY) * (1 - Math.exp(-dt * 16));
+      // walking on the bouncy castle bounces you
+      if (this.state === 'playing' && !this.seat && Math.hypot(this.vel[0], this.vel[1]) > 0.6 && this.onBouncy()) { this.air = true; this.vy = jumpSpeed(BOUNCE.hop); }
     }
+    this.stepSwings(dt);
 
     // items bob and turn
     for (const it of this.items) {
@@ -2200,6 +2438,14 @@ export class HouseEngine {
   }
 
   private updateFocus() {
+    const key = this.opts.touch ? 'Tap ✋' : 'E';
+    if (this.seat) {
+      // sitting: the only thing to do is get up (or swing)
+      this.focus = this.seat.kind === 'floor' ? null : { kind: 'seat', index: this.seat.i };
+      const up = this.opts.touch ? 'Tap 🪑 or move to get up' : 'Z or move to get up';
+      this.setPrompt(this.seat.kind === 'swing' ? `${this.opts.touch ? 'Push forward' : 'Hold W'} to swing higher · ${key} to get off` : this.seat.kind === 'bench' ? `${key} or move to get up` : up);
+      return;
+    }
     const fx = -Math.sin(this.yaw), fz = -Math.cos(this.yaw);
     let best: { kind: FocusKind; index: number; score: number } | null = null;
     const consider = (kind: FocusKind, index: number, x: number, z: number, maxDist = REACH, bonus = 0) => {
@@ -2232,6 +2478,13 @@ export class HouseEngine {
       const x = Math.max(sp.x0 + 0.5, Math.min(this.pos[0], sp.x1 - 0.5));
       consider('shop', i, x, SHOP_LINE, 3.6);
     });
+    // the playground's benches and swings (not for a crawling baby)
+    if (this.mode === 'explore' && !this.char.crawl) SEATS.forEach((st, i) => {
+      if (Math.abs(heightAt(st.x, st.z) - this.floorY) > 1) return;
+      const sw = st.swing !== undefined ? this.swingRigs[st.swing] : null;
+      if (sw?.rider && sw.rider !== 'me') return;
+      consider('seat', i, st.x, st.z, 1.7);
+    });
     // the hidden reward cards: you have to be inside the shop and come close for the prompt (never through the window)
     if (this.mode === 'explore') {
       const here = roomAtLevel(this.pos[0], this.pos[1], this.floorY)?.id;
@@ -2240,7 +2493,6 @@ export class HouseEngine {
     this.chores.candidates(consider);
     const b = best as { kind: FocusKind; index: number; score: number } | null;
     this.focus = b ? { kind: b.kind, index: b.index } : null;
-    const key = this.opts.touch ? 'Tap ✋' : 'E';
     let text = '';
     if (b?.kind === 'door') { const d = this.doors[b.index]; text = `${key} · ${d.target > 0.5 ? 'Close' : 'Open'} the ${d.door.label}`; }
     if (b?.kind === 'window') { const w = this.windows[b.index]; text = `${key} · ${w.target > 0.5 ? 'Close' : 'Open'} the window`; }
@@ -2248,6 +2500,7 @@ export class HouseEngine {
     if (b?.kind === 'npc') text = this.talkingTo === b.index ? `${key} · Say goodbye` : `${key} · Talk to ${firstName(this.npcs[b.index].char)}`;
     if (b?.kind === 'cat') text = `${key} · Pet the cat`;
     if (b?.kind === 'promo') text = `${key} · You found a hidden reward card! Pick it up`;
+    if (b?.kind === 'seat') { const st = SEATS[b.index]; text = `${key} · Sit on ${st.label}${st.swing !== undefined ? ' (then hold W to swing)' : ''}`; }
     if (b?.kind === 'shop') { const sp = SHOP_SPOTS[b.index]; text = `${key} · ${sp.kind === 'empty' ? `Look at ${sp.name}` : `Visit ${sp.name}`}${sp.offers.length ? ' · offers inside' : ''}`; }
     if (b?.kind === 'chore' || b?.kind === 'tool' || b?.kind === 'lock') text = this.chores.prompt(b.kind, b.index, key);
     this.setPrompt(text);
@@ -2291,13 +2544,13 @@ export class HouseEngine {
     }
     const moving = this.state === 'playing' ? Math.min(1, Math.hypot(this.vel[0], this.vel[1]) / this.char.walk) : 0;
     const bobY = this.third ? 0 : Math.sin(this.bob * 2) * (this.char.crawl ? 0.015 : 0.03) * moving;
-    const headY = this.floorY + this.char.eye + bobY;
+    const headY = this.floorY + this.eyeNow() + bobY;
     this.camera.rotation.set(this.pitch, this.yaw, 0);
     if (this.third) this.placeThirdPerson(headY);
     else this.camera.position.set(this.pos[0], headY, this.pos[1]);
     if (this.player) {
       this.player.root.position.set(this.pos[0], this.floorY, this.pos[1]);
-      this.player.root.rotation.y = this.yaw;
+      this.player.root.rotation.y = this.seat ? this.seat.yaw : this.yaw;
       animate(this.player, this.bob * (this.char.crawl ? 2.2 : 1.6), this.air ? moving * 0.3 : moving);
     }
     this.followSun();
@@ -2406,7 +2659,12 @@ export class HouseEngine {
       finish: (stepId: string) => this.chores.debugFinish(stepId),
       chores: () => this.chores.snapshot(),
       neighbours: (list: VisitorCharacter[]) => this.setNeighbours(list),
-      remotes: () => [...this.remotes.entries()].map(([id, r]) => ({ id, pos: [r.rig.root.position.x, r.rig.root.position.y, r.rig.root.position.z], visible: r.rig.root.visible, bubble: !!r.bubble })),
+      remotes: () => [...this.remotes.entries()].map(([id, r]) => ({ id, pos: [r.rig.root.position.x, r.rig.root.position.y, r.rig.root.position.z], visible: r.rig.root.visible, bubble: !!r.bubble, pose: r.pose, swing: r.swing })),
+      /** A pretend friend in the shared world (tests): one of the family, at p ([x, y, z, facing, pose?]). */
+      friend: (id: string, who: string, p: number[]) => { const c = characterById(who); if (this.remotes.has(id)) this.remoteMove(id, p); else this.remoteAdd(id, c.look, c.name.split(' ')[0], 'friend', p, !!c.crawl); },
+      /** Your position as friends get it: [x, y, z, facing, pose?]. */
+      net: () => this.netPos(),
+      sitDown: () => this.toggleSit(),
       mode: () => this.mode,
       raiwaiLayers: (near: boolean, far: boolean) => { this.raiwaiNear.visible = near; this.raiwaiFar.visible = far; },
       refreshShadows: () => this.refreshShadows(),

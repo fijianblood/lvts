@@ -30,6 +30,16 @@ export interface Solid extends Rect { top?: number; bottom?: number }
 export const JUMP = { up: 1.0, kid: 0.85, gravity: 20 };
 /** Exploring: a big jump (about 2.7 m; 2.4 m for the kids), enough to clear the compound's fences and walls at a run. */
 export const JUMP_ROAM = { up: 2.7, kid: 2.4 };
+/**
+ * The bouncy castle (a room marked `bouncy`): landing faster than `min` m/s
+ * throws you back up at `keep` of the speed you came down at; walking bounces
+ * you `hop` m up; a jump goes `jump` times as high (under the castle's roof).
+ */
+export const BOUNCE = { keep: 0.72, min: 3, hop: 0.45, jump: 1.6 };
+/** Coming down on the bouncy castle at `falling` m/s (negative): how fast it throws you back up, or 0 if you've stopped bouncing. */
+export const rebound = (falling: number) => (falling < -BOUNCE.min ? -falling * BOUNCE.keep : 0);
+/** Going down a slide: at least this fast (m/s), and only a little steering across it. */
+export const SLIDE_SPEED = 6.5;
 /** Take-off speed for a jump that peaks `apex` m up. */
 export const jumpSpeed = (apex: number) => Math.sqrt(2 * JUMP.gravity * apex);
 /** You stand on anything whose top is within this of your feet. */

@@ -216,6 +216,7 @@ function TouchControls({ engine, onPause, onMap, onView, rotated, canJump }: { e
       <div className={`hh-touch-buttons${canJump ? ' with-jump' : ''}`}>
         <button type="button" className="hh-tbtn hh-tbtn-use" onPointerDown={(e) => { e.stopPropagation(); engine.interact(); }} aria-label="Use: open or close what you are looking at">✋</button>
         {canJump && <button type="button" className="hh-tbtn hh-tbtn-jump" onPointerDown={(e) => { e.stopPropagation(); engine.jump(); }} aria-label="Jump">⬆️</button>}
+        {canJump && <button type="button" className="hh-tbtn" onPointerDown={(e) => { e.stopPropagation(); engine.toggleSit(); }} aria-label="Sit down, or get up">🪑</button>}
         <button type="button" className={`hh-tbtn${run ? ' on' : ''}`} onPointerDown={(e) => { e.stopPropagation(); const v = !run; setRun(v); engine.setRun(v); }} aria-label="Run">🏃</button>
         <button type="button" className="hh-tbtn" onPointerDown={(e) => { e.stopPropagation(); onMap(); }} aria-label="Map">🗺️</button>
         <button type="button" className="hh-tbtn" onPointerDown={(e) => { e.stopPropagation(); onView(); }} aria-label="Switch between first and third person">🎥</button>
@@ -850,7 +851,7 @@ export default function HouseGame() {
                   <li><b>Left thumb</b> walk</li>
                   <li><b>Right thumb</b> look</li>
                   <li><b>✋</b> open doors, talk to the family</li>
-                  <li><b>⬆️</b> jump over things · <b>🏃</b> run</li>
+                  <li><b>⬆️</b> jump over things · <b>🏃</b> run · <b>🪑</b> sit down</li>
                   <li><b>🗺️</b> map · <b>📋</b> chores · <b>🎥</b> view · <b>🔄</b> rotate · <b>✕</b> quit</li>
                   {SHARED && <li><b>💬</b> chat with other players while exploring</li>}
                 </>
@@ -859,7 +860,7 @@ export default function HouseGame() {
                   <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk</li>
                   <li><b>Mouse</b> look · <kbd>X</kbd> quit</li>
                   <li><kbd>E</kbd> open doors, talk to the family</li>
-                  <li><kbd>Space</kbd> jump over things · <kbd>Shift</kbd> run</li>
+                  <li><kbd>Space</kbd> jump over things · <kbd>Shift</kbd> run · <kbd>Z</kbd> sit down</li>
                   <li><kbd>M</kbd> map · <kbd>C</kbd> chores · <kbd>V</kbd> view</li>
                   {SHARED && <li><kbd>T</kbd> chat with other players while exploring</li>}
                 </>

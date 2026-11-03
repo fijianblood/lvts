@@ -134,6 +134,28 @@ test('world: moves go out together, kept inside Raiwai, and not too often', asyn
   assert.deepEqual(a.saved?.player?.p, [5.12, -3.6, 21, s.m[0][4]], 'position not saved for after a sleep');
 });
 
+test('world: how a player is posed (sitting, on the ground, on a swing) goes to everyone with their moves; anything else is standing', async () => {
+  const { world, join, tick, flush } = setup();
+  const a = await join('va');
+  const b = await join('vb');
+  const ida = last(a, 'welcome')!.you;
+  tick(200);
+  await world.message(a, JSON.stringify({ t: 'm', p: [53, -0.05, -3, 0, 3] }));   // on a swing at Loma Castle
+  flush();
+  assert.deepEqual(last(b, 's')!.m, [[ida, 53, -0.05, -3, 0, 3]]);
+  assert.deepEqual(a.saved?.player?.p, [53, -0.05, -3, 0, 3]);
+  tick(200);
+  await world.message(a, JSON.stringify({ t: 'm', p: [54, -0.6, -1, 0] }));        // standing again: no fifth number
+  flush();
+  assert.deepEqual(last(b, 's')!.m, [[ida, 54, -0.6, -1, 0]]);
+  // a pose is 1, 2 or 3; anything else is dropped (standing), and more than five numbers isn't a position
+  assert.deepEqual(cleanPos([1, 2, 3, 0, 1]), [1, 2, 3, 0, 1]);
+  assert.deepEqual(cleanPos([1, 2, 3, 0, 2]), [1, 2, 3, 0, 2]);
+  for (const bad of [0, 4, 1.5, -1]) assert.deepEqual(cleanPos([1, 2, 3, 0, bad]), [1, 2, 3, 0]);
+  assert.equal(cleanPos([1, 2, 3, 0, 1, 1]), null);
+  assert.equal(cleanPos([1, 2, 3, 0, Number.NaN]), null);
+});
+
 test('world: chat goes to everyone; slow down, filters, and a mute after repeated blocked messages', async () => {
   const { world, join, tick } = setup();
   const a = await join('va');

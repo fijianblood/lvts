@@ -13,14 +13,16 @@ export { REPORT_WHY } from '../../../workers/neighbourhood/src/world.ts';
 
 export type LinkStatus = 'off' | 'connecting' | 'online' | 'full' | 'banned' | 'offline';
 export type JoinWho = { kind: 'family'; id: string } | { kind: 'mine'; look: VisitorLook; id?: string; key?: string };
-export type Pos = [number, number, number, number];
+/** Where you are: x, feet height, z, facing; then how you're posed (sitting, swinging…), left off when you're standing. */
+export type Pos = number[];
 
 export interface LinkEvents {
   status(s: LinkStatus): void;
   welcome(you: string, label: string, players: Pub[]): void;
   join(p: Pub): void;
   leave(id: string): void;
-  moves(m: [string, number, number, number, number][]): void;
+  /** Everyone who moved: [id, x, y, z, facing] and, when they aren't standing, how they're posed. */
+  moves(m: [string, ...number[]][]): void;
   chat(id: string, text: string): void;
   /** Something to tell the player: a message that didn't go, a mute, a report received. */
   notice(text: string): void;
@@ -139,7 +141,7 @@ export class WorldLink {
         break;
       case 'join': if (m.p && (m.p as Pub).id !== this.you) this.on.join(m.p as Pub); break;
       case 'leave': this.on.leave(String(m.id)); break;
-      case 's': this.on.moves(((m.m as [string, number, number, number, number][]) ?? []).filter((x) => x[0] !== this.you)); break;
+      case 's': this.on.moves(((m.m as [string, ...number[]][]) ?? []).filter((x) => x[0] !== this.you)); break;
       case 'c': this.on.chat(String(m.id), String(m.text)); break;
       case 'no': this.on.notice(String(m.text)); break;
       case 'muted': this.on.notice(`You can't chat for a while (until ${new Date(Number(m.until)).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}) after several blocked messages.`); break;
@@ -150,7 +152,7 @@ export class WorldLink {
   private tick() {
     const p = this.getPos();
     const s = this.sent;
-    if (s && Math.abs(p[0] - s[0]) < 0.02 && Math.abs(p[1] - s[1]) < 0.02 && Math.abs(p[2] - s[2]) < 0.02 && Math.abs(p[3] - s[3]) < 0.02) return;
-    if (this.send({ t: 'm', p: p.map((v, i) => Math.round(v * (i === 3 ? 1000 : 100)) / (i === 3 ? 1000 : 100)) })) this.sent = p;
+    if (s && Math.abs(p[0] - s[0]) < 0.02 && Math.abs(p[1] - s[1]) < 0.02 && Math.abs(p[2] - s[2]) < 0.02 && Math.abs(p[3] - s[3]) < 0.02 && (p[4] ?? 0) === (s[4] ?? 0)) return;
+    if (this.send({ t: 'm', p: p.map((v, i) => (i === 4 ? Math.round(v) : Math.round(v * (i === 3 ? 1000 : 100)) / (i === 3 ? 1000 : 100))) })) this.sent = p;
   }
 }
