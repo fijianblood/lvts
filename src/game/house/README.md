@@ -274,7 +274,11 @@ on them. Baby Aisha babbles, coos and reaches for cuddles instead of talking.
   server side, the chat filter and the free-plan limits are in
   `workers/neighbourhood/` and its README. Other players' figures are baked into
   one mesh per moving part (`bakeMoving` in `figures.ts`: about 10 draw calls a
-  person), and only the nearest 16 within 90 m are drawn.
+  person), and only the nearest 16 within 90 m are drawn. Your moves carry how
+  you're posed when you aren't standing (1 sitting on a seat, 2 on the ground or
+  going down the slide, 3 on a swing), so friends see you sit and swing; the
+  server keeps it (`cleanPos`), and standing sends the same four numbers as
+  before, so older copies of the game still work.
 - **The look.** See "How it looks" below.
 
 ## How it looks (and keeping it fast)
@@ -328,6 +332,13 @@ From the gate, the places along the road to the left (east) are:
 - beyond the training ground, the commercial sheds, the arena and stadium lights, and the sea with the reef's surf;
 - up the hill to the north and west, more houses, flats and an apartment block, and the hills behind;
 - between the teal building and the training ground, the **Raiwai Lookout** (new, `towers.ts`): a 10 m square cream tower with orange bands and stairs up its outside to a railed roof 20 m up. The stairs start at its north-west corner and wrap once round the tower (a flight up each side, a landing at each corner), so you walk all the way up; nothing on it can be jumped. At the top you get a message and the whole map is cleared, like the treehouse. There's a gap in the footpath's low wall across the road from the training ground to walk over to it.
+- up the side road, on the right, **Loma Castle Playground** (new, `playground.ts`), through a gap in the side road's wall and the arch over its gate:
+  - **The bouncy castle.** A big red, yellow and blue one with a turret at each corner, netting and a striped roof. Go in up the step through the doorway in its west wall. On its floor a landing throws you back up (each bounce a bit lower, `BOUNCE` in `collision.ts`), walking bounces you, and a jump goes higher. Its walls and netting have no top, so they hold you in however high you go, and its roof keeps your head under it.
+  - **The slide.** Climb the inflatable steps on its east side to the platform at the top, then walk onto the slide: you sit and it takes you down (`slide` on its ramp; you can't walk back up it).
+  - **The swings.** Three on a swing set: walk up to one and press **E** to sit on it, hold **W** (or push forward) to swing higher, S to slow down, E to get off. The engine draws the swings, because they move.
+  - **Benches.** Press **E** to sit, E again or move to get up.
+  - **Sitting anywhere:** **Z** (🪑 on phones) sits you down on the ground wherever you are; move, Z or Space to get up.
+  - In the shared world, friends see you bounce, slide, sit and swing.
 
 The minimap shows the street map in detail as before, over a coarser map of
 all of Raiwai when exploring (no fog out there), and the big map (M) can be
@@ -340,6 +351,7 @@ The public places are modelled on drone photos of the area.
 
 - `raiwaiPlan.ts`: where everything goes (plain data: footprints, faces, which things only show when exploring), the signs, the road labels, trees and power poles.
 - `towers.ts`: the Raiwai Lookout (its stairs as ramps and landings, its walls and rails, and what's drawn).
+- `playground.ts`: Loma Castle Playground (the castle's floor and step, the slide and its steps as ramps and platforms, the walls and fence, the benches and swings to sit on, what's drawn).
 - `raiwai.ts`: the 3D pieces (houses, flats, church, pool, teal building, training ground, the masjid, the temple, sheds, bus, cars, poles, mango trees, bougainvillea).
 - `layout.ts`: `MCFARLANE`, `SIDE_ROAD`, `MASJID`, the walls along them, and `PARKED` (cars and the bus, with colliders).
 - `gardenCity.ts`: Garden City (see "Shops" above).
@@ -494,6 +506,7 @@ there too, add the same three values as build variables in its settings.
 | `raiwaiPlan.ts` | Where everything in Raiwai goes (plain data, used by the engine, the minimap and the tests). |
 | `raiwai.ts` | Raiwai's 3D pieces: houses, flats, the Methodist Church, the pool, the teal building, the Lomaiviti Training Ground, the Raiwai Jame Masjid, the Howell Road Hindu Temple, sheds, the Nasese bus, cars, power poles, trees. |
 | `towers.ts` | The Raiwai Lookout, the tower you can walk up when exploring: its stairs round the outside (ramps and landings), walls, rails and what's drawn. |
+| `playground.ts` | Loma Castle Playground: the bouncy castle, the slide, the swings and benches (`SEATS`, `SWINGS`), its fence and arch. |
 | `gardenCity.ts` | Garden City, the shopping complex being built after Sardaar Complex: plain data for its fence, sign, car park, building, building site, the Westpac branch, and its stairs and first floor (an upper floor). |
 | `damodarCity.ts` | Damodar City, the centre across the road: its sign, car park, shops (with doors and insides), the BSP branch, Vodafone, Digicel, Bondwell and Damodar Cinemas' lobby, and where the reward cards are hidden. |
 | `promos.ts` | LvTS's hidden reward cards in Digicel and Vodafone: the wording, the wallets, and the 8-digit codes from the secrets. |
@@ -523,8 +536,11 @@ arena, never past the edge of the map, into a building or through a parked
 car, with no ledge anywhere; jumping clears fences and walls but never the
 edge, a building, a locked place or a place of worship's walls; which
 barriers can be jumped), the Raiwai Lookout (up its stairs to its roof 20 m
-up with no step too big, and no other way up), that there's one LvTS plaque per building, the shared world
-(joining, names, moves, the chat filter, mutes, reports, bans, full and idle
+up with no step too big, and no other way up), Loma Castle Playground (in through its gate, into the castle and up to
+the slide's platform with no ledge anywhere, the castle's walls holding at the top of a bounce, the bounces
+dying away under its roof, the slide down to the ground, every bench and swing in reach with room to get up,
+nothing in a swing's way), that there's one LvTS plaque per building, the shared world
+(joining, names, moves and poses, the chat filter, mutes, reports, bans, full and idle
 players, waking up after a sleep), and the prize-code
 scrambling and round dates. For jumping, it checks the jump itself (height,
 landing, the ceiling cap, clearing a barrier at a run, walls stopping you),
