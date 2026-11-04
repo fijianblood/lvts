@@ -1,5 +1,8 @@
 import { useScrollFade } from '../hooks/useScrollFade';
 import { Monitor, Wrench, Wifi, ShieldCheck, Globe, Printer, Rss, ExternalLink, Award, BadgeCheck, Tag, Star } from 'lucide-react';
+import { openWhatsApp } from '../data/contact';
+
+const BOOK_REPAIR_MESSAGE = "Bula LvTS, I'd like to book a repair.";
 
 const GOOGLE_REVIEWS_URL = 'https://www.google.com/maps?cid=7436351358223208834';
 
@@ -80,7 +83,7 @@ function ServiceCard({ s, i }: { s: (typeof SERVICES)[number]; i: number }) {
   );
 }
 
-export default function ServicesPage({ onNav }: { onNav: (p: string) => void }) {
+export default function ServicesPage() {
   const heroRef = useScrollFade();
   const extraRef = useScrollFade();
   const trustRef = useScrollFade();
@@ -196,7 +199,7 @@ export default function ServicesPage({ onNav }: { onNav: (p: string) => void }) 
                 <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '0.35rem' }}>Transparent Pricing</div>
                 <div style={{ fontSize: '0.8rem', color: '#64748b', lineHeight: 1.6, marginBottom: '1rem' }}>Repairs from FJD $25, quoted upfront before any work begins — no hidden fees.</div>
               </div>
-              <button onClick={() => onNav('contact')}
+              <button onClick={() => openWhatsApp(BOOK_REPAIR_MESSAGE)}
                 style={{ alignSelf: 'flex-start', background: 'linear-gradient(135deg,#2563eb,#7c3aed)', border: 'none', color: '#fff', padding: '0.6rem 1.3rem', borderRadius: 8, fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}>
                 Book a Repair
               </button>
@@ -217,7 +220,7 @@ export default function ServicesPage({ onNav }: { onNav: (p: string) => void }) 
               <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '0.25rem' }}>Laptop/Computer/Printer</div>
               <div style={{ fontSize: '1.5rem', fontFamily: "'Syne',sans-serif", fontWeight: 800, color: '#06b6d4' }}>Repairs from FJD $25</div>
               <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.4rem' }}>Any brand · Any problem · Suva & surrounds</div>
-              <button onClick={() => onNav('contact')}
+              <button onClick={() => openWhatsApp(BOOK_REPAIR_MESSAGE)}
                 style={{ marginTop: '1rem', background: 'linear-gradient(135deg,#2563eb,#7c3aed)', border: 'none', color: '#fff', padding: '0.65rem 1.4rem', borderRadius: 8, fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer' }}>
                 Book a Repair
               </button>

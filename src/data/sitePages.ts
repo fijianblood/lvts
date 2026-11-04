@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
 import {
-  IconTool, IconWorld, IconGift, IconTruck,
-  IconDeviceGamepad2, IconHammer, IconChalkboard, IconHeartbeat, IconSeo, IconMessageCircle, IconMail,
+  IconTool, IconGift,
+  IconHammer, IconChalkboard, IconHeartbeat, IconSeo, IconMessageCircle,
   IconTopologyStar3, IconKey, IconHomeSearch,
 } from '@tabler/icons-react';
 
@@ -20,14 +20,8 @@ export const SITE_PAGES: SitePage[] = [
     blurb: 'Chat with Loma, a free instant-answer assistant for repairs, Windows 11 troubleshooting, pricing, and general site questions.' },
   { id: 'services', label: 'Services', icon: IconTool, color: '#2563eb',
     blurb: 'An overview of everything LomaVata Tech Services offers across Fiji — PC/laptop repair, gas oven servicing, networking/CCTV, antivirus, printers, email hosting, and the Vitikart store.' },
-  { id: 'website', label: 'Website', icon: IconWorld, color: '#06b6d4',
-    blurb: 'Web development services — landing pages up to full e-commerce platforms, with tiered Basic/Standard/Premium pricing packages, plus interactive 3D websites (animated heroes, product viewers, virtual showrooms) as an add-on.' },
   { id: 'rewards', label: 'Rewards', icon: IconGift, color: '#f59e0b',
     blurb: 'LomaVata Rewards — a Fiji prize-draw loyalty program. Buy an entry or monthly membership via M-PAiSA/My Cash for weekly draws and a monthly Mega Draw.' },
-  { id: 'ranger', label: 'Ranger XL', icon: IconTruck, color: '#16a34a',
-    blurb: "A personal service-log dashboard for Joe's 2024 Ford Ranger XL 4x4 — tracks kilometres, service dates, and delivery date." },
-  { id: 'play', label: 'Play', icon: IconDeviceGamepad2, color: '#ec4899',
-    blurb: 'The Weave Playground — a custom coding language and game built from scratch, with two $50 FJD contests to win by solving levels.' },
   { id: 'house', label: 'Noqublox', icon: IconHomeSearch, color: '#f59e0b',
     blurb: 'Noqublox ("noqu" is iTaukei for "my"): a virtual universe of places in Fiji, made by LvTS and played in your web browser. Right now it is Raiwai, by USP and around the blocks — a 3D walk-through of a Suva family home and its yard: play as a member of the family, find 12 hidden tech parts, hunt the Golden Chip and get out through the front gate. During prize rounds the win screen shows a secret code to claim a cash prize paid by M-PAiSA. Visitors can create their own character and explore the neighbourhood together with everyone else online (one shared world with filtered chat): McFarlane Road and its shops, Garden City, Damodar City, the temple, the masjid and the USP campus.' },
   { id: 'tools', label: 'Tools', icon: IconHammer, color: '#f97316',
@@ -40,8 +34,6 @@ export const SITE_PAGES: SitePage[] = [
     blurb: 'An interactive 3D diagram showing how a reliable, secure small-office network is architected — ISP hand-off through firewall, switches, servers, and Wi-Fi.' },
   { id: 'seo', label: 'SEO Tools', icon: IconSeo, color: '#2563eb',
     blurb: 'A free embedded suite of SEO, keyword, and website-analysis tools, powered by SEOStudio Tools.' },
-  { id: 'contact', label: 'Contact', icon: IconMail, color: '#ef4444',
-    blurb: 'Get in touch — book a repair, request a quote, see contact details, and learn more about Joe and LomaVata Tech Services.' },
   { id: 'activation', label: 'Activation', icon: IconKey, color: '#8b5cf6',
     blurb: 'Help with Windows and software activation — keys, troubleshooting, and guides.' },
 

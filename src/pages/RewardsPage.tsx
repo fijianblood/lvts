@@ -3,6 +3,9 @@ import {
   Gift, Ticket, Trophy, Fuel, ShoppingCart, Sparkles,
   CheckCircle2, Shield, Calendar, ArrowRight,
 } from 'lucide-react';
+import { openWhatsApp } from '../data/contact';
+
+const REGISTER_MESSAGE = "Bula LvTS, I'd like to register my interest in LomaVata Rewards.";
 
 const HOW_IT_WORKS = [
   { icon: <Ticket size={22} />, title: 'Choose a Package', desc: 'Pick a single entry for one draw, or a monthly membership for ongoing entries.' },
@@ -46,7 +49,7 @@ const FAQ = [
   { q: 'Can I enter more than once?', a: 'Yes — you can purchase additional single entries, or stack your odds by staying on a monthly membership across multiple draw periods.' },
 ];
 
-export default function RewardsPage({ onNav }: { onNav: (p: string) => void }) {
+export default function RewardsPage() {
   const heroRef = useScrollFade();
   const howRef = useScrollFade();
   const pkgRef = useScrollFade();
@@ -75,7 +78,7 @@ export default function RewardsPage({ onNav }: { onNav: (p: string) => void }) {
           </p>
 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button onClick={() => onNav('contact')}
+            <button onClick={() => openWhatsApp(REGISTER_MESSAGE)}
               style={{ background: 'linear-gradient(135deg,#f59e0b,#ea580c)', border: 'none', color: '#fff', padding: '0.85rem 2rem', borderRadius: 10, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', transition: 'transform 0.2s' }}
               onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
               onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}>
@@ -140,7 +143,7 @@ export default function RewardsPage({ onNav }: { onNav: (p: string) => void }) {
                     </div>
                   ))}
                 </div>
-                <button onClick={() => onNav('contact')}
+                <button onClick={() => openWhatsApp(REGISTER_MESSAGE)}
                   style={{ width: '100%', background: pkg.popular ? `linear-gradient(135deg,${pkg.color},#ea580c)` : '#f8fafc', border: pkg.popular ? 'none' : `1px solid ${pkg.color}`, color: pkg.popular ? '#fff' : pkg.color, padding: '0.8rem', borderRadius: 10, fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer', transition: 'opacity 0.2s' }}
                   onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
                   onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
@@ -222,7 +225,7 @@ export default function RewardsPage({ onNav }: { onNav: (p: string) => void }) {
         <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '1rem', marginBottom: '2rem' }}>
           Register your interest and we'll let you know the moment sign-ups open.
         </p>
-        <button onClick={() => onNav('contact')}
+        <button onClick={() => openWhatsApp(REGISTER_MESSAGE)}
           style={{ background: '#fff', border: 'none', color: '#b45309', padding: '1rem 2.5rem', borderRadius: 12, fontWeight: 800, fontSize: '1rem', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}
           onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.2)'; }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)'; }}>

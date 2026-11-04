@@ -58,7 +58,7 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
     answer:
       "**Website design & development**\n\n" +
       "We build websites for local businesses — from simple landing pages to full sites with online stores, booking forms, and custom features (like this chat!).\n\n" +
-      "Pricing depends on scope — check out the **Website** page in the nav for details, or [message us on WhatsApp](https://wa.me/6797466941) to talk through what you need.",
+      "Pricing depends on scope — [message us on WhatsApp](https://wa.me/6797466941) to talk through what you need.",
   },
   {
     id: 'online-store',
@@ -102,7 +102,7 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
       'yo',
     ],
     answer:
-      "Bula! 👋 Ask me about PC/laptop repairs, Windows 11 troubleshooting, websites, our online store, the Weave Playground contest, or anything else LvTS — what can I help with?",
+      "Bula! 👋 Ask me about PC/laptop repairs, Windows 11 troubleshooting, websites, our online store, or anything else LvTS — what can I help with?",
   },
   {
     id: 'greeting-thanks',
@@ -115,20 +115,6 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
     answer: "Moce! Feel free to come back anytime, or [message us on WhatsApp](https://wa.me/6797466941) if anything comes up. 👋",
   },
   {
-    id: 'weave-playground',
-    keywords: [
-      'weave', 'playground', 'coding game', 'the game', 'win $50', '$50 contest', 'level 37',
-      'level 36', 'level 50', 'how do i win', 'play the game', 'weave playground',
-    ],
-    answer:
-      "**The Weave Playground**\n\n" +
-      "It's a tiny coding language Joe built from scratch — real interpreter, running live in your browser, with keywords mapped to web-dev concepts (`state`, `component`, `mount`, `route`). 50 levels, plus a free sandbox to freestyle in.\n\n" +
-      "**One $50 FJD contest:**\n" +
-      "- **Levels 1–50:** first to finish level 50, screenshot the victory page, and post it in the comments wins $50 FJD.\n" +
-      "- Every day, 2 answers get posted from level 11 till level 50 on our Facebook page — follow @lvtsfiji to catch them.\n\n" +
-      "Sign up with your name, email, and phone on the **Play** page to start — that's how we contact the winner.",
-  },
-  {
     id: 'three-d-websites',
     keywords: [
       '3d website', '3d site', '3d sites', 'animated site', 'interactive website',
@@ -137,7 +123,7 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
     answer:
       "**3D websites**\n\n" +
       "Interactive, animated 3D sections for your site — product viewers, virtual showrooms, animated heroes. Starting from around FJD $150 for a single animated section, or FJD $600 for a full multi-section 3D build.\n\n" +
-      "Prices can vary by scope, so check the **Website** page or [message us on WhatsApp](https://wa.me/6797466941) to confirm for your project.",
+      "Prices can vary by scope, so [message us on WhatsApp](https://wa.me/6797466941) to confirm for your project.",
   },
   {
     id: 'lomavata-rewards',

@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { openWhatsApp } from '../data/contact';
 
-interface NetworkDiagramPageProps {
-  onNav: (page: string) => void;
-}
-
-export default function NetworkDiagramPage({ onNav }: NetworkDiagramPageProps) {
+export default function NetworkDiagramPage() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [height, setHeight] = useState(1280);
 
@@ -65,7 +62,7 @@ export default function NetworkDiagramPage({ onNav }: NetworkDiagramPageProps) {
 
       <div style={{ maxWidth: 700, margin: '0 auto' }}>
         <button
-          onClick={() => onNav('contact')}
+          onClick={() => openWhatsApp("Bula LvTS, I'd like help setting up my office network.")}
           style={{ display: 'block', width: '100%', background: 'linear-gradient(135deg,#2563eb,#7c3aed)', border: 'none', color: '#fff', padding: '1.1rem', borderRadius: 14, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: '1.05rem', cursor: 'pointer', transition: 'transform 0.2s' }}
           onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
           onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
