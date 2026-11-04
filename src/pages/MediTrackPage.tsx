@@ -59,7 +59,7 @@ export default function MediTrackPage() {
       <div style={{ maxWidth: 760, margin: '0 auto 2.5rem' }}>
         <iframe
           ref={iframeRef}
-          src={`${import.meta.env.BASE_URL}meditrack/index.html`}
+          src={`${import.meta.env.BASE_URL}meditrack/app.html`}
           title="MediTrack Fiji"
           style={{ width: '100%', height, border: 'none', display: 'block' }}
         />

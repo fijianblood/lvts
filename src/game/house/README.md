@@ -2,11 +2,11 @@
 
 The game was called the House Hunt, then Vaqara Raiwai; it's now **Noqublox**.
 *Noqu* is iTaukei for "my", so it reads as "my blox". You play in Raiwai, by
-USP and around the blocks. The page is still at `#house`, so links already
-shared keep working.
+USP and around the blocks. The page is at `/noqublox/` (fijianblood.github.io/lvts/noqublox/);
+old `#house` links already shared still work, they move to it.
 
 A first-person 3D walk through the house and the compound around it,
-at `#house` on the site. Pick a family member to play as, find the 12 tech
+at `/noqublox/` on the site. Pick a family member to play as, find the 12 tech
 parts, hunt the Golden Chip (it hides in one of 12 spots, picked at random each
 game), and leave through the front gate at the bottom of the driveway. If you
 have the Golden Chip when you escape, the win card shows the secret code for
@@ -143,7 +143,7 @@ on them. Baby Aisha babbles, coos and reaches for cuddles instead of talking.
   device straight away and can be played in the hunt or when exploring.
 - **In the game for good.** The character is also sent to the LvTS
   Neighbourhood server (`workers/neighbourhood`). Nobody else sees it until
-  LvTS approves it on the hidden admin page, `#neighbours-admin`. Once
+  LvTS approves it on the hidden admin page, `/neighbours-admin/`. Once
   approved, it stands on the footpath across the road for everyone who
   explores, and you can talk to it. The creator can change or delete it from
   the same card (a new name goes back for approval). Until the server is
@@ -267,7 +267,7 @@ on them. Baby Aisha babbles, coos and reaches for cuddles instead of talking.
   and anything that looks like contact details (phone numbers, emails, links,
   social media, "where do you live") are never sent, and the player is told
   why. The chat box's **Here** tab lists everyone, with a 🚩 Report button.
-  LvTS reads reports and bans players on the admin page (`#neighbours-admin`).
+  LvTS reads reports and bans players on the admin page (`/neighbours-admin/`).
   The hunt stays a game you play on your own. With no server, or when it can't
   be reached or is full (40 players), you simply explore on your own. The game
   side is `online.ts` (the connection) and `SharedWorld.tsx` (the screens); the
@@ -455,7 +455,7 @@ Create `.env.local` in the repo root (it is git-ignored):
 HOUSE_PRIZE_CODES=2026-10-01=LVTS-TEST01
 ```
 
-then `npm run dev` and open `http://localhost:5173/lvts/#house`.
+then `npm run dev` and open `http://localhost:5173/lvts/noqublox/`.
 
 ## The hidden reward cards (Digicel and Vodafone)
 

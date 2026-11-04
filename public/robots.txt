@@ -1,0 +1,5 @@
+# Search engines may read every page. The list of pages is in the sitemap.
+User-agent: *
+Allow: /
+
+Sitemap: https://fijianblood.github.io/lvts/sitemap.xml

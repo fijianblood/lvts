@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- The site's sections are #hash links on one page, and Google ignores everything after #,
-     so the homepage is the only address to list. Submit this file in Google Search Console. -->
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://fijianblood.github.io/lvts/</loc>
-    <lastmod>2026-11-04</lastmod>
-  </url>
-</urlset>
