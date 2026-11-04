@@ -314,7 +314,7 @@ export default function HomePage({ onNav }: { onNav: (p: string) => void }) {
             ].map(n => (
               <div key={n.title} className="card-3d" style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}>
                 <a href={n.img} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
-                  <img src={n.img} alt={n.title} style={{ width: '100%', height: 200, objectFit: 'cover', display: 'block' }} />
+                  <img src={n.img} alt={n.title} loading="lazy" decoding="async" style={{ width: '100%', height: 200, objectFit: 'cover', display: 'block' }} />
                 </a>
                 <div style={{ padding: '1.2rem' }}>
                   <div style={{ display: 'inline-block', background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 6, padding: '0.2rem 0.6rem', fontSize: '0.7rem', fontWeight: 700, color: '#2563eb', marginBottom: '0.6rem', letterSpacing: '0.05em' }}>{n.tag}</div>
