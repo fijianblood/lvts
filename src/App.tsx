@@ -5,11 +5,7 @@ import NavBar from './components/NavBar';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import ServicesPage from './pages/ServicesPage';
-import WebsitePage from './pages/WebsitePage';
 import RewardsPage from './pages/RewardsPage';
-import RangerPage from './pages/RangerPage';
-import ContactPage from './pages/ContactPage';
-import PlayPage from './pages/PlayPage';
 import ToolsPage from './pages/ToolsPage';
 import AskLvtsPage from './pages/AskLvtsPage';
 import ChatWidget from './components/ChatWidget';
@@ -24,7 +20,7 @@ const HouseHuntPage = lazy(() => import('./pages/HouseHuntPage'));
 // LvTS only (not linked anywhere): approve visitors' neighbourhood characters.
 const NeighbourhoodAdminPage = lazy(() => import('./pages/NeighbourhoodAdminPage'));
 
-const VALID_PAGES = ['home', 'services', 'website', 'rewards', 'ranger', 'play', 'house', 'tools', 'whiteboard', 'meditrack', 'seo', 'network', 'ask', 'contact', 'activation', 'neighbours-admin'];
+const VALID_PAGES = ['home', 'services', 'rewards', 'house', 'tools', 'whiteboard', 'meditrack', 'seo', 'network', 'ask', 'activation', 'neighbours-admin'];
 
 function initialPage() {
   const hash = window.location.hash.replace('#', '');
@@ -34,11 +30,8 @@ function initialPage() {
 function renderPage(page: string, onNav: (p: string) => void) {
   switch (page) {
     case 'home':     return <HomePage     onNav={onNav} />;
-    case 'services': return <ServicesPage onNav={onNav} />;
-    case 'website':  return <WebsitePage  onNav={onNav} />;
-    case 'rewards':  return <RewardsPage  onNav={onNav} />;
-    case 'ranger':   return <RangerPage />;
-    case 'play':     return <PlayPage />;
+    case 'services': return <ServicesPage />;
+    case 'rewards':  return <RewardsPage />;
     case 'house':    return (
       <Suspense fallback={<div style={{ padding: '160px 1.5rem', textAlign: 'center', color: '#64748b' }}>Loading Noqublox…</div>}>
         <HouseHuntPage />
@@ -46,11 +39,10 @@ function renderPage(page: string, onNav: (p: string) => void) {
     );
     case 'tools':    return <ToolsPage />;
     case 'whiteboard': return <WhiteboardPage />;
-    case 'meditrack': return <MediTrackPage onNav={onNav} />;
+    case 'meditrack': return <MediTrackPage />;
     case 'seo':      return <SeoToolsPage />;
-    case 'network':  return <NetworkDiagramPage onNav={onNav} />;
+    case 'network':  return <NetworkDiagramPage />;
     case 'ask':      return <AskLvtsPage />;
-    case 'contact':  return <ContactPage />;
     case 'activation': return <ActivationHelpPage />;
     case 'neighbours-admin': return <Suspense fallback={null}><NeighbourhoodAdminPage /></Suspense>;
     default:         return null;

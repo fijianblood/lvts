@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
-
-interface MediTrackPageProps {
-  onNav: (page: string) => void;
-}
+import { openWhatsApp } from '../data/contact';
 
 // Stored reversed and split so it isn't a plain grep-able string in the bundle.
 const TREASURE_CODE_PARTS = ['02ERUSAERT', '-STVL'];
@@ -11,7 +8,7 @@ function getTreasureCode() {
   return TREASURE_CODE_PARTS.join('').split('').reverse().join('');
 }
 
-export default function MediTrackPage({ onNav }: MediTrackPageProps) {
+export default function MediTrackPage() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [height, setHeight] = useState(760);
   const [showTreasure, setShowTreasure] = useState(false);
@@ -84,7 +81,7 @@ export default function MediTrackPage({ onNav }: MediTrackPageProps) {
         </div>
 
         <button
-          onClick={() => onNav('contact')}
+          onClick={() => openWhatsApp("Bula LvTS, I'd like to talk about MediTrack.")}
           style={{ display: 'block', width: '100%', background: 'linear-gradient(135deg,#2563eb,#7c3aed)', border: 'none', color: '#fff', padding: '1.1rem', borderRadius: 14, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: '1.05rem', cursor: 'pointer', transition: 'transform 0.2s' }}
           onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
           onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}

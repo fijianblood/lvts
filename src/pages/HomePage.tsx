@@ -177,8 +177,8 @@ export default function HomePage({ onNav }: { onNav: (p: string) => void }) {
             One Home Base, <span className="grad-text">Everything LvTS</span>
           </h2>
           <p style={{ color: '#64748b', lineHeight: 1.8, fontSize: '0.95rem' }}>
-            This site is the front door to everything LomaVata Tech Services does — repairs, web builds, the Weave
-            Playground coding game, MediTrack, network setup help, and more. Use the directory below to jump straight
+            This site is the front door to everything LomaVata Tech Services does — repairs, web builds, the
+            Noqublox game, MediTrack, network setup help, and more. Use the directory below to jump straight
             to any page, or check the FAQ if you're not sure where to start.
           </p>
         </div>
