@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { Gamepad2, Trophy, ShieldCheck, Map as MapIcon, Database } from 'lucide-react';
 import { useScrollFade } from '../hooks/useScrollFade';
 import HouseGame from '../game/house/HouseGame';
@@ -9,12 +8,7 @@ const BASE = import.meta.env.BASE_URL;
 export default function HouseHuntPage() {
   const heroRef = useScrollFade();
   const prize = prizeState();
-  // the game's name on the browser tab while the game page is open
-  useEffect(() => {
-    const before = document.title;
-    document.title = 'Noqublox | LvTS';
-    return () => { document.title = before; };
-  }, []);
+  // The tab title for this page is set by App.tsx from src/data/routes.ts.
   const card: React.CSSProperties = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '1.3rem 1.4rem' };
   const h3: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, color: '#0f172a', fontSize: '1rem', marginBottom: '0.6rem' };
   const p: React.CSSProperties = { color: '#475569', fontSize: '0.88rem', lineHeight: 1.7 };

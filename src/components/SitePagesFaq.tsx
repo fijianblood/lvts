@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { IconChevronDown } from '@tabler/icons-react';
 import { SITE_PAGES } from '../data/sitePages';
+import { pageLink } from '../links';
 
 interface SitePagesFaqProps {
   onNav: (p: string) => void;
@@ -33,14 +34,14 @@ export default function SitePagesFaq({ onNav }: SitePagesFaqProps) {
             {PAGES.map(p => {
               const Icon = p.icon;
               return (
-                <button
+                <a
                   key={p.id}
-                  onClick={() => onNav(p.id)}
+                  {...pageLink(p.id, onNav)}
                   className="card-3d"
                   style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem',
                     background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '0.9rem 0.4rem',
-                    cursor: 'pointer', transition: 'border-color 0.2s',
+                    cursor: 'pointer', transition: 'border-color 0.2s', textDecoration: 'none',
                   }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = p.color; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; }}
@@ -49,7 +50,7 @@ export default function SitePagesFaq({ onNav }: SitePagesFaqProps) {
                     {Icon && <Icon size={18} color={p.color} stroke={2} />}
                   </div>
                   <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#334155', textAlign: 'center', lineHeight: 1.2 }}>{p.label}</span>
-                </button>
+                </a>
               );
             })}
           </div>
@@ -78,12 +79,12 @@ export default function SitePagesFaq({ onNav }: SitePagesFaqProps) {
                   {open && (
                     <div style={{ padding: '0 1rem 1rem' }}>
                       <p style={{ fontSize: '0.82rem', color: '#64748b', lineHeight: 1.7, marginBottom: '0.6rem' }}>{p.blurb}</p>
-                      <button
-                        onClick={() => onNav(p.id)}
-                        style={{ background: 'none', border: 'none', color: p.color, fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', padding: 0 }}
+                      <a
+                        {...pageLink(p.id, onNav)}
+                        style={{ color: p.color, fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', padding: 0, textDecoration: 'none' }}
                       >
                         Go to {p.label} →
-                      </button>
+                      </a>
                     </div>
                   )}
                 </div>

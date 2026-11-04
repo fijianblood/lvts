@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useScrollFade } from '../hooks/useScrollFade';
 import { ExternalLink, Award, Code2, Cpu, Globe, Rocket, GraduationCap, Shield, Gauge, Users, Search, FileCheck } from 'lucide-react';
 import SitePagesFaq from '../components/SitePagesFaq';
+import { hrefFor, pageLink } from '../links';
 
 const TITLES = ['IT Sales Pro', 'Web Dev Enthusiast', 'PC & Laptop Repair', 'Fiji 🏝 Tech Builder', 'Laptops for sale', 'PC & Laptop Repair'];
 
@@ -136,25 +137,25 @@ export default function HomePage({ onNav }: { onNav: (p: string) => void }) {
           </p>
 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button onClick={() => onNav('services')}
-              style={{ background: 'linear-gradient(135deg,#2563eb,#7c3aed)', border: 'none', color: '#fff', padding: '0.85rem 2rem', borderRadius: 10, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', transition: 'transform 0.2s, opacity 0.2s' }}
+            <a {...pageLink('services', onNav)}
+              style={{ display: 'inline-flex', alignItems: 'center', background: 'linear-gradient(135deg,#2563eb,#7c3aed)', border: 'none', color: '#fff', padding: '0.85rem 2rem', borderRadius: 10, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', transition: 'transform 0.2s, opacity 0.2s', textDecoration: 'none' }}
               onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
               onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}>
               View Services
-            </button>
-            <a href={`${import.meta.env.BASE_URL}#ask`} target="_blank" rel="noopener noreferrer"
+            </a>
+            <a href={hrefFor('ask')} target="_blank" rel="noopener noreferrer"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#fff', border: '1.5px solid rgba(37,99,235,0.3)', color: '#2563eb', padding: '0.85rem 2rem', borderRadius: 10, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(37,99,235,0.1)', textDecoration: 'none' }}
               onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(37,99,235,0.05)'; }}
               onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#fff'; }}>
               💬 Ask LvTS
             </a>
-            <button onClick={() => onNav('network')}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#fff', border: '1.5px solid rgba(242,169,60,0.45)', color: '#b76e00', padding: '0.85rem 2rem', borderRadius: 10, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(242,169,60,0.12)' }}
+            <a {...pageLink('network', onNav)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#fff', border: '1.5px solid rgba(242,169,60,0.45)', color: '#b76e00', padding: '0.85rem 2rem', borderRadius: 10, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(242,169,60,0.12)', textDecoration: 'none' }}
               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(242,169,60,0.08)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
               onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.transform = 'translateY(0)'; }}
               aria-label="View the interactive 3D small-office network diagram">
               🖧 See Network Setup
-            </button>
+            </a>
           </div>
 
           {/* Stat strip */}

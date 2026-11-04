@@ -1,10 +1,76 @@
 import { randomBytes } from 'node:crypto'
-import { defineConfig, loadEnv } from 'vite'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { encodePrizeCodes } from './src/game/house/prizeCodec.ts'
 import { SHOP_PROMOS, PROMO_CODE } from './src/game/house/promos.ts'
+import { ROUTES, canonicalFor, pathFor, type PageRoute } from './src/data/routes.ts'
+
+// Every page has a real address (/lvts/services/), and GitHub Pages only serves
+// files that exist, so after the build this writes one HTML file per page
+// (dist/services/index.html, ...) from dist/index.html. Each has the page's own
+// title, description and canonical address for Google and link previews, and a
+// heading, summary and links to every page inside #root, which the app replaces
+// as soon as it starts. It also writes sitemap.xml (every page) and 404.html.
+// The pages, their addresses and their wording are in src/data/routes.ts.
+function pageFiles(base: string): Plugin {
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  const tag = (attr: 'name' | 'property', key: string) => new RegExp(`<meta ${attr}="${key}" content="[^"]*"\\s*/?>`)
+  function swap(html: string, re: RegExp, value: string, what: string) {
+    if (!re.test(html)) throw new Error(`[pages] index.html has no ${what} to replace`)
+    return html.replace(re, () => value)
+  }
+  const listed = ROUTES.filter((r) => r.index !== false)
+  const links = listed.map((r) => `<a href="${pathFor(r.id, base)}" style="color:#2563eb;margin:0 .5rem;white-space:nowrap">${esc(r.label)}</a>`).join(' ')
+  const body = (heading: string, text: string) =>
+    `<div style="max-width:760px;margin:0 auto;padding:120px 24px 60px;text-align:center;font-family:'Space Grotesk',system-ui,sans-serif;color:#0f172a">` +
+    `<h1 style="font-family:'Syne',system-ui,sans-serif;font-size:clamp(1.6rem,4vw,2.3rem);line-height:1.2;margin:0 0 1rem">${esc(heading)}</h1>` +
+    `<p style="color:#475569;line-height:1.7;margin:0 0 1.5rem">${esc(text)}</p>` +
+    `<nav aria-label="Pages" style="font-size:.9rem;line-height:2.2">${links}</nav></div>`
+
+  function pageHtml(shell: string, r: PageRoute) {
+    const url = canonicalFor(r.id)
+    let html = shell
+    html = swap(html, /<title>[\s\S]*?<\/title>/, `<title>${esc(r.title)}</title>`, 'title')
+    html = swap(html, tag('name', 'description'), `<meta name="description" content="${esc(r.description)}" />`, 'description')
+    html = swap(html, /<link rel="canonical" href="[^"]*"\s*\/?>/, `<link rel="canonical" href="${url}" />`, 'canonical link')
+    html = swap(html, tag('property', 'og:url'), `<meta property="og:url" content="${url}" />`, 'og:url')
+    html = swap(html, tag('property', 'og:title'), `<meta property="og:title" content="${esc(r.title)}" />`, 'og:title')
+    html = swap(html, tag('property', 'og:description'), `<meta property="og:description" content="${esc(r.description)}" />`, 'og:description')
+    html = swap(html, tag('name', 'twitter:title'), `<meta name="twitter:title" content="${esc(r.title)}" />`, 'twitter:title')
+    html = swap(html, tag('name', 'twitter:description'), `<meta name="twitter:description" content="${esc(r.description)}" />`, 'twitter:description')
+    if (r.index === false) html = html.replace('</title>', '</title>\n    <meta name="robots" content="noindex" />')
+    return swap(html, /<div id="root"><\/div>/, `<div id="root">${body(r.heading, r.description)}</div>`, '<div id="root">')
+  }
+
+  return {
+    name: 'lvts-page-files',
+    apply: 'build',
+    writeBundle(options) {
+      const out = options.dir ?? 'dist'
+      const shell = readFileSync(join(out, 'index.html'), 'utf8')
+      for (const r of ROUTES) {
+        const dir = r.slug ? join(out, r.slug) : out
+        mkdirSync(dir, { recursive: true })
+        writeFileSync(join(dir, 'index.html'), pageHtml(shell, r))
+      }
+      // GitHub Pages sends this (with a "not found" status) for any address that isn't a page.
+      // The app then shows the home page.
+      let notFound = swap(shell, /<title>[\s\S]*?<\/title>/, '<title>Page not found | LomaVata Tech Services</title>\n    <meta name="robots" content="noindex" />', 'title')
+      notFound = swap(notFound, /<link rel="canonical" href="[^"]*"\s*\/?>/, '', 'canonical link')
+      notFound = swap(notFound, /<div id="root"><\/div>/, `<div id="root">${body('Page not found', "That page isn't here any more. Try one of these:")}</div>`, '<div id="root">')
+      writeFileSync(join(out, '404.html'), notFound)
+      const urls = listed.map((r) => `  <url>\n    <loc>${canonicalFor(r.id)}</loc>\n  </url>`).join('\n')
+      writeFileSync(join(out, 'sitemap.xml'),
+        `<?xml version="1.0" encoding="UTF-8"?>\n<!-- Written by the build from src/data/routes.ts. Submit it in Google Search Console. -->\n` +
+        `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`)
+      console.log(`[pages] wrote ${ROUTES.length} page files, 404.html and sitemap.xml (${listed.length} addresses)`)
+    },
+  }
+}
 
 export default defineConfig(({ mode }) => {
   // The site is hosted in two places from this repo:
@@ -45,6 +111,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       tailwindcss(),
+      pageFiles(base),
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.png', 'apple-touch-icon.png'],

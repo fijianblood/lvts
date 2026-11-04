@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { SITE_PAGES as LINKS } from '../data/sitePages';
+import { pageLink } from '../links';
 
 interface NavBarProps {
   page: string;
@@ -66,11 +67,11 @@ export default function NavBar({ page, onNav }: NavBarProps) {
             </div>
           );
           return (
-            <motion.button key={l.id} onClick={() => onNav(l.id)} aria-label={l.label}
+            <motion.a key={l.id} {...pageLink(l.id, onNav)} aria-label={l.label} aria-current={active ? 'page' : undefined}
               whileTap={{ scale: 0.85 }} transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+              style={{ display: 'block', padding: 0, cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
               {tile}
-            </motion.button>
+            </motion.a>
           );
         })}
       </div>

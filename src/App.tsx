@@ -14,17 +14,60 @@ import MediTrackPage from './pages/MediTrackPage';
 import SeoToolsPage from './pages/SeoToolsPage';
 import NetworkDiagramPage from './pages/NetworkDiagramPage';
 import ActivationHelpPage from './pages/ActivationHelpPage';
+import { canonicalFor, pageFromPath, routeById } from './data/routes';
+import { BASE, hrefFor } from './links';
 
 // three.js is heavy, so the game (Noqublox) loads only when someone opens it.
 const HouseHuntPage = lazy(() => import('./pages/HouseHuntPage'));
 // LvTS only (not linked anywhere): approve visitors' neighbourhood characters.
 const NeighbourhoodAdminPage = lazy(() => import('./pages/NeighbourhoodAdminPage'));
 
-const VALID_PAGES = ['home', 'services', 'rewards', 'house', 'tools', 'whiteboard', 'meditrack', 'seo', 'network', 'ask', 'activation', 'neighbours-admin'];
+// Each page has its own address (/lvts/services/), listed in src/data/routes.ts.
+// Links people already shared still use the old # addresses (/lvts/#services):
+// move those to the page's real address.
+function upgradeOldHashLink() {
+  const id = window.location.hash.slice(1);
+  if (id && routeById(id) && pageFromPath(window.location.pathname, BASE) === 'home') {
+    window.history.replaceState(null, '', hrefFor(id));
+  }
+}
 
-function initialPage() {
-  const hash = window.location.hash.replace('#', '');
-  return VALID_PAGES.includes(hash) ? hash : 'home';
+function currentPage(): string {
+  const page = pageFromPath(window.location.pathname, BASE);
+  if (page) return page;
+  // Not one of the pages (an old or mistyped address): show the home page at the home address.
+  window.history.replaceState(null, '', BASE);
+  return 'home';
+}
+
+function setHeadAttr(selector: string, attr: string, value: string) {
+  document.head.querySelector(selector)?.setAttribute(attr, value);
+}
+
+/** Keeps the tab title, description and canonical address in step with the page on screen. */
+function applyPageHead(id: string) {
+  const route = routeById(id);
+  if (!route) return;
+  const url = canonicalFor(id);
+  document.title = route.title;
+  setHeadAttr('meta[name="description"]', 'content', route.description);
+  setHeadAttr('link[rel="canonical"]', 'href', url);
+  setHeadAttr('meta[property="og:url"]', 'content', url);
+  setHeadAttr('meta[property="og:title"]', 'content', route.title);
+  setHeadAttr('meta[property="og:description"]', 'content', route.description);
+  setHeadAttr('meta[name="twitter:title"]', 'content', route.title);
+  setHeadAttr('meta[name="twitter:description"]', 'content', route.description);
+  let robots = document.head.querySelector('meta[name="robots"]');
+  if (route.index === false) {
+    if (!robots) {
+      robots = document.createElement('meta');
+      robots.setAttribute('name', 'robots');
+      document.head.appendChild(robots);
+    }
+    robots.setAttribute('content', 'noindex');
+  } else {
+    robots?.remove();
+  }
 }
 
 function renderPage(page: string, onNav: (p: string) => void) {
@@ -53,21 +96,33 @@ function renderPage(page: string, onNav: (p: string) => void) {
 const IOS_EASE: [number, number, number, number] = [0.32, 0.72, 0, 1];
 
 export default function App() {
-  const [page, setPage] = useState(initialPage);
+  const [page, setPage] = useState(() => {
+    upgradeOldHashLink();
+    return currentPage();
+  });
   const reduceMotion = useReducedMotion();
 
   const navigate = useCallback((p: string) => {
-    if (window.location.hash !== `#${p}`) window.location.hash = p;
+    const path = hrefFor(p);
+    if (window.location.pathname !== path || window.location.hash) window.history.pushState(null, '', path);
     setPage(p);
   }, []);
 
+  // The browser's back and forward buttons (and someone typing an old # link).
   useEffect(() => {
-    function onHashChange() {
-      setPage(initialPage());
+    function onAddressChange() {
+      upgradeOldHashLink();
+      setPage(currentPage());
     }
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
+    window.addEventListener('popstate', onAddressChange);
+    window.addEventListener('hashchange', onAddressChange);
+    return () => {
+      window.removeEventListener('popstate', onAddressChange);
+      window.removeEventListener('hashchange', onAddressChange);
+    };
   }, []);
+
+  useEffect(() => { applyPageHead(page); }, [page]);
 
   return (
     <>

@@ -8,7 +8,7 @@ reports and bans in its own SQLite database and holds the players' WebSockets.
 It runs on Cloudflare's free Workers plan.
 
 - New characters wait for approval; nobody else sees them until LvTS approves
-  them on the site's hidden admin page: `https://fijianblood.github.io/lvts/#neighbours-admin`.
+  them on the site's hidden admin page: `https://fijianblood.github.io/lvts/neighbours-admin/`.
 - Names are first names or nicknames only: 2–16 letters, no numbers, links or
   symbols. Looks are picked from fixed lists, so nothing else a visitor types is stored.
 - The creator gets a secret key (kept on their device) to change or delete
