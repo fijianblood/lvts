@@ -53,7 +53,7 @@ export default function DiscoverServices({ onNav }: { onNav: (p: string) => void
             <div style={{ ...icon, background: 'rgba(242,169,60,0.14)' }} aria-hidden="true">🖧</div>
             <div style={h3}>Networking &amp; CCTV</div>
             <p style={p}>Office networks, Wi-Fi and CCTV set up properly, with a clear plan of how it all connects.</p>
-            <a {...pageLink('network', onNav)} style={cta}>See a network setup →</a>
+            <a {...pageLink('services', onNav)} style={cta}>See our services →</a>
           </div>
           <div style={card}>
             <div style={{ ...icon, background: 'rgba(51,153,51,0.12)' }} aria-hidden="true">🎓</div>

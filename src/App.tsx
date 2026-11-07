@@ -12,7 +12,6 @@ import ChatWidget from './components/ChatWidget';
 import WhiteboardPage from './pages/WhiteboardPage';
 import MediTrackPage from './pages/MediTrackPage';
 import SeoToolsPage from './pages/SeoToolsPage';
-import NetworkDiagramPage from './pages/NetworkDiagramPage';
 import ActivationHelpPage from './pages/ActivationHelpPage';
 import KidsLearnPage from './pages/KidsLearnPage';
 import { canonicalFor, pageFromPath, routeById } from './data/routes';
@@ -86,7 +85,6 @@ function renderPage(page: string, onNav: (p: string) => void) {
     case 'whiteboard': return <WhiteboardPage />;
     case 'meditrack': return <MediTrackPage />;
     case 'seo':      return <SeoToolsPage />;
-    case 'network':  return <NetworkDiagramPage />;
     case 'ask':      return <AskLvtsPage />;
     case 'activation': return <ActivationHelpPage />;
     case 'neighbours-admin': return <Suspense fallback={null}><NeighbourhoodAdminPage /></Suspense>;
