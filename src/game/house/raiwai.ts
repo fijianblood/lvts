@@ -11,7 +11,7 @@
 import * as THREE from 'three';
 import { paint as basePaint } from './models.ts';
 import { canvasTexture } from './textures.ts';
-import { rng, houseSpec, type HouseSpec } from './raiwaiPlan.ts';
+import { rng, type HouseSpec } from './raiwaiPlan.ts';
 import { MASJID_YARD } from './layout.ts';
 export type { HouseSpec } from './raiwaiPlan.ts';
 
@@ -183,11 +183,6 @@ export function house(spec: HouseSpec): THREE.Group {
     dish.rotation.x = 0.9;
   }
   return g;
-}
-
-/** A random Raiwai house from a seed (size, storeys, colours, roof, extras). */
-export function randomHouse(seed: number, simple = false): THREE.Group {
-  return house(houseSpec(seed, simple));
 }
 
 /** A block of flats (three or four floors), balconies along the front and a stair tower at one end. */
