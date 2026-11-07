@@ -13,6 +13,7 @@ import { paint as basePaint } from './models.ts';
 import { canvasTexture } from './textures.ts';
 import { rng, type HouseSpec } from './raiwaiPlan.ts';
 import { MASJID_YARD } from './layout.ts';
+import * as D from './diwali.ts';
 export type { HouseSpec } from './raiwaiPlan.ts';
 
 type G = THREE.Object3D;
@@ -558,7 +559,7 @@ let templeArch: THREE.CanvasTexture | undefined;
  * rises from the gate to the back of the plot (`d` deep); the group's origin
  * is on the ground at the gate's end.
  */
-export function hinduTemple(lift: number, d = 13.8): THREE.Group {
+export function hinduTemple(lift: number, d = 13.8, diwali = false): THREE.Group {
   const g = new THREE.Group();
   const CREAM = '#f3e6c4', RED = '#c8322a', YELLOW = '#f2b632', ORANGE = '#e8742b', GOLD = '#d4a537';
   const ground = (z: number) => lift * (z + d / 2) / d;      // the slope, rising away from the gate
@@ -667,6 +668,25 @@ export function hinduTemple(lift: number, d = 13.8): THREE.Group {
   pot.position.set(0, y + 1.42, 4.6);
   g.add(pot);
   cyl(g, 0, 0.08, 0.35, GOLD, 0, y + 1.72, 4.6, 10);
+
+  if (diwali) {
+    // a marigold toran across the gate, under the arch
+    const t = D.toran(4.4); t.position.set(0, 2.72, GZ - 0.18); g.add(t);
+    // fairy lights along the two front walls, and arching over the gate between the pillars
+    g.add(D.lightString(new THREE.Vector3(-6.4, 1.08, GZ - 0.15), new THREE.Vector3(-2.7, 1.08, GZ - 0.15), 6, 0.1));
+    g.add(D.lightString(new THREE.Vector3(2.7, 1.08, GZ - 0.15), new THREE.Vector3(6.4, 1.08, GZ - 0.15), 6, 0.1));
+    g.add(D.lightString(new THREE.Vector3(-2.25, 3.0, GZ - 0.2), new THREE.Vector3(2.25, 3.0, GZ - 0.2), 10, -0.3));
+    // diyas along the front of the raised base, and down both sides of the steps
+    g.add(D.diyaRow(-4.2, 0.42, 4.2, 0.42, top + 0.07, 11, 1.1));
+    for (let i = 0; i < STEPS; i++) {
+      const h = ground(pz1) + ((top - ground(pz1)) * (i + 1)) / STEPS;
+      const sz = BZ - (STEPS - i - 0.5) * TREAD;
+      for (const sx of [-1.15, 1.15]) { const dd = D.diya(); dd.position.set(sx, h + 0.01, sz); g.add(dd); }
+    }
+    // lights along the hall's front eave, and a rangoli on the path just inside the gate
+    g.add(D.lightString(new THREE.Vector3(-4, top + H + 0.1, hz0 - 0.68), new THREE.Vector3(4, top + H + 0.1, hz0 - 0.68), 12, 0.12));
+    const r = D.rangoli(0.95); r.position.set(0, ground(GZ + 1.0) + 0.03, GZ + 1.0); g.add(r);
+  }
   return g;
 }
 
