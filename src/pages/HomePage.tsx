@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useScrollFade } from '../hooks/useScrollFade';
 import { ExternalLink, Award, Code2, Cpu, Globe, Rocket, GraduationCap, Shield, Gauge, Users, Search, FileCheck } from 'lucide-react';
 import SitePagesFaq from '../components/SitePagesFaq';
-import KidsHero from '../components/KidsHero';
+import NoquDuo from '../components/NoquDuo';
 import { hrefFor, pageLink } from '../links';
 
 const TITLES = ['IT Sales Pro', 'Web Dev Enthusiast', 'PC & Laptop Repair', 'Fiji 🏝 Tech Builder', 'Laptops for sale', 'PC & Laptop Repair'];
@@ -171,8 +171,8 @@ export default function HomePage({ onNav }: { onNav: (p: string) => void }) {
         </div>
       </section>
 
-      {/* KIDS: NOQU VULI */}
-      <KidsHero onNav={onNav} />
+      {/* GAMES: NOQUBLOX (left) AND NOQU VULI (right) */}
+      <NoquDuo onNav={onNav} />
 
       {/* ABOUT THIS PAGE */}
       <section ref={aboutRef} className="fade-in" style={{ padding: '80px 1.5rem 40px', background: '#f8fafc' }}>
