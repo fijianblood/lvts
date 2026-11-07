@@ -2,7 +2,7 @@ import type { ComponentType } from 'react';
 import {
   IconTool, IconGift,
   IconHammer, IconChalkboard, IconHeartbeat, IconSeo, IconMessageCircle,
-  IconTopologyStar3, IconKey, IconHomeSearch, IconAbc,
+  IconKey, IconHomeSearch, IconAbc,
 } from '@tabler/icons-react';
 
 export interface SitePage {
@@ -32,8 +32,6 @@ export const SITE_PAGES: SitePage[] = [
     blurb: 'A free embedded collaborative whiteboard (powered by Excalidraw) for sketching diagrams or jotting notes right in the browser.' },
   { id: 'meditrack', label: 'MediTrack', icon: IconHeartbeat, color: '#c1443b',
     blurb: 'A private, device-only health dashboard for blood pressure trends, test results, appointments, and medical history — nothing uploads.' },
-  { id: 'network', label: 'Network Setup', icon: IconTopologyStar3, color: '#f2a93c',
-    blurb: 'An interactive 3D diagram showing how a reliable, secure small-office network is architected — ISP hand-off through firewall, switches, servers, and Wi-Fi.' },
   { id: 'seo', label: 'SEO Tools', icon: IconSeo, color: '#2563eb',
     blurb: 'A free embedded suite of SEO, keyword, and website-analysis tools, powered by SEOStudio Tools.' },
   { id: 'activation', label: 'Activation', icon: IconKey, color: '#8b5cf6',

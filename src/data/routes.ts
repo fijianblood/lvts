@@ -89,12 +89,6 @@ export const ROUTES: PageRoute[] = [
     heading: 'MediTrack: a private health dashboard',
   },
   {
-    id: 'network', label: 'Network Setup', slug: 'network-setup',
-    title: 'Small Office Network Setup in Fiji | LvTS',
-    description: 'See how a reliable, secure small-office network fits together, from the internet connection through firewall, switches and Wi-Fi, then let LvTS set yours up.',
-    heading: 'Small office network setup',
-  },
-  {
     id: 'seo', label: 'SEO Tools', slug: 'seo-tools',
     title: 'Free SEO & Website Analysis Tools | LvTS',
     description: 'Free SEO, keyword and website analysis tools in one place, powered by SEOStudio Tools, from LomaVata Tech Services in Suva, Fiji.',

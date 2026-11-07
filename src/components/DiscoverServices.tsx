@@ -1,5 +1,6 @@
 import { ExternalLink } from 'lucide-react';
 import { hrefFor, pageLink } from '../links';
+import { openWhatsApp } from '../data/contact';
 
 // Home page, "Discover LvTS" campaign: the technology services section.
 // It comes after Noqublox and Noqu Vuli on purpose: people try the games and
@@ -53,7 +54,10 @@ export default function DiscoverServices({ onNav }: { onNav: (p: string) => void
             <div style={{ ...icon, background: 'rgba(242,169,60,0.14)' }} aria-hidden="true">🖧</div>
             <div style={h3}>Networking &amp; CCTV</div>
             <p style={p}>Office networks, Wi-Fi and CCTV set up properly, with a clear plan of how it all connects.</p>
-            <a {...pageLink('network', onNav)} style={cta}>See a network setup →</a>
+            <button type="button" onClick={() => openWhatsApp("Bula LvTS, I'd like help with a network or CCTV setup.")}
+              style={{ ...cta, background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', fontWeight: 700 }}>
+              Ask us on WhatsApp →
+            </button>
           </div>
           <div style={card}>
             <div style={{ ...icon, background: 'rgba(51,153,51,0.12)' }} aria-hidden="true">🎓</div>
