@@ -137,10 +137,8 @@ body {
 .noqu-duo-deco { position: absolute; font-family: 'Syne', sans-serif; font-weight: 900; font-size: 46px; opacity: 0.14; pointer-events: none; }
 .noqu-duo-eyebrow { background: rgba(255,255,255,0.16); border-radius: 9999px; padding: 0.3rem 0.85rem; font-size: 0.68rem;
   font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 1rem; }
-.noqu-duo-art { display: flex; align-items: center; gap: 0.6rem; font-size: 46px; line-height: 1; margin-bottom: 0.9rem; }
-.noqu-duo-tiles { display: grid; grid-template-columns: repeat(2, 30px); gap: 4px; }
-.noqu-duo-tiles b { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; font-size: 16px; font-weight: 900; font-family: 'Syne', sans-serif; }
-.noqu-duo-scene { background: linear-gradient(#7dd3fc 0 60%, #4ade80 60% 100%); border-radius: 16px; padding: 0.45rem 0.7rem; gap: 0.35rem; font-size: 34px; }
+.noqu-duo-shot { display: block; width: 100%; height: auto; aspect-ratio: 812 / 448; object-fit: cover; border-radius: 16px;
+  border: 3px solid rgba(255,255,255,0.28); box-shadow: 0 10px 24px rgba(10,10,60,0.28); margin-bottom: 1rem; background: rgba(255,255,255,0.12); }
 .noqu-duo-card h3 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: clamp(1.9rem, 3.6vw, 2.6rem); line-height: 1.05; margin-bottom: 0.6rem;
   text-shadow: 0 3px 0 rgba(10,10,60,0.2); }
 .noqu-duo-card p { font-size: 0.95rem; line-height: 1.65; color: rgba(255,255,255,0.92); margin-bottom: 1rem; }
@@ -155,10 +153,7 @@ body {
   .noqu-duo-card { padding: 1.1rem 0.85rem; border-radius: 18px; }
   .noqu-duo-deco { font-size: 30px; }
   .noqu-duo-eyebrow { font-size: 0.56rem; letter-spacing: 0.08em; padding: 0.25rem 0.55rem; margin-bottom: 0.7rem; }
-  .noqu-duo-art { font-size: 30px; gap: 0.35rem; margin-bottom: 0.6rem; }
-  .noqu-duo-tiles { grid-template-columns: repeat(2, 20px); gap: 3px; }
-  .noqu-duo-tiles b { width: 20px; height: 20px; font-size: 11px; border-radius: 6px; }
-  .noqu-duo-scene { font-size: 20px; padding: 0.3rem 0.45rem; gap: 0.2rem; }
+  .noqu-duo-shot { border-radius: 10px; border-width: 2px; margin-bottom: 0.7rem; }
   .noqu-duo-card h3 { font-size: 1.12rem; }
   .noqu-duo-card p { font-size: 0.8rem; line-height: 1.5; margin-bottom: 0.9rem; }
   .noqu-duo-chips { display: none; }
