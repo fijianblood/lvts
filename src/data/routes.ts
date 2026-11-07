@@ -65,6 +65,12 @@ export const ROUTES: PageRoute[] = [
     heading: 'Noqublox: explore Raiwai, Suva in 3D',
   },
   {
+    id: 'kids', label: 'Kids Learn', slug: 'kids',
+    title: 'Noqu Vuli: Kids Learning Games in English & iTaukei | LvTS',
+    description: 'Free play-and-learn games for young children in Fiji: ABC, numbers, animals, shapes and colours in English and iTaukei. No sign-up, no ads.',
+    heading: 'Noqu Vuli: kids learning games in English and iTaukei',
+  },
+  {
     id: 'tools', label: 'Tools', slug: 'tools',
     title: 'Free Image to PDF, PDF Merge & Photo Sketch Tools | LvTS',
     description: 'Free tools that run in your browser: turn photos (JPEG, HEIC, DNG) into a PDF, merge PDFs, or make a pencil sketch from a photo. Nothing is uploaded.',

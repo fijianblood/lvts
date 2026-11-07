@@ -1,11 +1,12 @@
-import { Gamepad2, Trophy, ShieldCheck, Map as MapIcon, Database } from 'lucide-react';
+import { Gamepad2, Trophy, ShieldCheck, Map as MapIcon, Database, BookOpen } from 'lucide-react';
+import { pageLink } from '../links';
 import { useScrollFade } from '../hooks/useScrollFade';
 import HouseGame from '../game/house/HouseGame';
 import { CONTEST, prizeState, claimSteps } from '../game/house/contest';
 
 const BASE = import.meta.env.BASE_URL;
 
-export default function HouseHuntPage() {
+export default function HouseHuntPage({ onNav }: { onNav: (p: string) => void }) {
   const heroRef = useScrollFade();
   const prize = prizeState();
   // The tab title for this page is set by App.tsx from src/data/routes.ts.
@@ -75,6 +76,13 @@ export default function HouseHuntPage() {
           <div style={h3}><ShieldCheck size={18} color="#16a34a" /> Stay safe</div>
           <p style={p}>
             We only contact winners from the official {CONTEST.pageName} Facebook page. We will never ask for your M-PAiSA PIN, a password, or a payment to release a prize. If someone in the comments offers to “help you claim”, it isn’t us.
+          </p>
+        </div>
+        <div style={card}>
+          <div style={h3}><BookOpen size={18} color="#6d4aff" /> For little ones: Noqu Vuli</div>
+          <p style={p}>
+            Younger brothers and sisters can play and learn ABC, numbers, animals, shapes and colours in English
+            and iTaukei. <a {...pageLink('kids', onNav)} style={{ color: '#6d4aff', fontWeight: 700 }}>Open Noqu Vuli →</a>
           </p>
         </div>
       </div>

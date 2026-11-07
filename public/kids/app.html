@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Noqu Vuli · Play &amp; learn | LvTS</title>
+<meta name="description" content="A free play-and-learn game for young children in Fiji: ABC, numbers, animals, shapes and colours in English and iTaukei.">
+<meta name="theme-color" content="#6d4aff">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%A2%3C/text%3E%3C/svg%3E">
+<!--
+  Noqu Vuli: a play-and-learn game for young children, by LomaVata Tech Services.
+  One self-contained file: no libraries, no fonts or images from the internet,
+  nothing uploaded. Progress (name, XP, stars) is saved on the device only.
+
+  iTaukei words: every word is in the data near the top of the script. Words with
+  no iTaukei entry (fj) show in English only. Please have the iTaukei read over
+  before relying on it.
+
+  Your own iTaukei recordings: put the file in audio/fj/ next to this page, named
+  after the word (dua.mp3, rua.mp3, manumanu-vuka.mp3 ...), then add the same
+  name to FJ_RECORDINGS below. A 🔊 button then plays it. Words without a
+  recording are shown, not read out, because an English voice says them wrong.
+-->
+<style>
+:root{
+  --violet:#6d4aff;--violet-2:#8b6dff;--violet-dark:#4b2fd6;--ink:#1e1b3a;--muted:#6b6790;
+  --bg:#f4f1ff;--line:#e7e2ff;--yellow:#ffd23f;--green:#16a34a;--red:#dc2626;
+  --abc:#ffe27a;--num:#9fd8ff;--ani:#bdeb7a;--shp:#ffc6dd;
+  --shadow:0 8px 24px rgba(76,52,190,.12);
+  font-family:"Nunito","Baloo 2",ui-rounded,"SF Pro Rounded","Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:radial-gradient(1200px 600px at 50% -10%,#e6dfff 0,#f4f1ff 55%,#eef6ff 100%);color:var(--ink);-webkit-tap-highlight-color:transparent;display:flex;justify-content:center;align-items:center;min-height:100vh;min-height:100dvh}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid #ffb800;outline-offset:2px}
+#app{position:relative;width:100%;max-width:430px;height:100vh;height:100dvh;background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+@media (min-width:520px) and (min-height:700px){#app{height:min(880px,calc(100dvh - 32px));border-radius:40px;box-shadow:0 30px 80px rgba(60,40,160,.22);border:8px solid #fff}}
+.screen{flex:1;display:flex;flex-direction:column;min-height:0;animation:in .28s ease}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.scroll{flex:1;overflow-y:auto;padding:14px 18px 22px;-webkit-overflow-scrolling:touch}
+
+/* top bar */
+.topbar{display:flex;align-items:center;gap:10px;padding:14px 16px 6px}
+.iconbtn{width:44px;height:44px;flex:none;border-radius:50%;background:#fff;box-shadow:var(--shadow);display:grid;place-items:center;font-size:18px;font-weight:900;color:var(--violet)}
+.topbar .title{flex:1;text-align:center;font-weight:900;font-size:20px}
+.topbar .spacer{width:44px;flex:none}
+
+/* buttons */
+.btn{display:block;width:100%;padding:16px;border-radius:999px;background:var(--violet);color:#fff;font-weight:900;font-size:17px;box-shadow:0 6px 0 var(--violet-dark),0 12px 22px rgba(77,47,214,.3);transition:transform .08s,box-shadow .08s}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--violet-dark)}
+.btn.light{background:#fff;color:var(--violet);box-shadow:0 6px 0 #d9d0ff}
+.btn:disabled{opacity:.45;cursor:default}
+.btn + .btn{margin-top:14px}
+
+/* welcome */
+.welcome{background:linear-gradient(170deg,#7b5cff 0%,#6a46f5 55%,#5b3be6 100%);color:#fff;position:relative;overflow:hidden}
+.welcome .scroll{display:flex;flex-direction:column;padding-top:28px}
+.deco{position:absolute;font-weight:900;color:#fff;opacity:.16;pointer-events:none;animation:float 6s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-10px) rotate(6deg)}}
+.brand{align-self:center;background:rgba(255,255,255,.16);border-radius:999px;padding:6px 14px;font-weight:800;font-size:13px;letter-spacing:.06em}
+h1.hero{font-size:50px;line-height:1.02;font-weight:900;text-align:center;margin-top:14px;letter-spacing:-.5px;text-shadow:0 4px 0 rgba(40,20,140,.25)}
+h1.hero .y{color:var(--yellow)}
+.mascot{text-align:center;margin:12px 0 4px;position:relative}
+.mascot .m{font-size:124px;line-height:1;display:inline-block;filter:drop-shadow(0 10px 12px rgba(30,10,120,.35));animation:bob 3s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-6px)}}
+.bubble{display:inline-block;background:#fff;color:var(--ink);border-radius:18px;padding:9px 14px;font-weight:800;font-size:15px;position:relative;margin-bottom:6px}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-8px;margin-left:-8px;border:8px solid transparent;border-top-color:#fff;border-bottom:0}
+.field{margin-top:auto;padding-top:10px}
+.field label{display:block;font-weight:800;font-size:14px;margin:0 0 8px 6px;opacity:.95}
+input.name{width:100%;padding:14px 18px;border-radius:18px;border:2px solid transparent;font:inherit;font-size:17px;font-weight:800;color:var(--ink);background:#fff}
+.welcome .btn{margin-top:16px;background:#fff;color:var(--violet);box-shadow:0 6px 0 #c9bcff,0 12px 22px rgba(20,0,90,.25)}
+.langs{text-align:center;font-size:13px;font-weight:700;opacity:.85;margin-top:14px}
+
+/* home */
+.hello{display:flex;align-items:center;gap:12px}
+.avatar{width:50px;height:50px;flex:none;border-radius:50%;background:linear-gradient(135deg,#ffd23f,#ff9f43);display:grid;place-items:center;font-weight:900;color:#fff;font-size:22px;box-shadow:var(--shadow)}
+.hello b{display:block;font-size:19px;font-weight:900}
+.hello small{color:var(--muted);font-size:13px;font-weight:700}
+.xp{margin-left:auto;background:#fff;border-radius:999px;padding:8px 12px;font-weight:900;font-size:14px;box-shadow:var(--shadow);white-space:nowrap}
+.daily{margin-top:16px;border-radius:26px;padding:18px;background:linear-gradient(135deg,#7b5cff,#5b3be6);color:#fff;display:flex;align-items:center;position:relative;overflow:hidden;box-shadow:0 12px 26px rgba(91,59,230,.35);text-align:left;width:100%}
+.daily h2{font-size:24px;line-height:1.05;font-weight:900}
+.daily p{opacity:.92;font-size:13px;font-weight:700;margin:6px 0 12px;max-width:170px}
+.daily .go{display:inline-block;background:#fff;color:var(--violet);border-radius:999px;padding:8px 16px;font-weight:900;font-size:14px}
+.daily .trophy{font-size:76px;margin-left:auto;filter:drop-shadow(0 8px 10px rgba(20,0,90,.35))}
+.daily .spark{position:absolute;opacity:.5;font-size:14px}
+h3.sec{margin:20px 2px 10px;font-size:19px;font-weight:900}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cat{background:#fff;border-radius:22px;overflow:hidden;box-shadow:var(--shadow);text-align:center;transition:transform .1s}
+.cat:active{transform:scale(.97)}
+.cat .art{height:98px;display:grid;place-items:center;font-size:46px;font-weight:900}
+.cat .lbl{padding:8px 6px 10px}
+.cat b{display:block;font-size:15px;font-weight:900}
+.cat small{color:var(--muted);font-size:12px;font-weight:700}
+.stars{color:#f5b301;letter-spacing:2px;font-size:13px;margin-top:2px}
+.stars .off{color:#ddd8f3}
+.art3d span{display:inline-block;text-shadow:0 3px 0 rgba(0,0,0,.15)}
+
+/* bottom nav */
+.nav{display:flex;justify-content:space-around;background:#fff;border-top:1px solid var(--line);padding:8px 6px calc(8px + env(safe-area-inset-bottom))}
+.nav button{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:#9a95bf;font-weight:800;padding:4px 12px;border-radius:14px}
+.nav .i{font-size:21px;filter:grayscale(1);opacity:.65}
+.nav button.on{color:var(--violet)}
+.nav button.on .i{filter:none;opacity:1}
+
+/* category hub */
+.hub{border-radius:28px;height:190px;display:grid;place-items:center;font-size:80px;font-weight:900;box-shadow:var(--shadow);margin-bottom:16px}
+.hubtext{text-align:center;color:var(--muted);font-weight:700;margin:-4px 0 18px}
+.bigchoice{display:flex;align-items:center;gap:14px;width:100%;background:#fff;border-radius:22px;padding:16px;box-shadow:var(--shadow);text-align:left;margin-bottom:12px}
+.bigchoice .ic{font-size:38px;width:58px;height:58px;border-radius:18px;display:grid;place-items:center;background:#f3efff;flex:none}
+.bigchoice b{display:block;font-size:18px;font-weight:900}
+.bigchoice small{color:var(--muted);font-weight:700}
+.bigchoice .arrow{margin-left:auto;color:var(--violet);font-weight:900;font-size:22px}
+
+/* learn tiles */
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.tiles.three{grid-template-columns:repeat(3,1fr)}
+.tile{background:#fff;border-radius:18px;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:var(--shadow);font-weight:900;font-size:28px;transition:transform .1s}
+.tile:active{transform:scale(.95)}
+.tile .e{font-size:34px;line-height:1}
+.tile small{font-size:11px;color:var(--muted);font-weight:800}
+.tile .e2{font-size:20px;line-height:1}
+.tile svg{width:46px;height:46px}
+h4.sub{font-size:15px;font-weight:900;margin:18px 2px 10px;color:var(--muted)}
+
+/* bottom sheet */
+.sheet-back{position:absolute;inset:0;background:rgba(30,20,80,.45);display:flex;align-items:flex-end;z-index:5;animation:fade .2s}
+@keyframes fade{from{opacity:0}}
+.sheet{background:#fff;width:100%;border-radius:28px 28px 0 0;padding:22px 20px calc(20px + env(safe-area-inset-bottom));text-align:center;animation:up .25s ease}
+@keyframes up{from{transform:translateY(40px)}}
+.sheet .huge{font-size:92px;line-height:1.1;font-weight:900}
+.sheet .huge.letters{color:var(--violet);font-size:80px}
+.sheet .word{font-size:26px;font-weight:900;margin-top:4px}
+.sheet .line{color:var(--muted);font-weight:800;margin-top:4px}
+.sheet .countrow{font-size:30px;line-height:1.3;margin-top:6px;word-break:break-all}
+.sheet svg{width:120px;height:120px}
+.fjline{display:inline-flex;gap:8px;align-items:center;background:#f3efff;color:var(--violet-dark);border-radius:999px;padding:7px 14px;font-weight:800;margin-top:10px;font-size:15px}
+.fjline .play{background:var(--violet);color:#fff;border-radius:50%;width:28px;height:28px;display:grid;place-items:center;font-size:13px}
+.sheet .row{display:flex;gap:10px;margin-top:18px}
+.sheet .row .btn{flex:1;margin:0;padding:14px}
+.sheet .row .iconbtn{width:54px;height:54px;font-size:22px}
+
+/* quiz */
+.qtop{display:flex;align-items:center;gap:10px;padding:14px 16px 4px}
+.prog{flex:1;text-align:center;font-weight:900;font-size:13px;color:var(--muted)}
+.bars{display:flex;gap:5px;justify-content:center;margin-top:6px}
+.bars i{width:22px;height:5px;border-radius:9px;background:#dcd5ff}
+.bars i.done{background:var(--violet)}
+.bars i.now{background:var(--violet-2);width:30px}
+.qbody{flex:1;overflow-y:auto;min-height:0}
+.scene{margin:8px 16px 0;border-radius:24px;height:160px;display:grid;place-items:center;position:relative;overflow:hidden;background:linear-gradient(#eef6ff,#f6f2ff);box-shadow:inset 0 0 0 2px rgba(109,74,255,.06)}
+.scene.meadow{background:linear-gradient(#bfe6ff 0 58%,#8fd16a 58% 100%)}
+.scene .bg{position:absolute;font-size:30px;pointer-events:none}
+.scene .big{font-size:84px;line-height:1;position:relative}
+.scene .bigtxt{font-size:72px;font-weight:900;color:var(--violet);position:relative}
+.scene .say{position:relative;background:#fff;border-radius:20px;padding:10px 18px;font-size:30px;font-weight:900;box-shadow:var(--shadow)}
+.scene .count{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 8px;max-width:290px;position:relative}
+.scene .count span{font-size:40px;line-height:1.1}
+.scene .count.many span{font-size:32px}
+.scene .fjcard{background:#fff;border-radius:22px;padding:14px 22px;box-shadow:var(--shadow);text-align:center;position:relative}
+.scene .fjcard small{display:block;font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.scene .fjcard b{font-size:34px;font-weight:900;color:var(--violet-dark)}
+.scene svg{width:110px;height:110px;position:relative}
+.qtext{text-align:center;font-weight:900;font-size:18px;margin:14px 18px 2px;line-height:1.35}
+.qtext b{color:var(--violet)}
+.sayq{display:block;margin:6px auto 0;width:38px;height:38px;border-radius:50%;background:#fff;box-shadow:var(--shadow);font-size:16px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 16px 4px}
+.opt{background:#fff;border-radius:22px;min-height:108px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:var(--shadow);border:3px solid transparent;transition:transform .1s,background .2s,border-color .2s;padding:8px}
+.opt:active{transform:scale(.97)}
+.opt:disabled{cursor:default}
+.opt .em{font-size:52px;line-height:1}
+.opt .lb{font-weight:800;font-size:15px}
+.opt .lb.hide{visibility:hidden}
+.opts.revealed .opt .lb.hide{visibility:visible}
+.opt .big{font-size:52px;font-weight:900;color:var(--violet);line-height:1}
+.opt svg{width:64px;height:64px}
+.opt.right{border-color:var(--green);background:#ecfdf3}
+.opt.wrong{border-color:var(--red);background:#fef2f2;animation:shake .4s}
+.opt.dim{opacity:.5}
+@keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.qbottom{padding:8px 16px calc(14px + env(safe-area-inset-bottom))}
+.feedback{min-height:24px;text-align:center;font-weight:900;margin-bottom:10px}
+.feedback.good{color:var(--green)}
+.feedback.bad{color:var(--red)}
+
+/* result */
+.result{text-align:center;display:flex;flex-direction:column;justify-content:center;flex:1;padding:24px 22px;position:relative;overflow:hidden}
+.bigstars{font-size:58px;letter-spacing:6px}
+.bigstars .off{filter:grayscale(1);opacity:.25}
+.result h2{font-size:30px;font-weight:900;margin-top:8px}
+.result p{color:var(--muted);font-weight:800;margin-top:6px}
+.gain{display:inline-block;margin:16px auto 0;background:#fff;border-radius:999px;padding:10px 18px;font-weight:900;box-shadow:var(--shadow);color:var(--violet)}
+.newstk{margin:16px auto 0;background:#fff7d6;border-radius:20px;padding:12px 16px;font-weight:800;max-width:300px}
+.newstk span{font-size:34px;display:block}
+.result .btns{margin-top:26px}
+.confetti{position:absolute;top:-40px;font-size:24px;animation:fall linear forwards;pointer-events:none}
+@keyframes fall{to{transform:translateY(900px) rotate(360deg)}}
+
+/* rewards & profile */
+.card{background:#fff;border-radius:22px;padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
+.card h3{font-size:16px;font-weight:900;margin-bottom:10px}
+.statrow{display:flex;gap:12px}
+.stat{flex:1;background:#fff;border-radius:20px;padding:14px;box-shadow:var(--shadow);text-align:center}
+.stat b{display:block;font-size:26px;font-weight:900;color:var(--violet)}
+.stat small{color:var(--muted);font-weight:800;font-size:12px}
+.level{height:12px;background:#ece7ff;border-radius:99px;overflow:hidden;margin-top:8px}
+.level i{display:block;height:100%;background:linear-gradient(90deg,#8b6dff,#6d4aff);border-radius:99px}
+.stickers{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.stk{aspect-ratio:1;border-radius:18px;background:#fbf9ff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:34px;border:2px solid var(--line)}
+.stk small{font-size:10px;font-weight:800;color:var(--muted);margin-top:2px}
+.stk.locked{font-size:20px;color:#b1abd6;background:#f1eefc;border-style:dashed}
+.qlist .bigchoice .ic{font-size:30px}
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid var(--line);font-weight:800}
+.setrow:last-child{border-bottom:0}
+.setrow small{display:block;color:var(--muted);font-weight:700;font-size:12px}
+.switch{width:54px;height:32px;flex:none;border-radius:99px;background:#d6d0f5;position:relative;transition:background .15s}
+.switch::after{content:"";position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .15s;box-shadow:0 2px 4px rgba(0,0,0,.15)}
+.switch.on{background:var(--violet)}
+.switch.on::after{left:26px}
+.namerow{display:flex;gap:10px}
+.namerow input{flex:1;border-color:var(--line)}
+.namerow .btn{width:auto;padding:12px 18px;font-size:15px}
+.danger{color:var(--red);font-weight:900;padding:10px 0}
+.about{color:var(--muted);font-size:13px;font-weight:700;line-height:1.6;text-align:center;margin-top:6px}
+
+@media (min-height:780px){.scene{height:196px}.opt{min-height:122px}.welcome .scroll{padding-top:40px}h1.hero{font-size:54px}}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .confetti{display:none}
+}
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+<noscript><p style="padding:2rem;text-align:center">Noqu Vuli needs JavaScript turned on.</p></noscript>
+<script>
+'use strict';
+
+/* ---------------- Words and pictures ----------------
+   fj = the iTaukei word. Leave fj out where there isn't a checked word yet:
+   the game then shows that card in English only. */
+
+const ABC = [
+  {l:'A', w:'Apple',    e:'🍎'},
+  {l:'B', w:'Banana',   e:'🍌', fj:'jaina'},
+  {l:'C', w:'Coconut',  e:'🥥', fj:'niu'},
+  {l:'D', w:'Dog',      e:'🐶', fj:'koli'},
+  {l:'E', w:'Egg',      e:'🥚'},
+  {l:'F', w:'Fish',     e:'🐟', fj:'ika'},
+  {l:'G', w:'Goat',     e:'🐐'},
+  {l:'H', w:'House',    e:'🏠', fj:'vale'},
+  {l:'I', w:'Island',   e:'🏝️', fj:'yanuyanu'},
+  {l:'J', w:'Juice',    e:'🧃'},
+  {l:'K', w:'Kite',     e:'🪁'},
+  {l:'L', w:'Lemon',    e:'🍋'},
+  {l:'M', w:'Mango',    e:'🥭', fj:'maqo'},
+  {l:'N', w:'Nose',     e:'👃'},
+  {l:'O', w:'Octopus',  e:'🐙', fj:'kuita'},
+  {l:'P', w:'Pig',      e:'🐷', fj:'vuaka'},
+  {l:'Q', w:'Queen',    e:'👸'},
+  {l:'R', w:'Rain',     e:'🌧️', fj:'uca'},
+  {l:'S', w:'Sun',      e:'☀️', fj:'siga'},
+  {l:'T', w:'Turtle',   e:'🐢', fj:'vonu'},
+  {l:'U', w:'Umbrella', e:'☂️'},
+  {l:'V', w:'Violin',   e:'🎻'},
+  {l:'W', w:'Water',    e:'💧', fj:'wai'},
+  {l:'X', w:'Xylophone',e:'🎶', nopic:true},   // no clear picture, so never used in picture questions
+  {l:'Y', w:'Yo-yo',    e:'🪀'},
+  {l:'Z', w:'Zebra',    e:'🦓'},
+];
+
+const NUM_EN = ['', 'one','two','three','four','five','six','seven','eight','nine','ten'];
+const NUM_FJ = ['', 'dua','rua','tolu','va','lima','ono','vitu','walu','ciwa','tini'];
+const COUNT_THINGS = [
+  {e:'🥥', many:'coconuts'}, {e:'🐟', many:'fish'}, {e:'⭐', many:'stars'},
+  {e:'🌺', many:'flowers'},  {e:'🐢', many:'turtles'}, {e:'🥭', many:'mangoes'},
+];
+
+const ANIMALS = [
+  {id:'cow',     n:'Cow',     e:'🐮', fj:'bulumakau',     s:'Moo'},
+  {id:'cat',     n:'Cat',     e:'🐱', fj:'pusi',          s:'Meow'},
+  {id:'dog',     n:'Dog',     e:'🐶', fj:'koli',          s:'Woof'},
+  {id:'pig',     n:'Pig',     e:'🐷', fj:'vuaka',         s:'Oink'},
+  {id:'chicken', n:'Chicken', e:'🐔', fj:'toa',           s:'Cluck'},
+  {id:'duck',    n:'Duck',    e:'🦆',                     s:'Quack'},
+  {id:'bird',    n:'Bird',    e:'🐦', fj:'manumanu vuka', s:'Tweet'},
+  {id:'fish',    n:'Fish',    e:'🐟', fj:'ika'},
+  {id:'turtle',  n:'Turtle',  e:'🐢', fj:'vonu'},
+  {id:'shark',   n:'Shark',   e:'🦈', fj:'qio'},
+  {id:'octopus', n:'Octopus', e:'🐙', fj:'kuita'},
+  {id:'bat',     n:'Bat',     e:'🦇', fj:'beka'},
+];
+
+const SHAPES = [
+  {id:'circle',    n:'Circle',    svg:'<circle cx="50" cy="50" r="40"/>'},
+  {id:'square',    n:'Square',    svg:'<rect x="13" y="13" width="74" height="74" rx="8"/>'},
+  {id:'triangle',  n:'Triangle',  svg:'<path d="M50 10 L92 86 H8 Z" stroke-linejoin="round"/>'},
+  {id:'star',      n:'Star',      svg:'<polygon points="50,6 61,38 95,38 67,58 78,92 50,72 22,92 33,58 5,38 39,38" stroke-linejoin="round"/>'},
+  {id:'heart',     n:'Heart',     svg:'<path d="M50 88 C20 66 6 50 6 32 C6 18 17 8 30 8 C40 8 46 14 50 22 C54 14 60 8 70 8 C83 8 94 18 94 32 C94 50 80 66 50 88 Z"/>'},
+  {id:'diamond',   n:'Diamond',   svg:'<path d="M50 6 L90 50 L50 94 L10 50 Z" stroke-linejoin="round"/>'},
+  {id:'rectangle', n:'Rectangle', svg:'<rect x="6" y="26" width="88" height="48" rx="6"/>'},
+  {id:'oval',      n:'Oval',      svg:'<ellipse cx="50" cy="50" rx="44" ry="30"/>'},
+];
+
+const COLOURS = [
+  {id:'red',    n:'Red',    hex:'#ef4444', fj:'damudamu'},
+  {id:'blue',   n:'Blue',   hex:'#3b82f6', fj:'karakarawa'},
+  {id:'green',  n:'Green',  hex:'#22c55e', fj:'drokadroka'},
+  {id:'yellow', n:'Yellow', hex:'#facc15', fj:'dromodromo'},
+  {id:'white',  n:'White',  hex:'#ffffff', fj:'vulavula'},
+  {id:'black',  n:'Black',  hex:'#1f2937', fj:'loaloa'},
+  {id:'orange', n:'Orange', hex:'#fb923c'},
+  {id:'purple', n:'Purple', hex:'#a855f7'},
+];
+const BRIGHT = COLOURS.filter(c => !['white','black'].includes(c.id));
+
+// Stickers unlock as XP grows.
+const STICKERS = [
+  {xp:20,  e:'🐢', n:'Vonu'},     {xp:50,  e:'🌺', n:'Hibiscus'}, {xp:80,  e:'🥥', n:'Coconut'},
+  {xp:120, e:'🐠', n:'Reef fish'},{xp:170, e:'🌴', n:'Palm tree'},{xp:230, e:'🐚', n:'Shell'},
+  {xp:300, e:'⛵', n:'Sailboat'}, {xp:380, e:'🦀', n:'Crab'},     {xp:470, e:'🐬', n:'Dolphin'},
+  {xp:570, e:'🌈', n:'Rainbow'},  {xp:700, e:'🏝️', n:'Island'},   {xp:850, e:'👑', n:'Champion'},
+];
+
+// Recordings in audio/fj/ (file name without .mp3). Empty until recordings are added.
+const FJ_RECORDINGS = new Set([]);
+const FJ_AUDIO_DIR = 'audio/fj/';
+
+/* ---------------- Saved progress (this device only) ---------------- */
+
+const KEY = 'noquvuli.v1';
+const DEFAULTS = {name:'', started:false, xp:0, best:{abc:0,num:0,ani:0,shp:0,daily:0},
+  daily:'', streak:{last:'', count:0}, played:0, fj:true, sound:true};
+function fresh(){ return JSON.parse(JSON.stringify(DEFAULTS)); }
+function load(){
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      return {...fresh(), ...d, best:{...DEFAULTS.best, ...(d.best||{})}, streak:{...DEFAULTS.streak, ...(d.streak||{})}};
+    }
+  } catch (e) { /* storage blocked: play without saving */ }
+  return fresh();
+}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* not saved */ } }
+let S = load();
+
+/* ---------------- Little helpers ---------------- */
+
+const rand = n => Math.floor(Math.random() * n);
+const pick = a => a[rand(a.length)];
+function shuffle(a){ a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rand(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+const sample = (a, n) => shuffle(a).slice(0, n);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function dayStr(offset){ const d = new Date(); d.setDate(d.getDate() + (offset||0));
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+const today = () => dayStr(0);
+const starsHtml = n => '<span>' + '★'.repeat(n) + '</span><span class="off">' + '★'.repeat(3-n) + '</span>';
+const shapeSvg = (shape, hex) => `<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="${hex}" stroke="${hex==='#ffffff' ? '#c9c3e6' : 'rgba(0,0,0,.12)'}" stroke-width="${hex==='#ffffff' ? 4 : 3}">${shape.svg}</g></svg>`;
+const outlineSvg = shape => `<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="#8b6dff" stroke-width="5" stroke-dasharray="9 7">${shape.svg}</g></svg>`;
+
+/* ---------------- Sound: voice and little effects ---------------- */
+
+let voice = null;
+function pickVoice(){
+  try {
+    const vs = speechSynthesis.getVoices();
+    voice = vs.find(v => /^en[-_](AU|NZ|GB)/i.test(v.lang)) || vs.find(v => /^en/i.test(v.lang)) || null;
+  } catch (e) { voice = null; }
+}
+if ('speechSynthesis' in window) { pickVoice(); try { speechSynthesis.onvoiceschanged = pickVoice; } catch (e) {} }
+
+function say(text, then){
+  if (!S.sound || !('speechSynthesis' in window)) { if (then) then(); return; }
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    if (voice) { u.voice = voice; u.lang = voice.lang; } else { u.lang = 'en-AU'; }
+    u.rate = 0.9; u.pitch = 1.15;
+    if (then) u.onend = then;
+    speechSynthesis.speak(u);
+  } catch (e) { if (then) then(); }
+}
+const fjSlug = w => w.toLowerCase().replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '');
+const hasFjAudio = w => !!w && FJ_RECORDINGS.has(fjSlug(w));
+function playFj(w){
+  if (!S.sound || !hasFjAudio(w)) return;
+  try { speechSynthesis.cancel(); new Audio(FJ_AUDIO_DIR + fjSlug(w) + '.mp3').play().catch(() => {}); } catch (e) {}
+}
+
+let ac = null;
+function tone(freqs, step, type, vol){
+  if (!S.sound) return;
+  try {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    const t0 = ac.currentTime;
+    freqs.forEach((f, i) => {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = type; o.frequency.value = f;
+      const s = t0 + i * step;
+      g.gain.setValueAtTime(0.0001, s);
+      g.gain.exponentialRampToValueAtTime(vol, s + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, s + step + 0.12);
+      o.connect(g); g.connect(ac.destination);
+      o.start(s); o.stop(s + step + 0.15);
+    });
+  } catch (e) {}
+}
+const sfxGood = () => tone([660, 880, 1175], 0.09, 'triangle', 0.14);
+const sfxBad  = () => tone([320, 250], 0.14, 'sine', 0.1);
+const sfxWin  = () => tone([523, 659, 784, 1047], 0.11, 'triangle', 0.14);
+
+/* ---------------- Questions ----------------
+   Each maker returns {prompt, say, scene, options:[{key, html, label}], answer, answerName}. */
+
+const LETTERS = ABC.map(x => x.l);
+const ABC_PIC = ABC.filter(x => !x.nopic);
+const letterOpts = right => shuffle([right, ...sample(LETTERS.filter(l => l !== right), 3)])
+  .map(l => ({key:l, label:l, html:`<span class="big">${l}</span>`}));
+const picOpt = x => ({key:x.l, label:x.w, html:`<span class="em">${x.e}</span><span class="lb hide">${x.w}</span>`});
+const fjScene = w => `<div class="fjcard"><small>iTaukei</small><b>${esc(w)}</b></div>`;
+
+function genAbc(){
+  const t = rand(S.fj ? 4 : 3);
+  if (t === 0) {
+    const it = pick(ABC_PIC);
+    return {prompt:`<b>${it.w}</b> starts with which letter?`, say:`${it.w} starts with which letter?`,
+      scene:`<div class="big">${it.e}</div>`, options:letterOpts(it.l), answer:it.l, answerName:`${it.l}, for ${it.w}`};
+  }
+  if (t === 1) {
+    const it = pick(ABC);
+    return {prompt:`Find the big letter for <b>${it.l.toLowerCase()}</b>`, say:`Find the big letter ${it.l}`,
+      scene:`<div class="bigtxt">${it.l.toLowerCase()}</div>`, options:letterOpts(it.l), answer:it.l, answerName:it.l};
+  }
+  if (t === 2) {
+    const it = pick(ABC_PIC);
+    const opts = shuffle([it, ...sample(ABC_PIC.filter(x => x.l !== it.l), 3)]).map(picOpt);
+    return {prompt:`Which picture starts with <b>${it.l}</b>?`, say:`Which picture starts with ${it.l}?`,
+      scene:`<div class="bigtxt">${it.l}${it.l.toLowerCase()}</div>`, options:opts, answer:it.l, answerName:it.w};
+  }
+  const it = pick(ABC_PIC.filter(x => x.fj));
+  const opts = shuffle([it, ...sample(ABC_PIC.filter(x => x.l !== it.l), 3)]).map(picOpt);
+  return {prompt:`Which picture is <b>${esc(it.fj)}</b> in iTaukei?`, say:'Which picture is this iTaukei word?', fjWord:it.fj,
+    scene:fjScene(it.fj), options:opts, answer:it.l, answerName:it.w};
+}
+
+function numOpts(right, pool){
+  const nums = shuffle([right, ...sample((pool || [1,2,3,4,5,6,7,8,9,10]).filter(n => n !== right), 3)]);
+  return nums.map(n => ({key:String(n), label:String(n), html:`<span class="big">${n}</span>`}));
+}
+function genNum(){
+  const t = rand(S.fj ? 4 : 3);
+  if (t === 0) {
+    const n = 1 + rand(10), th = pick(COUNT_THINGS);
+    const items = Array.from({length:n}, () => `<span>${th.e}</span>`).join('');
+    return {prompt:`How many <b>${th.many}</b>?`, say:`How many ${th.many} can you count?`,
+      scene:`<div class="count${n > 6 ? ' many' : ''}">${items}</div>`, options:numOpts(n), answer:String(n), answerName:String(n)};
+  }
+  if (t === 1) {
+    const n = 1 + rand(10);
+    return {prompt:`Tap the number <b>${NUM_EN[n]}</b>`, say:`Tap the number ${NUM_EN[n]}`,
+      scene:`<div class="say">🔊 ${NUM_EN[n]}</div>`, options:numOpts(n), answer:String(n), answerName:String(n)};
+  }
+  if (t === 2) {
+    const ns = sample([1,2,3,4,5,6,7,8,9,10], 4), max = Math.max(...ns);
+    return {prompt:'Which number is the <b>biggest</b>?', say:'Which number is the biggest?',
+      scene:'<div class="big">🐘</div>', options:ns.map(n => ({key:String(n), label:String(n), html:`<span class="big">${n}</span>`})),
+      answer:String(max), answerName:String(max)};
+  }
+  const n = 1 + rand(10);
+  return {prompt:`Which number is <b>${NUM_FJ[n]}</b>?`, say:'Which number is this iTaukei word?', fjWord:NUM_FJ[n],
+    scene:fjScene(NUM_FJ[n]), options:numOpts(n), answer:String(n), answerName:`${n}, ${NUM_FJ[n]}`};
+}
+
+const meadow = inner => `<span class="bg" style="left:12px;top:10px">☁️</span><span class="bg" style="right:22px;top:22px">☁️</span>`
+  + `<span class="bg" style="left:10px;bottom:6px;font-size:48px">🌳</span><span class="bg" style="right:8px;bottom:6px;font-size:52px">🌴</span>` + inner;
+function genAni(){
+  const t = rand(S.fj ? 3 : 2);
+  if (t === 0) {
+    const a = pick(ANIMALS.filter(x => x.s));
+    const others = sample(ANIMALS.filter(x => x.id !== a.id), 3);
+    const opts = shuffle([a, ...others]).map(x => ({key:x.id, label:x.n, html:`<span class="em">${x.e}</span><span class="lb">${x.n}</span>`}));
+    return {prompt:`Which animal says <b>“${a.s}”</b>?`, say:`Which animal says ${a.s}?`, sceneClass:'meadow',
+      scene:meadow(`<div class="say">“${a.s}!”</div>`), options:opts, answer:a.id, answerName:`the ${a.n.toLowerCase()}`};
+  }
+  const pool = t === 2 ? ANIMALS.filter(x => x.fj) : ANIMALS;
+  const a = pick(pool);
+  const opts = shuffle([a, ...sample(ANIMALS.filter(x => x.id !== a.id), 3)])
+    .map(x => ({key:x.id, label:x.n, html:`<span class="em">${x.e}</span><span class="lb hide">${x.n}</span>`}));
+  if (t === 1) {
+    return {prompt:`Find the <b>${a.n.toLowerCase()}</b>`, say:`Find the ${a.n.toLowerCase()}`, sceneClass:'meadow',
+      scene:meadow('<div class="big">🔍</div>'), options:opts, answer:a.id, answerName:`the ${a.n.toLowerCase()}`};
+  }
+  return {prompt:`Which animal is <b>${esc(a.fj)}</b>?`, say:'Which animal is this iTaukei word?', fjWord:a.fj,
+    scene:fjScene(a.fj), options:opts, answer:a.id, answerName:`the ${a.n.toLowerCase()}`};
+}
+
+function genShp(){
+  const t = rand(S.fj ? 3 : 2);
+  if (t === 0) {
+    const s = pick(SHAPES), cols = sample(BRIGHT, 4);
+    const opts = shuffle([s, ...sample(SHAPES.filter(x => x.id !== s.id), 3)])
+      .map((x, i) => ({key:x.id, label:x.n, html:shapeSvg(x, cols[i].hex) + `<span class="lb hide">${x.n}</span>`}));
+    return {prompt:`Which one is a <b>${s.n.toLowerCase()}</b>?`, say:`Which one is a ${s.n.toLowerCase()}?`,
+      scene:outlineSvg(s), options:opts, answer:s.id, answerName:`the ${s.n.toLowerCase()}`};
+  }
+  const pool = t === 2 ? COLOURS.filter(c => c.fj) : COLOURS;
+  const c = pick(pool), shape = pick(SHAPES);
+  const opts = shuffle([c, ...sample(COLOURS.filter(x => x.id !== c.id), 3)])
+    .map(x => ({key:x.id, label:x.n, html:shapeSvg(shape, x.hex) + `<span class="lb hide">${x.n}</span>`}));
+  if (t === 1) {
+    return {prompt:`Tap the <b>${c.n.toLowerCase()}</b> one`, say:`Tap the ${c.n.toLowerCase()} one`,
+      scene:'<div class="big">🎨</div>', options:opts, answer:c.id, answerName:c.n.toLowerCase()};
+  }
+  return {prompt:`Which colour is <b>${esc(c.fj)}</b>?`, say:'Which colour is this iTaukei word?', fjWord:c.fj,
+    scene:fjScene(c.fj), options:opts, answer:c.id, answerName:`${c.n.toLowerCase()}, ${c.fj}`};
+}
+
+const GEN = {abc:genAbc, num:genNum, ani:genAni, shp:genShp};
+const QUIZ_LEN = 5;
+function buildQuiz(kind){
+  const kinds = kind === 'daily' ? shuffle(['abc','num','ani','shp', pick(['abc','num','ani','shp'])]) : Array(QUIZ_LEN).fill(kind);
+  const seen = new Set(), qs = [];
+  for (const k of kinds) {
+    let q, tries = 0;
+    do { q = GEN[k](); tries++; } while (seen.has(q.prompt + '|' + q.answer) && tries < 40);
+    seen.add(q.prompt + '|' + q.answer);
+    qs.push(q);
+  }
+  return qs;
+}
+
+/* ---------------- Screens ---------------- */
+
+const CATS = {
+  abc:{t:'ABC', sub:'Letters A to Z', color:'var(--abc)',
+    art:'<span class="art3d"><span style="color:#22c55e">A</span><span style="color:#ef4444">B</span><span style="color:#3b82f6">C</span></span>'},
+  num:{t:'Numbers', sub:'Count 1 to 10', color:'var(--num)',
+    art:'<span class="art3d"><span style="color:#ef4444">1</span><span style="color:#f59e0b">2</span><span style="color:#7c3aed">3</span></span>'},
+  ani:{t:'Animals', sub:'Names & sounds', color:'var(--ani)', art:'<span>🐮</span>'},
+  shp:{t:'Shapes', sub:'& colours', color:'var(--shp)',
+    art:`<span style="display:flex;gap:2px;align-items:center">${shapeSvg(SHAPES[3], '#facc15').replace('<svg', '<svg style="width:44px;height:44px"')}${shapeSvg(SHAPES[2], '#a855f7').replace('<svg', '<svg style="width:44px;height:44px"')}</span>`},
+};
+const GOOD = ['Great job!', 'Well done!', 'You got it!', 'Awesome!', 'Super!'];
+
+const $app = document.getElementById('app');
+let view = {name: S.started ? 'home' : 'welcome'};
+const hist = [];
+let quiz = null;
+let sheet = null;   // {cat, idx} for the learn cards
+
+function go(name, extra){ hist.push(view); view = {name, ...(extra || {})}; sheet = null; render(); }
+function back(){ view = hist.pop() || {name:'home'}; sheet = null; render(); }
+function tab(name){ hist.length = 0; view = {name}; sheet = null; render(); }
+
+function topbar(title){
+  return `<div class="topbar"><button class="iconbtn" data-act="back" aria-label="Back">‹</button><div class="title">${title}</div><div class="spacer"></div></div>`;
+}
+function nav(on){
+  const items = [['home','🏠','Home'], ['quizzes','🎯','Quiz'], ['rewards','🎁','Rewards'], ['profile','🙂','Profile']];
+  return `<nav class="nav" aria-label="Main">${items.map(([id, i, l]) =>
+    `<button class="${on === id ? 'on' : ''}" data-act="tab" data-v="${id}" ${on === id ? 'aria-current="page"' : ''}><span class="i">${i}</span>${l}</button>`).join('')}</nav>`;
+}
+
+function welcomeScreen(){
+  const decos = [['A','8%','14%',34],['1','82%','10%',30],['★','86%','42%',26],['B','4%','48%',28],['3','78%','66%',30],['✏️','10%','70%',24]]
+    .map(([t, x, y, s], i) => `<span class="deco" style="left:${x};top:${y};font-size:${s}px;animation-delay:${i * .7}s">${t}</span>`).join('');
+  return `<section class="screen welcome">${decos}<div class="scroll">
+    <div class="brand">NOQU VULI</div>
+    <h1 class="hero">Let's learn<br><span class="y">&amp; play!</span></h1>
+    <div class="mascot"><div class="bubble">Bula! I'm Vonu.</div><br><span class="m" aria-hidden="true">🐢</span></div>
+    <div class="field">
+      <label for="kidname">What's your name?</label>
+      <input id="kidname" class="name" maxlength="20" autocomplete="off" placeholder="Type your name" value="${esc(S.name)}">
+      <button class="btn" data-act="start">Start Learning</button>
+      <div class="langs">ABC · Numbers · Animals · Shapes<br>in English and iTaukei</div>
+    </div>
+  </div></section>`;
+}
+
+function homeScreen(){
+  const name = S.name ? esc(S.name) : 'friend';
+  const done = S.daily === today();
+  const cats = Object.entries(CATS).map(([k, c]) => `<button class="cat" data-act="cat" data-v="${k}">
+      <div class="art" style="background:${c.color}">${c.art}</div>
+      <div class="lbl"><b>${c.t}</b><small>${c.sub}</small><div class="stars" aria-label="${S.best[k]} of 3 stars">${starsHtml(S.best[k])}</div></div>
+    </button>`).join('');
+  return `<section class="screen"><div class="scroll">
+    <div class="hello"><div class="avatar" aria-hidden="true">${S.name ? esc(S.name[0].toUpperCase()) : '🐢'}</div>
+      <div><b>Bula, ${name}!</b><small>Let's learn something new!</small></div>
+      <div class="xp" aria-label="${S.xp} XP">⭐ ${S.xp}</div></div>
+    <button class="daily" data-act="quiz" data-v="daily">
+      <span class="spark" style="left:46%;top:14px">✦</span><span class="spark" style="left:58%;bottom:16px">✦</span>
+      <div><h2>Daily<br>Challenge</h2><p>${done ? 'Done today! Play again for fun, or come back tomorrow.' : 'Finish today\'s quiz and earn 20 bonus XP!'}</p>
+      <span class="go">${done ? 'Play again' : "Let's Go"}</span></div>
+      <span class="trophy" aria-hidden="true">🏆</span>
+    </button>
+    <h3 class="sec">Categories</h3>
+    <div class="grid2">${cats}</div>
+  </div>${nav('home')}</section>`;
+}
+
+function catScreen(){
+  const k = view.cat, c = CATS[k];
+  const blurb = {abc:'Letters from A to Z, with a picture for each.', num:'Count from 1 to 10.',
+    ani:'Animals from the farm, the bush and the reef.', shp:'Shapes and colours all around us.'}[k];
+  return `<section class="screen">${topbar(c.t)}<div class="scroll">
+    <div class="hub" style="background:${c.color}">${c.art}</div>
+    <p class="hubtext">${blurb}</p>
+    <button class="bigchoice" data-act="learn" data-v="${k}"><span class="ic">📖</span><span><b>Learn</b><small>Tap the cards to hear them</small></span><span class="arrow">›</span></button>
+    <button class="bigchoice" data-act="quiz" data-v="${k}"><span class="ic">🎯</span><span><b>Quiz</b><small>${QUIZ_LEN} questions · best ${S.best[k]} of 3 stars</small></span><span class="arrow">›</span></button>
+  </div></section>`;
+}
+
+/* Learn cards: what each tile shows, and the big card when tapped. */
+function learnItems(k){
+  if (k === 'abc') return ABC.map(x => ({tile:`${x.l}<span class="e2">${x.e}</span>`, big:`<div class="huge letters">${x.l}${x.l.toLowerCase()}</div><div class="huge">${x.e}</div>`,
+    word:`${x.l} is for ${x.w}`, fj:x.fj, speak:`${x.l}. ${x.l} is for ${x.w}.`}));
+  if (k === 'num') return NUM_EN.slice(1).map((en, i) => { const n = i + 1;
+    return {tile:`${n}<small>${en}</small>`, big:`<div class="huge letters">${n}</div><div class="countrow">${'🥥'.repeat(n)}</div>`,
+      word:en[0].toUpperCase() + en.slice(1), fj:NUM_FJ[n], speak:`${n}. ${en}.`}; });
+  if (k === 'ani') return ANIMALS.map(a => ({tile:`<span class="e">${a.e}</span><small>${a.n}</small>`, big:`<div class="huge">${a.e}</div>`,
+    word:a.n, line:a.s ? `says “${a.s}!”` : '', fj:a.fj, speak:a.s ? `${a.n}. The ${a.n.toLowerCase()} says ${a.s}.` : `${a.n}.`}));
+  return [
+    ...SHAPES.map((s, i) => ({group:'Shapes', tile:shapeSvg(s, BRIGHT[i % BRIGHT.length].hex), big:shapeSvg(s, BRIGHT[i % BRIGHT.length].hex), word:s.n, speak:`${s.n}.`})),
+    ...COLOURS.map(c => ({group:'Colours', tile:shapeSvg(SHAPES[0], c.hex), big:shapeSvg(SHAPES[0], c.hex), word:c.n, fj:c.fj, speak:`${c.n}.`})),
+  ];
+}
+function learnScreen(){
+  const k = view.cat, items = learnItems(k);
+  let body = '';
+  if (k === 'shp') {
+    ['Shapes', 'Colours'].forEach(g => {
+      body += `<h4 class="sub">${g}</h4><div class="tiles">` + items.map((it, i) => it.group === g
+        ? `<button class="tile" data-act="open" data-v="${i}" aria-label="${it.word}">${it.tile}</button>` : '').join('') + '</div>';
+    });
+  } else {
+    body = `<div class="tiles${k === 'ani' ? ' three' : ''}">` + items.map((it, i) =>
+      `<button class="tile" data-act="open" data-v="${i}" aria-label="${esc(it.word)}">${it.tile}</button>`).join('') + '</div>';
+  }
+  return `<section class="screen">${topbar('Learn ' + CATS[k].t)}<div class="scroll">${body}</div></section>`;
+}
+function sheetHtml(){
+  const items = learnItems(sheet.cat), it = items[sheet.idx];
+  const fj = S.fj && it.fj ? `<div class="fjline">iTaukei: <b>${esc(it.fj)}</b>${hasFjAudio(it.fj) ? `<button class="play" data-act="playfj" data-v="${esc(it.fj)}" aria-label="Hear it in iTaukei">🔊</button>` : ''}</div>` : '';
+  return `<div class="sheet-back" data-act="close"><div class="sheet" role="dialog" aria-label="${esc(it.word)}">
+    ${it.big}<div class="word">${esc(it.word)}</div>${it.line ? `<div class="line">${it.line}</div>` : ''}${fj}
+    <div class="row"><button class="iconbtn" data-act="prev" aria-label="Previous">‹</button>
+      <button class="btn" data-act="hear">🔊 Hear it</button>
+      <button class="iconbtn" data-act="next-card" aria-label="Next">›</button></div>
+  </div></div>`;
+}
+
+function quizScreen(){
+  const q = quiz.qs[quiz.i];
+  const bars = quiz.qs.map((_, i) => `<i class="${i < quiz.i ? 'done' : i === quiz.i ? 'now' : ''}"></i>`).join('');
+  const opts = q.options.map(o => `<button class="opt" data-act="pick" data-v="${esc(o.key)}" aria-label="${esc(o.label)}">${o.html}</button>`).join('');
+  const last = quiz.i === quiz.qs.length - 1;
+  return `<section class="screen">
+    <div class="qtop"><button class="iconbtn" data-act="back" aria-label="Stop the quiz">‹</button>
+      <div class="prog">${quiz.i + 1}/${quiz.qs.length}<div class="bars">${bars}</div></div>
+      <button class="iconbtn" data-act="repeat" aria-label="Hear the question again">🔊</button></div>
+    <div class="qbody">
+      <div class="scene ${q.sceneClass || ''}">${q.scene}</div>
+      <p class="qtext">${q.prompt}</p>
+      <div class="opts">${opts}</div>
+    </div>
+    <div class="qbottom"><div class="feedback" role="status"></div>
+      <button class="btn" data-act="nextq" disabled>${last ? 'See my stars' : 'Next Question'}</button></div>
+  </section>`;
+}
+
+function resultScreen(){
+  const r = view;
+  const msg = ['Let\'s practise!', 'Good try!', 'Great work!', 'Superstar!'][r.stars];
+  const stk = r.newStickers.length ? `<div class="newstk"><span>${r.newStickers.map(s => s.e).join(' ')}</span>New sticker${r.newStickers.length > 1 ? 's' : ''}: ${r.newStickers.map(s => s.n).join(', ')}!</div>` : '';
+  const confetti = r.stars >= 2 ? Array.from({length:22}, (_, i) =>
+    `<span class="confetti" style="left:${rand(95)}%;animation-duration:${2.4 + Math.random() * 1.6}s;animation-delay:${Math.random() * .6}s">${pick(['⭐','🌺','🎉','✨','🥥'])}</span>`).join('') : '';
+  return `<section class="screen"><div class="result">${confetti}
+    <div class="bigstars" aria-label="${r.stars} of 3 stars">${'⭐'.repeat(r.stars)}<span class="off">${'⭐'.repeat(3 - r.stars)}</span></div>
+    <h2>${msg}</h2><p>You got ${r.sc} of ${r.total} right.</p>
+    <div class="gain">+${r.gained} XP${r.dailyBonus ? ' (20 daily bonus!)' : ''}</div>
+    ${stk}
+    <div class="btns"><button class="btn" data-act="quiz" data-v="${r.kind}">Play again</button>
+    <button class="btn light" data-act="tab" data-v="home">Home</button></div>
+  </div></section>`;
+}
+
+function quizzesScreen(){
+  const rows = [['daily','🏆','Daily Challenge', S.daily === today() ? 'Done today ✓' : '+20 bonus XP today'],
+    ...Object.entries(CATS).map(([k, c]) => [k, {abc:'🔤', num:'🔢', ani:'🐮', shp:'🔺'}[k], c.t, c.sub])];
+  return `<section class="screen"><div class="topbar"><div class="title">Quiz</div></div><div class="scroll qlist">
+    ${rows.map(([k, ic, t, sub]) => `<button class="bigchoice" data-act="quiz" data-v="${k}"><span class="ic">${ic}</span><span><b>${t}</b><small>${sub}</small><div class="stars">${starsHtml(S.best[k] || 0)}</div></span><span class="arrow">›</span></button>`).join('')}
+  </div>${nav('quizzes')}</section>`;
+}
+
+function rewardsScreen(){
+  const level = Math.floor(S.xp / 50) + 1, pct = (S.xp % 50) * 2;
+  const stickers = STICKERS.map(s => S.xp >= s.xp
+    ? `<div class="stk" aria-label="${s.n}">${s.e}<small>${s.n}</small></div>`
+    : `<div class="stk locked" aria-label="Locked until ${s.xp} XP">🔒<small>${s.xp} XP</small></div>`).join('');
+  const got = STICKERS.filter(s => S.xp >= s.xp).length;
+  return `<section class="screen"><div class="topbar"><div class="title">Rewards</div></div><div class="scroll">
+    <div class="statrow" style="margin-bottom:14px">
+      <div class="stat"><b>⭐ ${S.xp}</b><small>XP</small></div>
+      <div class="stat"><b>🔥 ${S.streak.count}</b><small>day${S.streak.count === 1 ? '' : 's'} in a row</small></div>
+      <div class="stat"><b>${S.played}</b><small>quizzes</small></div></div>
+    <div class="card"><h3>Level ${level}</h3><div class="level"><i style="width:${pct}%"></i></div>
+      <p class="about" style="text-align:left">${50 - (S.xp % 50)} XP to level ${level + 1}</p></div>
+    <div class="card"><h3>Sticker book · ${got} of ${STICKERS.length}</h3><div class="stickers">${stickers}</div></div>
+  </div>${nav('rewards')}</section>`;
+}
+
+function profileScreen(){
+  return `<section class="screen"><div class="topbar"><div class="title">Profile</div></div><div class="scroll">
+    <div class="card"><h3>Your name</h3><div class="namerow">
+      <input id="editname" class="name" maxlength="20" autocomplete="off" value="${esc(S.name)}" placeholder="Type your name">
+      <button class="btn" data-act="savename">Save</button></div></div>
+    <div class="card">
+      <div class="setrow"><span>Show iTaukei words<small>Cards and questions in iTaukei too</small></span><button class="switch ${S.fj ? 'on' : ''}" role="switch" aria-checked="${S.fj}" data-act="toggle" data-v="fj" aria-label="Show iTaukei words"></button></div>
+      <div class="setrow"><span>Voice and sounds<small>Reads the questions out loud</small></span><button class="switch ${S.sound ? 'on' : ''}" role="switch" aria-checked="${S.sound}" data-act="toggle" data-v="sound" aria-label="Voice and sounds"></button></div>
+    </div>
+    <div class="card"><h3>For parents</h3>
+      <p class="about" style="text-align:left">Progress saves on this device only. No sign-up, no ads, nothing uploaded.</p>
+      <button class="danger" data-act="reset">${view.confirmReset ? 'Tap again to clear all progress' : 'Clear progress'}</button></div>
+    <p class="about">Noqu Vuli is made in Raiwai, Suva<br>by LomaVata Tech Services</p>
+  </div>${nav('profile')}</section>`;
+}
+
+function render(){
+  const screens = {welcome:welcomeScreen, home:homeScreen, cat:catScreen, learn:learnScreen, quiz:quizScreen,
+    result:resultScreen, quizzes:quizzesScreen, rewards:rewardsScreen, profile:profileScreen};
+  $app.innerHTML = (screens[view.name] || homeScreen)() + (sheet ? sheetHtml() : '');
+}
+
+/* ---------------- Actions ---------------- */
+
+function startQuiz(kind){
+  quiz = {kind, qs:buildQuiz(kind), i:0, score:0, answered:false};
+  if (view.name === 'result') { hist.length = 0; view = {name:'home'}; }
+  go('quiz');
+  askAloud();
+}
+function askAloud(){
+  const q = quiz.qs[quiz.i];
+  say(q.say, q.fjWord ? () => playFj(q.fjWord) : null);
+}
+function choose(key){
+  if (!quiz || quiz.answered) return;
+  const q = quiz.qs[quiz.i];
+  quiz.answered = true;
+  const ok = key === q.answer;
+  if (ok) quiz.score++;
+  $app.querySelectorAll('.opt').forEach(b => {
+    b.disabled = true;
+    if (b.dataset.v === q.answer) b.classList.add('right');
+    else if (b.dataset.v === key) b.classList.add('wrong');
+    else b.classList.add('dim');
+  });
+  $app.querySelector('.opts').classList.add('revealed');
+  const fb = $app.querySelector('.feedback');
+  if (ok) { const g = pick(GOOD); fb.className = 'feedback good'; fb.textContent = `${g} ⭐ +2 XP`; sfxGood(); say(g); }
+  else { fb.className = 'feedback bad'; fb.textContent = `Nearly! It's ${q.answerName}.`; sfxBad(); say(`Nearly. It's ${q.answerName}.`); }
+  const nb = $app.querySelector('[data-act=nextq]');
+  nb.disabled = false;
+  try { nb.focus({preventScroll:true}); } catch (e) { nb.focus(); }
+}
+function nextQuestion(){
+  if (!quiz || !quiz.answered) return;
+  quiz.i++; quiz.answered = false;
+  if (quiz.i >= quiz.qs.length) return finish();
+  render(); askAloud();
+}
+function finish(){
+  const total = quiz.qs.length, sc = quiz.score;
+  const stars = sc === total ? 3 : sc >= total - 1 ? 2 : sc >= Math.ceil(total / 2) ? 1 : 0;
+  const before = S.xp;
+  let dailyBonus = 0;
+  if (quiz.kind === 'daily' && S.daily !== today()) { dailyBonus = 20; S.daily = today(); }
+  const gained = sc * 2 + 5 + dailyBonus;
+  S.xp += gained; S.played++;
+  S.best[quiz.kind] = Math.max(S.best[quiz.kind] || 0, stars);
+  const t = today();
+  if (S.streak.last !== t) { S.streak.count = S.streak.last === dayStr(-1) ? S.streak.count + 1 : 1; S.streak.last = t; }
+  const newStickers = STICKERS.filter(s => before < s.xp && S.xp >= s.xp);
+  save();
+  hist.length = 0;
+  view = {name:'result', stars, sc, total, gained, dailyBonus, newStickers, kind:quiz.kind};
+  render();
+  sfxWin();
+  say(`${['Let\'s practise', 'Good try', 'Great work', 'Superstar'][stars]}! You got ${sc} out of ${total}.`);
+}
+function openCard(i){
+  sheet = {cat:view.cat, idx:i};
+  render();
+  const it = learnItems(sheet.cat)[i];
+  say(it.speak, S.fj && it.fj ? () => playFj(it.fj) : null);
+}
+function moveCard(d){
+  const n = learnItems(sheet.cat).length;
+  openCard((sheet.idx + d + n) % n);
+}
+
+$app.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const act = el.dataset.act, v = el.dataset.v;
+  if (act === 'close' && e.target !== el) return;   // taps inside the card don't close it
+  switch (act) {
+    case 'start': {
+      const input = document.getElementById('kidname');
+      S.name = (input ? input.value : '').trim().slice(0, 20);
+      S.started = true; save(); tab('home');
+      say(S.name ? `Bula ${S.name}! Let's learn!` : 'Bula! Let\'s learn!');
+      break;
+    }
+    case 'tab': tab(v); break;
+    case 'back': back(); break;
+    case 'cat': go('cat', {cat:v}); break;
+    case 'learn': go('learn', {cat:v}); break;
+    case 'quiz': startQuiz(v); break;
+    case 'pick': choose(v); break;
+    case 'nextq': nextQuestion(); break;
+    case 'repeat': askAloud(); break;
+    case 'open': openCard(Number(v)); break;
+    case 'close': sheet = null; render(); break;
+    case 'prev': moveCard(-1); break;
+    case 'next-card': moveCard(1); break;
+    case 'hear': { const it = learnItems(sheet.cat)[sheet.idx]; say(it.speak, S.fj && it.fj ? () => playFj(it.fj) : null); break; }
+    case 'playfj': playFj(v); break;
+    case 'toggle': S[v] = !S[v]; save(); if (v === 'sound' && !S.sound) { try { speechSynthesis.cancel(); } catch (err) {} } render(); break;
+    case 'savename': { const input = document.getElementById('editname'); S.name = input.value.trim().slice(0, 20); save(); render(); say('Saved!'); break; }
+    case 'reset':
+      if (view.confirmReset) { const keep = {fj:S.fj, sound:S.sound}; S = {...fresh(), ...keep}; save(); hist.length = 0; view = {name:'welcome'}; render(); }
+      else { view = {...view, confirmReset:true}; render(); }
+      break;
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.id === 'kidname') $app.querySelector('[data-act=start]').click();
+  if (e.key === 'Enter' && e.target.id === 'editname') $app.querySelector('[data-act=savename]').click();
+  if (e.key === 'Escape' && sheet) { sheet = null; render(); }
+});
+
+render();
+</script>
+</body>
+</html>
