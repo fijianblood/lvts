@@ -127,12 +127,13 @@ export const grass = () => {
   return t;
 };
 
-/** The sky behind everything: deep blue at the top, pale at the horizon. */
-export const skyGradient = () => canvasTexture(4, 256, (g, w, h) => {
+/** The sky behind everything: a vertical gradient, top (zenith) to the horizon.
+ *  Colours default to a bright day; the day/night cycle passes dusk and night ones. */
+export const skyGradient = (zenith = '#1e7bea', mid = '#5eb3ff', horizon = '#bfe6ff') => canvasTexture(4, 256, (g, w, h) => {
   const grd = g.createLinearGradient(0, 0, 0, h);
-  grd.addColorStop(0, '#1e7bea');
-  grd.addColorStop(0.55, '#5eb3ff');
-  grd.addColorStop(1, '#bfe6ff');
+  grd.addColorStop(0, zenith);
+  grd.addColorStop(0.55, mid);
+  grd.addColorStop(1, horizon);
   g.fillStyle = grd; g.fillRect(0, 0, w, h);
 });
 

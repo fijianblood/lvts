@@ -29,6 +29,8 @@ import { shopTall } from './shopInsides.ts';
 import { Sfx } from './audio.ts';
 import * as T from './textures.ts';
 import * as R from './raiwai.ts';
+import { skyAt, hourOf, isDiwali, type Sky } from './daynight.ts';
+import * as D from './diwali.ts';
 import { PLAN, SIGNS, RAIWAI_TREES, POLE_RUNS, FACE_ANGLE, footprint, houseSpec, rng, type PlanItem } from './raiwaiPlan.ts';
 import { partModel, goldenChip, ranger, palm, bushTree, banana, breadfruit, van, paint, type Finish, type Detail } from './models.ts';
 
@@ -121,6 +123,16 @@ function boxGeo(x0: number, y0: number, z0: number, x1: number, y1: number, z1: 
   const g = new THREE.BoxGeometry(Math.max(1e-3, x1 - x0), Math.max(1e-3, y1 - y0), Math.max(1e-3, z1 - z0));
   g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
   return g;
+}
+
+/** Preview only: turn a ?time= value (night, dusk, 18:30 ...) into a local hour, or undefined to use the real clock. */
+function parseTimeParam(v: string | null): number | undefined {
+  if (!v) return undefined;
+  const named: Record<string, number> = { night: 22, midnight: 0, day: 12, noon: 12, dawn: 6.3, sunrise: 6.3, dusk: 18.5, sunset: 18.5, evening: 19.5 };
+  if (v in named) return named[v];
+  const m = /^(\d{1,2})(?::(\d{2}))?$/.exec(v);
+  if (m) { const h = Number(m[1]) + (m[2] ? Number(m[2]) / 60 : 0); return h >= 0 && h < 24 ? h : undefined; }
+  return undefined;
 }
 
 /** Furniture: a box with softly rounded edges that catch the light (thin parts stay sharp). */
@@ -515,12 +527,24 @@ export class HouseEngine {
   private sun!: THREE.DirectionalLight;
   /** Where the sun's shadows are centred: the compound, or (exploring) wherever in Raiwai you've walked to. */
   private sunAt: [number, number] = [10, 11];
+  // day/night (follows the player's own clock) and the Diwali lights
+  private hemi!: THREE.HemisphereLight;
+  private skyTex?: THREE.CanvasTexture;
+  private stars?: THREE.Points;
+  private skyHourApplied = NaN;
+  private timeOverride?: number;   // preview only: ?time=night|day|dawn|dusk|HH[:MM]
+  readonly diwali: boolean;        // are the Diwali lights lit? (today's date, or ?diwali=1)
 
   constructor(container: HTMLElement, hud: EngineHud, cb: EngineCallbacks, opts: EngineOptions) {
     this.container = container;
     this.hud = hud;
     this.cb = cb;
     this.opts = opts;
+    // preview overrides (?time=night, ?diwali=1); otherwise the real clock and date decide
+    const q = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
+    this.timeOverride = parseTimeParam(q.get('time'));
+    const dq = q.get('diwali');
+    this.diwali = dq === '1' || dq === 'on' ? true : dq === '0' || dq === 'off' ? false : isDiwali();
     this.renderer = new THREE.WebGLRenderer({ antialias: !opts.touch, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, opts.touch ? 1.25 : 1.5));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -536,10 +560,10 @@ export class HouseEngine {
     this.camera = new THREE.PerspectiveCamera(opts.touch ? 76 : 72, 1, 0.05, 160);
     this.camera.rotation.order = 'YXZ';
 
-    // a bright sky: deep blue overhead, paler at the horizon (where the fog blends in)
-    const horizon = new THREE.Color('#a9dcff');
-    this.scene.background = this.tex(T.skyGradient());
-    this.scene.fog = new THREE.Fog(horizon, 34, 110);
+    // the sky, sun, fog and fill light all follow the player's clock (see updateDayNight)
+    this.skyTex = T.skyGradient();
+    this.scene.background = this.skyTex;
+    this.scene.fog = new THREE.Fog(new THREE.Color('#a9dcff'), 34, 110);
     // soft light bouncing round a room: gives every surface gentle shading and reflections
     const pmrem = new THREE.PMREMGenerator(this.renderer);
     const room = new RoomEnvironment();
@@ -547,12 +571,17 @@ export class HouseEngine {
     this.scene.environmentIntensity = 0.45;
     room.dispose();
     pmrem.dispose();
-    this.scene.add(new THREE.HemisphereLight('#f4f8ff', '#b9ab98', 0.6));
-    // an afternoon sun from the west, strong as real sunshine is next to the sky's light
+    const hemi = new THREE.HemisphereLight('#f4f8ff', '#b9ab98', 0.6);
+    this.hemi = hemi;
+    this.scene.add(hemi);
+    // the sun from the west; its colour and strength change through the day, but its
+    // direction stays put so the baked shadows stay right (they fade out at night anyway)
     const sun = new THREE.DirectionalLight('#fff0d4', 6.5);
     this.sun = sun;
     this.aimSun(10, 11);
     this.scene.add(sun, sun.target);
+    this.buildStars();
+    this.updateDayNight(true);
     // sun shadows: the roof and walls keep the sun out, so it only reaches indoors
     // through the windows and doors. Drawn once, and again only when something moves
     // (a door, who's standing where), so they cost almost nothing per frame.
@@ -1165,7 +1194,7 @@ export class HouseEngine {
       case 'teal': g = R.tealBuilding(); break;
       case 'field': g = R.sportsField(it.w, it.d); break;
       case 'masjid': g = R.jameMasjid(); break;
-      case 'temple': g = R.hinduTemple(hi - lo, it.d); break;
+      case 'temple': g = R.hinduTemple(hi - lo, it.d, this.diwali); break;
       case 'shed': g = R.shed(it.w, it.d, it.roof); break;
       case 'arena': g = R.arena(); break;
       default: g = R.floodlight();
@@ -1260,11 +1289,44 @@ export class HouseEngine {
       bake(g, near, this.raiwaiNear);
     }
 
+    if (this.diwali) this.decorateDiwali(near);
     this.buildScenery(far);
     this.flush(near, this.raiwaiNear);
     this.flush(far, this.raiwaiFar);
     this.raiwaiFar.visible = this.mode === 'explore';
     this.scene.add(this.raiwaiNear, this.raiwaiFar);
+  }
+
+  /** Diwali only: string lights round every building, and lights, diyas and a rangoli on your own house. */
+  private decorateDiwali(near: Buckets) {
+    // string lights along the eaves of each neighbourhood building (height estimated per kind)
+    const EAVE: Record<string, number> = { house: 2.7, church: 3.6, teal: 5.2, masjid: 4.6, shed: 2.5 };
+    for (const it of PLAN) {
+      if (it.far) continue;
+      let h: number | undefined;
+      if (it.kind === 'flats' || it.kind === 'campus') h = (it.floors ?? 3) * 2.85;
+      else if (it.kind === 'tower') h = (it.floors ?? 6) * 2.85;
+      else h = EAVE[it.kind];
+      if (!h) continue;
+      const fp = footprint(it);
+      const y = heightAt((fp.x0 + fp.x1) / 2, (fp.z0 + fp.z1) / 2) + h;
+      bake(D.eaveLights(fp.x0 + 0.1, fp.z0 + 0.1, fp.x1 - 0.1, fp.z1 - 0.1, y), near, this.raiwaiNear);
+    }
+    // your house: fairy lights along the veranda and the front roof, diyas on the veranda, a rangoli at the steps
+    const vFront = 15.3, vY = 2.5;
+    const house = new THREE.Group();
+    house.add(D.lightString(new THREE.Vector3(0.2, vY, vFront), new THREE.Vector3(12.2, vY, vFront), 18, 0.22));
+    house.add(D.lightString(new THREE.Vector3(0.2, vY, vFront), new THREE.Vector3(0.2, vY, 13.1), 6, 0.15));
+    house.add(D.lightString(new THREE.Vector3(12.2, vY, vFront), new THREE.Vector3(12.2, vY, 13.1), 6, 0.15));
+    house.add(D.lightString(new THREE.Vector3(0.2, 2.75, 13.0), new THREE.Vector3(11, 2.75, 13.0), 16, 0.2));
+    house.add(D.diyaRow(1, vFront - 0.1, 11.6, vFront - 0.1, 0.02, 8));
+    const vr = D.rangoli(0.9); vr.position.set(6.1, 0.02, 14.2); house.add(vr);
+    bake(house, near, this.raiwaiNear);
+    // and a welcome at the front gate, down by the road
+    const gate = new THREE.Group();
+    const gr = D.rangoli(0.8); gr.position.set(13.97, ROAD_Y + 0.02, 21.1); gate.add(gr);
+    gate.add(D.diyaRow(12.6, 20.9, 15.4, 20.9, ROAD_Y + 0.02, 5));
+    bake(gate, near, this.raiwaiNear);
   }
 
   /** Far away: the hills to the north and west with houses on their slopes, the sea and the reef to the south. */
@@ -2206,6 +2268,49 @@ export class HouseEngine {
   /** Redraw the sun's shadows on the next frame (after a door moves or someone appears). */
   private refreshShadows() { this.renderer.shadowMap.needsUpdate = true; }
 
+  /** A dome of stars, high in the sky, that fade in after dark (they ignore the fog so they stay crisp). */
+  private buildStars() {
+    const N = 460, pos = new Float32Array(N * 3), R = 130;
+    for (let i = 0; i < N; i++) {
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(Math.random() * 0.96);   // 0..~16° off straight up, so they sit high above the horizon
+      pos[i * 3] = R * Math.sin(phi) * Math.cos(theta);
+      pos[i * 3 + 1] = R * Math.cos(phi) * 0.7 + 26;  // lift the whole dome up
+      pos[i * 3 + 2] = R * Math.sin(phi) * Math.sin(theta);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const mat = new THREE.PointsMaterial({ color: '#fdf6e3', size: 1.7, sizeAttenuation: false, transparent: true, opacity: 0, depthWrite: false, fog: false });
+    const stars = new THREE.Points(geo, mat);
+    stars.frustumCulled = false;
+    stars.renderOrder = -1;
+    this.stars = stars;
+    this.scene.add(stars);
+  }
+
+  /** Point the sky, sun, fill light and fog at the current local time (or the ?time= preview). */
+  private updateDayNight(force = false) {
+    const hour = this.timeOverride ?? hourOf(new Date());
+    const sky: Sky = skyAt(hour);
+    this.sun.color.copy(sky.sun);
+    this.sun.intensity = sky.sunI;
+    this.hemi.color.copy(sky.hemiSky);
+    this.hemi.groundColor.copy(sky.hemiGround);
+    this.hemi.intensity = sky.hemiI;
+    this.scene.environmentIntensity = sky.env;
+    this.renderer.toneMappingExposure = sky.exposure;
+    (this.scene.fog as THREE.Fog).color.copy(sky.fog);
+    if (this.stars) { const m = this.stars.material as THREE.PointsMaterial; m.opacity = sky.stars; this.stars.visible = sky.stars > 0.01; }
+    // the sky image is a drawn gradient: only redraw it when the hour has moved enough to matter
+    if (force || !(Math.abs(hour - this.skyHourApplied) < 0.05)) {
+      const next = T.skyGradient('#' + sky.zenith.getHexString(), '#' + sky.mid.getHexString(), '#' + sky.horizon.getHexString());
+      this.scene.background = next;
+      this.skyTex?.dispose();
+      this.skyTex = next;
+      this.skyHourApplied = hour;
+    }
+  }
+
   /** Centre the sun's shadow area (about 68 m across) on a spot. */
   private aimSun(x: number, z: number) {
     const centre = new THREE.Vector3(x, 0, z);
@@ -2554,6 +2659,7 @@ export class HouseEngine {
       animate(this.player, this.bob * (this.char.crawl ? 2.2 : 1.6), this.air ? moving * 0.3 : moving);
     }
     this.followSun();
+    this.updateDayNight();
     // the family turn their heads to look at you when you come close
     for (const n of this.npcs) {
       if (!n.rig.root.visible || n.spot.pose === 'lie') continue;
