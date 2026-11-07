@@ -1,7 +1,7 @@
 import { pageLink } from '../links';
 
-// Noqu Vuli: a play-and-learn game for young children (ABC, numbers, animals,
-// shapes and colours) in English and iTaukei.
+// Noqu Vuli: a play-and-learn game for young children (ABC, numbers, maths,
+// animals, shapes and colours, plus a matching game) in English and iTaukei.
 //
 // The game itself is one self-contained page, public/kids/app.html, shown here
 // in a frame (like MediTrack). It needs nothing from the internet and saves
@@ -26,8 +26,9 @@ export default function KidsLearnPage({ onNav }: { onNav: (p: string) => void })
           Noqu <span className="grad-text">Vuli</span>
         </h1>
         <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: 1.75 }}>
-          Play and learn for young children: letters, counting, animals, shapes and colours, with a daily
-          challenge, stars and a sticker book. Questions are read out loud, and the words come in English and iTaukei.
+          Play and learn for young children: letters, counting, simple maths, animals, shapes and colours, plus a
+          matching-pairs game, a daily challenge, stars and a sticker book. Questions are read out loud, and the
+          words come in English and iTaukei.
         </p>
       </div>
 
