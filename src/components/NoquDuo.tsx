@@ -2,7 +2,7 @@ import { pageLink } from '../links';
 
 // The home page's games banner: two halves side by side, Noqublox (the 3D
 // game, /noqublox/) on the left and Noqu Vuli (the kids learning page, /kids/)
-// on the right, each with its own button.
+// on the right, each with a real screenshot and its own button.
 // The layout (and how it shrinks on phones) is the .noqu-duo CSS in index.css.
 
 export default function NoquDuo({ onNav }: { onNav: (p: string) => void }) {
@@ -21,9 +21,8 @@ export default function NoquDuo({ onNav }: { onNav: (p: string) => void }) {
           <div className="noqu-duo-card" style={{ background: 'linear-gradient(140deg,#0e7490 0%,#1e3a8a 100%)' }}>
             <span aria-hidden="true" className="noqu-duo-deco kids-float" style={{ right: '8%', top: '10%' }}>▣</span>
             <div className="noqu-duo-eyebrow">3D world · Free</div>
-            <div className="noqu-duo-art noqu-duo-scene" aria-hidden="true">
-              <span>🏠</span><span>🌴</span><span>🛍️</span><span>🚌</span>
-            </div>
+            <img className="noqu-duo-shot" src={`${import.meta.env.BASE_URL}noqublox-shot.jpg`} width={812} height={448} loading="lazy"
+              alt="Noqublox: the Loma Castle Playground in the 3D world" />
             <h3>Noqu<span style={{ color: '#fbbf24' }}>blox</span></h3>
             <p>Walk around Raiwai in 3D with other players, make your own character and hunt for the Golden Chip.</p>
             <div className="noqu-duo-chips">
@@ -39,15 +38,8 @@ export default function NoquDuo({ onNav }: { onNav: (p: string) => void }) {
             <span aria-hidden="true" className="noqu-duo-deco kids-float" style={{ right: '8%', top: '10%', animationDelay: '.6s' }}>A</span>
             <span aria-hidden="true" className="noqu-duo-deco kids-float" style={{ right: '22%', bottom: '12%', animationDelay: '1.2s' }}>3</span>
             <div className="noqu-duo-eyebrow">For little ones · Free</div>
-            <div className="noqu-duo-art" aria-hidden="true">
-              <span style={{ fontSize: '1.15em' }}>🐢</span>
-              <span className="noqu-duo-tiles">
-                <b style={{ background: '#ffe27a', color: '#16a34a' }}>A</b>
-                <b style={{ background: '#9fd8ff', color: '#dc2626' }}>1</b>
-                <b style={{ background: '#bdeb7a' }}>🐮</b>
-                <b style={{ background: '#ffc6dd', color: '#9333ea' }}>★</b>
-              </span>
-            </div>
+            <img className="noqu-duo-shot" src={`${import.meta.env.BASE_URL}noquvuli-shot.jpg`} width={812} height={448} loading="lazy"
+              alt="Noqu Vuli: the quiz asking which animal says Moo, with a cow and a shark to choose from" />
             <h3>Noqu <span style={{ color: '#ffd23f' }}>Vuli</span></h3>
             <p>Letters, counting, animals, shapes and colours for young children, read out loud in English and iTaukei.</p>
             <div className="noqu-duo-chips">

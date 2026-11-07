@@ -36,9 +36,9 @@ export interface PageRoute {
 export const ROUTES: PageRoute[] = [
   {
     id: 'home', label: 'Home', slug: '',
-    title: 'LomaVata Tech Services | Web Design & PC Repair, Suva Fiji',
-    description: 'LomaVata Tech Services in Raiwai, Suva: website design, laptop and PC repair, IT support, networking and CCTV across Fiji. Call 833 1088.',
-    heading: 'LomaVata Tech Services: web design, PC repair and IT support in Suva, Fiji',
+    title: 'LomaVata Tech Services | Explore. Learn. Play. Connect.',
+    description: 'Discover LvTS, technology built in Fiji: walk Raiwai in 3D in Noqublox, learn with Noqu Vuli in English and iTaukei, and get IT and web services.',
+    heading: 'Discover LvTS: technology brings us together. Explore, learn, play and connect, from Raiwai, Suva, Fiji',
   },
   {
     id: 'services', label: 'Services', slug: 'services',

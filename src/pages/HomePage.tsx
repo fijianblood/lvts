@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useScrollFade } from '../hooks/useScrollFade';
-import { ExternalLink, Award, Code2, Cpu, Globe, Rocket, GraduationCap, Shield, Gauge, Users, Search, FileCheck } from 'lucide-react';
+import { ExternalLink, Award, Code2, Cpu, Globe, Shield, Gauge, Users, Search, FileCheck } from 'lucide-react';
 import SitePagesFaq from '../components/SitePagesFaq';
 import NoquDuo from '../components/NoquDuo';
-import { hrefFor, pageLink } from '../links';
+import DiscoverServices from '../components/DiscoverServices';
+import DiscoverVision from '../components/DiscoverVision';
+import { pageLink } from '../links';
 
-const TITLES = ['IT Sales Pro', 'Web Dev Enthusiast', 'PC & Laptop Repair', 'Fiji 🏝 Tech Builder', 'Laptops for sale', 'PC & Laptop Repair'];
+// The line that types itself under the slogan in the hero.
+const TITLES = ['Explore Raiwai in 3D', 'Learn in English & iTaukei', 'Play together online', 'Connect with local tech', 'Websites for Fiji businesses', 'PC & laptop repair'];
 
 const SKILLS = [
   { label: 'Technical Knowledge', pct: 95, color: '#2563eb' },
@@ -87,77 +90,62 @@ export default function HomePage({ onNav }: { onNav: (p: string) => void }) {
         <div className="orb" style={{ width: 350, height: 350, background: 'rgba(124,58,237,0.07)', bottom: '5%', right: '-5%', animationDelay: '3s' }} />
         <div className="orb" style={{ width: 200, height: 200, background: 'rgba(8,145,178,0.06)', top: '40%', right: '15%', animationDelay: '1.5s' }} />
 
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: 820, textAlign: 'center' }}>
-          <a href="https://www.vitikart.com.fj/914-remote-it-service" target="_blank" rel="noopener noreferrer"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 9999, padding: '0.35rem 1rem', marginBottom: '1.8rem', textDecoration: 'none', cursor: 'pointer', transition: 'background 0.2s, border-color 0.2s' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37,99,235,0.14)'; e.currentTarget.style.borderColor = 'rgba(37,99,235,0.35)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(37,99,235,0.08)'; e.currentTarget.style.borderColor = 'rgba(37,99,235,0.2)'; }}>
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: 960, textAlign: 'center' }}>
+          {/* Discover LvTS campaign: the message first, then the two experiences, then services. */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 9999, padding: '0.35rem 1rem', marginBottom: '1rem' }}>
             <div className="pulse-ring" style={{ width: 7, height: 7, borderRadius: '50%', background: '#0891b2' }} />
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#0891b2' }}>Available for Hire · Raiwai, Suva, Fiji</span>
-            <ExternalLink size={11} color="#0891b2" />
-          </a>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#0891b2' }}>🌐 Discover LvTS · Raiwai, Suva, Fiji</span>
+          </div>
 
-          <div style={{ position: 'relative', marginBottom: '0.5rem' }}>
-            <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(2.8rem,9vw,6rem)', lineHeight: 1.0, color: '#0f172a', letterSpacing: '-0.02em' }}>
-              LomaVata <span className="grad-text">Tech Services</span>
+          <div style={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#475569', marginBottom: '0.8rem' }}>
+            LomaVata Tech Services · Living With Technology
+          </div>
+
+          <div style={{ position: 'relative', marginBottom: '1rem' }}>
+            <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(2.3rem,6.4vw,4.5rem)', lineHeight: 1.0, color: '#0f172a', letterSpacing: '-0.02em' }}>
+              Technology brings <span className="grad-text">us together.</span>
             </h1>
             <div className="glitch-layer" aria-hidden>
-              <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(2.8rem,9vw,6rem)', lineHeight: 1.0, letterSpacing: '-0.02em', opacity: 0.2 }}>
-                LomaVata Tech Services
+              <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(2.3rem,6.4vw,4.5rem)', lineHeight: 1.0, letterSpacing: '-0.02em', opacity: 0.2 }}>
+                Technology brings us together.
               </h1>
             </div>
           </div>
 
-          <div style={{ marginBottom: '2rem', minHeight: '2.4rem' }}><TypeWriter /></div>
-
-          <p style={{ fontSize: 'clamp(0.95rem,2vw,1.1rem)', color: '#64748b', lineHeight: 1.75, maxWidth: 640, margin: '0 auto 1.5rem' }}>
-            Node.js isn't as scary as it sounds — think of it like Windows 11, just another environment your computer runs on. I combine <strong style={{ color: '#339933' }}>Node.js</strong>, <strong style={{ color: '#7c3aed' }}>Claude AI</strong>, and <strong style={{ color: '#0f172a' }}>VS Code</strong> to build and sell real websites for clients across Fiji. Book me and I'll walk you through the unseen world inside your own computer.
+          <p style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(1.2rem,3.6vw,1.9rem)', display: 'flex', gap: '0.55rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '0.9rem' }}>
+            <span style={{ color: '#2563eb' }}>Explore.</span><span style={{ color: '#7c3aed' }}>Learn.</span><span style={{ color: '#d97706' }}>Play.</span><span style={{ color: '#0891b2' }}>Connect.</span>
           </p>
 
-          <a href="https://www.vitikart.com.fj/914-website-design-development-fiji-we-make-websites" target="_blank" rel="noopener noreferrer"
-            className="pulse-cta"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'linear-gradient(135deg,#2563eb,#7c3aed)', border: 'none', color: '#fff', padding: '0.8rem 1.8rem', borderRadius: 10, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 800, fontSize: '0.95rem', textDecoration: 'none', marginBottom: '1.8rem', transition: 'transform 0.2s' }}
-            onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px) scale(1.03)')}
-            onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0) scale(1)')}>
-            <Rocket size={17}/> Buy Your Own Website Today —  <ExternalLink size={13}/>
-          </a>
+          <div style={{ marginBottom: '1.2rem', minHeight: '2.4rem' }}><TypeWriter /></div>
 
-          <p style={{ fontSize: 'clamp(0.9rem,1.8vw,1rem)', color: '#64748b', lineHeight: 1.85, maxWidth: 640, margin: '0 auto 2.5rem' }}>
-            Think ChatGPT or another AI can build your website on its own? First question:{' '}
-            do you have{' '}
-            <a href="https://nodejs.org/en" target="_blank" rel="noopener noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(51,153,51,0.1)', border: '1px solid rgba(51,153,51,0.35)', color: '#2d7a2d', padding: '0.1rem 0.6rem', borderRadius: 6, fontWeight: 700, fontSize: '0.9em', textDecoration: 'none', verticalAlign: 'middle' }}>
-              Node.js <ExternalLink size={11}/>
-            </a>{' '}
-            installed on your laptop? If not,{' '}
-            <a href="https://www.vitikart.com.fj/914-remote-it-service" target="_blank" rel="noopener noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#2563eb', fontWeight: 700, textDecoration: 'underline', verticalAlign: 'middle' }}>
-              <GraduationCap size={14}/> click here to book your training schedule
-            </a>{' '}
-            — you'll get a clear picture of exactly which tools AI uses to build a website, and unlike a site built for you, those tools and skills stay with you on your own computer, forever.
+          <p style={{ fontSize: 'clamp(0.95rem,2vw,1.1rem)', color: '#475569', lineHeight: 1.75, maxWidth: 660, margin: '0 auto 1.6rem' }}>
+            Technology is not just something we use. It is something we can <strong style={{ color: '#0f172a' }}>build, learn from and share</strong>.
+            LomaVata Tech Services is a Fiji-based technology initiative bringing together digital services, interactive learning, gaming and local digital experiences.
           </p>
 
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a {...pageLink('services', onNav)}
-              style={{ display: 'inline-flex', alignItems: 'center', background: 'linear-gradient(135deg,#2563eb,#7c3aed)', border: 'none', color: '#fff', padding: '0.85rem 2rem', borderRadius: 10, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', transition: 'transform 0.2s, opacity 0.2s', textDecoration: 'none' }}
+          <div style={{ display: 'flex', gap: '0.8rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <a {...pageLink('house', onNav)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'linear-gradient(140deg,#0e7490,#1e3a8a)', color: '#fff', padding: '0.85rem 1.6rem', borderRadius: 12, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 800, fontSize: '0.95rem', textDecoration: 'none', boxShadow: '0 8px 20px rgba(30,58,138,0.28)', transition: 'transform 0.2s' }}
               onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
               onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}>
-              View Services
+              🎮 Play Noqublox
             </a>
-            <a href={hrefFor('ask')} target="_blank" rel="noopener noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#fff', border: '1.5px solid rgba(37,99,235,0.3)', color: '#2563eb', padding: '0.85rem 2rem', borderRadius: 10, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(37,99,235,0.1)', textDecoration: 'none' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(37,99,235,0.05)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#fff'; }}>
-              💬 Ask LvTS
+            <a {...pageLink('kids', onNav)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'linear-gradient(140deg,#7b5cff,#5b3be6)', color: '#fff', padding: '0.85rem 1.6rem', borderRadius: 12, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 800, fontSize: '0.95rem', textDecoration: 'none', boxShadow: '0 8px 20px rgba(91,59,230,0.28)', transition: 'transform 0.2s' }}
+              onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
+              onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}>
+              📚 Start Noqu Vuli
             </a>
-            <a {...pageLink('network', onNav)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#fff', border: '1.5px solid rgba(242,169,60,0.45)', color: '#b76e00', padding: '0.85rem 2rem', borderRadius: 10, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(242,169,60,0.12)', textDecoration: 'none' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(242,169,60,0.08)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.transform = 'translateY(0)'; }}
-              aria-label="View the interactive 3D small-office network diagram">
-              🖧 See Network Setup
+            <a href="#tech-services"
+              onClick={e => { e.preventDefault(); document.getElementById('tech-services')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#fff', border: '1.5px solid rgba(37,99,235,0.3)', color: '#2563eb', padding: '0.85rem 1.6rem', borderRadius: 12, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 800, fontSize: '0.95rem', textDecoration: 'none', boxShadow: '0 2px 8px rgba(37,99,235,0.1)' }}>
+              💻 Our Tech Services
             </a>
           </div>
+
+          <p style={{ marginTop: '1.3rem', fontSize: '0.88rem', color: '#64748b' }}>
+            🏝️ Locally inspired. Built in Fiji. You don't have to be a technology expert to explore.
+          </p>
 
           {/* Stat strip */}
           <div style={{ marginTop: '4rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '1px', background: 'rgba(37,99,235,0.1)', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(37,99,235,0.12)' }}>
@@ -173,6 +161,10 @@ export default function HomePage({ onNav }: { onNav: (p: string) => void }) {
 
       {/* GAMES: NOQUBLOX (left) AND NOQU VULI (right) */}
       <NoquDuo onNav={onNav} />
+
+      {/* TECHNOLOGY SERVICES, then OUR VISION and who LvTS is for */}
+      <DiscoverServices onNav={onNav} />
+      <DiscoverVision onNav={onNav} />
 
       {/* ABOUT THIS PAGE */}
       <section ref={aboutRef} className="fade-in" style={{ padding: '80px 1.5rem 40px', background: '#f8fafc' }}>
