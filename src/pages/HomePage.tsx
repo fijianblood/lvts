@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useScrollFade } from '../hooks/useScrollFade';
 import { ExternalLink, Award, Code2, Cpu, Globe, Rocket, GraduationCap, Shield, Gauge, Users, Search, FileCheck } from 'lucide-react';
 import SitePagesFaq from '../components/SitePagesFaq';
+import KidsHero from '../components/KidsHero';
 import { hrefFor, pageLink } from '../links';
 
 const TITLES = ['IT Sales Pro', 'Web Dev Enthusiast', 'PC & Laptop Repair', 'Fiji 🏝 Tech Builder', 'Laptops for sale', 'PC & Laptop Repair'];
@@ -170,6 +171,9 @@ export default function HomePage({ onNav }: { onNav: (p: string) => void }) {
         </div>
       </section>
 
+      {/* KIDS: NOQU VULI */}
+      <KidsHero onNav={onNav} />
+
       {/* ABOUT THIS PAGE */}
       <section ref={aboutRef} className="fade-in" style={{ padding: '80px 1.5rem 40px', background: '#f8fafc' }}>
         <div style={{ maxWidth: 760, margin: '0 auto', textAlign: 'center' }}>
@@ -179,7 +183,7 @@ export default function HomePage({ onNav }: { onNav: (p: string) => void }) {
           </h2>
           <p style={{ color: '#64748b', lineHeight: 1.8, fontSize: '0.95rem' }}>
             This site is the front door to everything LomaVata Tech Services does — repairs, web builds, the
-            Noqublox game, MediTrack, network setup help, and more. Use the directory below to jump straight
+            Noqublox game, Noqu Vuli for kids, MediTrack, network setup help, and more. Use the directory below to jump straight
             to any page, or check the FAQ if you're not sure where to start.
           </p>
         </div>

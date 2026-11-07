@@ -123,3 +123,8 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* Home page kids banner (KidsHero): letters and Vonu gently bob. */
+@keyframes kids-float { 50% { transform: translateY(-8px); } }
+.kids-float { animation: kids-float 4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .kids-float { animation: none; } }
