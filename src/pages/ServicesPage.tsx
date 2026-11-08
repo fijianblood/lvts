@@ -45,7 +45,7 @@ const SERVICES = [
 
 const EXTRA = [
   { icon: <ShieldCheck size={20} />, title: 'Antivirus & Security', desc: 'Remove viruses, malware, ransomware. Install proper antivirus protection.' },
-  { icon: <Wifi size={20} />, title: 'Network & CCTV', desc: 'Home and office network setup, CCTV installation and configuration.' },
+  { icon: <Wifi size={20} />, title: 'Networking', desc: 'Home and office network setup and troubleshooting — Wi-Fi, LAN and Linux diagnostics.' },
   { icon: <Globe size={20} />, title: 'Web Designing', desc: 'Modern websites, landing pages and portfolio sites for your business.' },
   { icon: <Monitor size={20} />, title: 'Software & OS', desc: 'Windows 10/11 installation, Microsoft Office, driver updates.' },
   { icon: <Printer size={20} />, title: 'Printer & Peripherals', desc: 'OKI MC342w color printer setup. Toner, drums, and maintenance.' },

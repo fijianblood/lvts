@@ -16,8 +16,7 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
       "We handle:\n" +
       "- PC & laptop repair and Windows 11 troubleshooting\n" +
       "- Website design & development\n" +
-      "- Networking setup (home/office)\n" +
-      "- CCTV installation\n" +
+      "- Networking setup & troubleshooting (home/office, Linux)\n" +
       "- Remote IT support\n" +
       "- Laptops, accessories & software — via our online store\n\n" +
       "Ask me about any of these, or [chat with us directly on WhatsApp](https://wa.me/6797466941) for anything specific.",
@@ -35,6 +34,39 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
       "That backs our networking setup service: home/office Wi-Fi and LAN setup, router/switch configuration, and network troubleshooting done to a certified standard.\n\n" +
       "Studying for CCNA yourself? Here's a solid set of community study notes: [CCNA_Course_Notes on GitHub](https://github.com/psaumur/CCNA_Course_Notes) (notes from Jeremy's IT Lab CCNA 200-301 course).\n\n" +
       "[Message us on WhatsApp](https://wa.me/6797466941) if you need networking set up or fixed.",
+  },
+  {
+    id: 'linux-networking-commands',
+    keywords: [
+      'linux networking', 'networking commands', 'network commands linux', 'linux network',
+      'ip addr', 'ip a', 'ip route', 'ip link', 'show my ip', 'check my ip', 'whats my ip',
+      'my ip address', 'find my ip', 'default gateway', 'routing table', 'dns servers', 'resolv.conf',
+      'ping', 'traceroute', 'tracepath', 'hostname -i', 'ifconfig', 'netstat', 'ss ', 'dig',
+      'nmap', 'tcpdump', 'arp-scan', 'arp scan', 'ettercap', 'netcat', 'ncat', 'socat', 'nc ',
+      'network cheat sheet', 'network troubleshooting commands', 'how to see my ip',
+    ],
+    answer:
+      "**Linux networking commands (cheat-sheet)**\n\n" +
+      "The most useful Linux networking commands, grouped by task. Most need `sudo` for changes. Interface names vary (e.g. `eth0`, `enp3s0`, `wlan0`, `wlp2s0`), so check yours first.\n\n" +
+      "**See your network setup**\n" +
+      "- `ip -br addr` — interfaces and their IP addresses, as a short list\n" +
+      "- `ip addr` (or `ip a`) — the same, with more detail\n" +
+      "- `ip route` — the routing table (`ip route | grep default` shows your gateway)\n" +
+      "- `hostname -I` — prints your IP addresses\n" +
+      "- `cat /etc/resolv.conf` — your DNS servers\n\n" +
+      "**Turn interfaces on or off**\n" +
+      "- `sudo ip link set eth0 up` and `sudo ip link set eth0 down`\n" +
+      "- `sudo ip addr add 192.168.1.50/24 dev eth0` — add a temporary IP (lost on reboot)\n\n" +
+      "**Test connectivity**\n" +
+      "- `ping -c 4 8.8.8.8` — can you reach the internet? (`-c 4` stops after 4 packets)\n" +
+      "- `ping -c 4 google.com` — checks DNS works too\n" +
+      "- `traceroute google.com` — the path your traffic takes (use `tracepath` if traceroute isn't installed)\n\n" +
+      "**Dig deeper — the tools we work with**\n" +
+      "- `dig` — DNS lookups  ·  `netstat` / `ss` — open ports and connections\n" +
+      "- `nmap` — scan hosts and ports  ·  `arp-scan` — list devices on the LAN\n" +
+      "- `tcpdump` — capture and read packets  ·  `ifconfig` — the classic interface view\n" +
+      "- `nc` / `ncat` / `socat` — test services and move data between hosts  ·  `ettercap` — LAN analysis\n\n" +
+      "Need your network set up, secured or fixed? [Message us on WhatsApp](https://wa.me/6797466941).",
   },
   {
     id: 'computer-laptop-repair',
