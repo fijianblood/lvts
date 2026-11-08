@@ -71,6 +71,12 @@ export const ROUTES: PageRoute[] = [
     heading: 'Noqu Vuli: kids learning games in English and iTaukei',
   },
   {
+    id: 'little-chef', label: 'Little Chef', slug: 'little-chef',
+    title: 'Little Chef Fiji: Pretend Cooking Game for Kids | LvTS',
+    description: 'A free pretend-cooking game for young children in Fiji: make a tropical fruit salad and learn fruit names, colours and counting in English and iTaukei.',
+    heading: 'Little Chef Fiji: pretend cooking for kids',
+  },
+  {
     id: 'tools', label: 'Tools', slug: 'tools',
     title: 'Free Image to PDF, PDF Merge & Photo Sketch Tools | LvTS',
     description: 'Free tools that run in your browser: turn photos (JPEG, HEIC, DNG) into a PDF, merge PDFs, or make a pencil sketch from a photo. Nothing is uploaded.',
