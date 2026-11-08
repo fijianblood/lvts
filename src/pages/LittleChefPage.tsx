@@ -24,9 +24,10 @@ export default function LittleChefPage({ onNav }: { onNav: (p: string) => void }
           Little <span className="grad-text">Chef</span> Fiji
         </h1>
         <p style={{ color: '#6b5544', fontSize: '1rem', lineHeight: 1.75 }}>
-          A friendly pretend-cooking game for young children. Make a tropical fruit salad — choose the fruit, wash it,
-          slice it (all pretend!), mix it in the bowl and serve — while learning fruit names, colours and counting.
-          Instructions are read out loud, with iTaukei words along the way.
+          A friendly pretend-cooking game for young children. Step into a colourful kitchen and make a fruit salad,
+          fry or boil an egg, butter some toast, or cook chicken and rice — pouring, cracking, mixing, flipping and
+          seasoning, all pretend — while learning food names, colours and counting. Instructions are read out loud,
+          with iTaukei words along the way.
         </p>
       </div>
 
