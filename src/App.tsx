@@ -14,6 +14,7 @@ import MediTrackPage from './pages/MediTrackPage';
 import SeoToolsPage from './pages/SeoToolsPage';
 import ActivationHelpPage from './pages/ActivationHelpPage';
 import KidsLearnPage from './pages/KidsLearnPage';
+import LittleChefPage from './pages/LittleChefPage';
 import { canonicalFor, pageFromPath, routeById } from './data/routes';
 import { BASE, hrefFor } from './links';
 
@@ -81,6 +82,7 @@ function renderPage(page: string, onNav: (p: string) => void) {
       </Suspense>
     );
     case 'kids':     return <KidsLearnPage onNav={onNav} />;
+    case 'little-chef': return <LittleChefPage onNav={onNav} />;
     case 'tools':    return <ToolsPage />;
     case 'whiteboard': return <WhiteboardPage />;
     case 'meditrack': return <MediTrackPage />;

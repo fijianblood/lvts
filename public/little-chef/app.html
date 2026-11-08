@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Little Chef Fiji · Pretend cooking | LvTS</title>
+<meta name="description" content="A free pretend-cooking game for young children in Fiji: make a tropical fruit salad, learn fruit names in English and iTaukei, colours and counting. Digital play only.">
+<meta name="theme-color" content="#ff7a2f">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%91%A8%E2%80%8D%F0%9F%8D%B3%3C/text%3E%3C/svg%3E">
+<!--
+  Little Chef Fiji: a pretend-cooking game for young children, part of
+  Little Learners Fiji by LomaVata Tech Services. One self-contained file:
+  no libraries, no images or fonts from the internet, nothing uploaded.
+  Progress (name, stars) is saved on this device only.
+
+  It is DIGITAL PRETEND PLAY. It never tells a child to use a real knife,
+  stove, oven, hot water or any real kitchen equipment, and it asks a
+  grown-up to play along.
+
+  Languages: English first. iTaukei words are shown only for foods whose
+  word is already reviewed in our Noqu Vuli game (banana = jaina, mango =
+  maqo, coconut = niu). Other foods show in English only until a fluent
+  speaker reviews the iTaukei. Please don't add invented words here.
+-->
+<style>
+:root{
+  --orange:#ff7a2f;--orange-d:#e85d12;--mango:#ffb02e;--leaf:#36b37e;--berry:#ff4d6d;
+  --sky:#8ed0ff;--cream:#fff6e9;--ink:#3b2a1e;--muted:#9a7b63;--line:#f0e2d0;
+  --green:#16a34a;--yellow:#ffd23f;
+  --shadow:0 8px 22px rgba(120,70,20,.16);
+  font-family:"Nunito","Baloo 2",ui-rounded,"SF Pro Rounded","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none}
+html,body{height:100%}
+body{background:radial-gradient(1200px 600px at 50% -10%,#ffe7cf 0,#fff2e2 55%,#eafaff 100%);color:var(--ink);-webkit-tap-highlight-color:transparent;display:flex;justify-content:center;align-items:center;min-height:100vh;min-height:100dvh}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+button:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
+#app{position:relative;width:100%;max-width:440px;height:100vh;height:100dvh;background:var(--cream);display:flex;flex-direction:column;overflow:hidden}
+@media (min-width:520px) and (min-height:720px){#app{height:min(900px,calc(100dvh - 32px));border-radius:36px;box-shadow:0 30px 80px rgba(150,90,30,.25);border:8px solid #fff}}
+.screen{flex:1;display:flex;flex-direction:column;min-height:0;animation:in .28s ease}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.scroll{flex:1;overflow-y:auto;padding:14px 16px 20px;-webkit-overflow-scrolling:touch}
+
+/* top bar */
+.bar{display:flex;align-items:center;gap:10px;padding:12px 14px 4px}
+.iconbtn{width:44px;height:44px;flex:none;border-radius:50%;background:#fff;box-shadow:var(--shadow);display:grid;place-items:center;font-size:20px;font-weight:900;color:var(--orange)}
+.bar .title{flex:1;text-align:center;font-weight:900;font-size:19px}
+.bar .spacer{width:44px;flex:none}
+.steps{display:flex;gap:5px;justify-content:center;padding:4px 0 2px}
+.steps i{width:20px;height:6px;border-radius:9px;background:#f0ddc6}
+.steps i.on{background:var(--orange);width:28px}
+.steps i.done{background:var(--mango)}
+
+/* buttons */
+.btn{display:block;width:100%;padding:16px;border-radius:999px;background:var(--orange);color:#fff;font-weight:900;font-size:18px;box-shadow:0 6px 0 var(--orange-d),0 12px 20px rgba(200,90,20,.28);transition:transform .08s,box-shadow .08s}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--orange-d)}
+.btn.light{background:#fff;color:var(--orange);box-shadow:0 6px 0 #ffd9bd}
+.btn.green{background:var(--leaf);box-shadow:0 6px 0 #1f9160,0 12px 20px rgba(30,150,90,.28)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn + .btn{margin-top:12px}
+
+/* welcome */
+.welcome{background:linear-gradient(170deg,#ff9f5a 0%,#ff7a2f 55%,#ff5d2e 100%);color:#fff;position:relative;overflow:hidden}
+.welcome .scroll{display:flex;flex-direction:column;padding-top:24px;text-align:center}
+.deco{position:absolute;opacity:.22;pointer-events:none;animation:float 6s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-10px) rotate(8deg)}}
+.brand{align-self:center;background:rgba(255,255,255,.2);border-radius:999px;padding:6px 14px;font-weight:800;font-size:13px;letter-spacing:.05em}
+h1.hero{font-size:46px;line-height:1.02;font-weight:900;margin-top:12px;letter-spacing:-.5px;text-shadow:0 4px 0 rgba(150,50,0,.25)}
+h1.hero .y{color:#fff3c4}
+.chef{font-size:118px;line-height:1;margin:10px 0 4px;display:inline-block;filter:drop-shadow(0 10px 12px rgba(120,40,0,.35));animation:bob 3s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-6px)}}
+.bubble{display:inline-block;background:#fff;color:var(--ink);border-radius:18px;padding:9px 15px;font-weight:800;font-size:15px;position:relative}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-8px;margin-left:-8px;border:8px solid transparent;border-top-color:#fff;border-bottom:0}
+.wfield{margin-top:auto;padding-top:14px}
+.wfield label{display:block;font-weight:800;font-size:14px;margin:0 0 8px;opacity:.95}
+input.name{width:100%;padding:14px 18px;border-radius:16px;border:2px solid transparent;font:inherit;font-size:17px;font-weight:800;color:var(--ink);background:#fff;text-align:center}
+.langrow{display:flex;gap:8px;justify-content:center;margin-top:12px}
+.langbtn{background:rgba(255,255,255,.18);border-radius:999px;padding:9px 16px;font-weight:800;font-size:14px;color:#fff}
+.langbtn.on{background:#fff;color:var(--orange)}
+.welcome .btn{margin-top:14px;background:#fff;color:var(--orange);box-shadow:0 6px 0 #d8541a,0 12px 20px rgba(120,20,0,.28)}
+.grownup{margin-top:14px;font-size:12.5px;font-weight:700;opacity:.92;line-height:1.5;background:rgba(0,0,0,.12);border-radius:14px;padding:10px 12px}
+
+/* instruction line */
+.say{display:flex;align-items:center;gap:10px;justify-content:center;background:#fff;border-radius:18px;padding:12px 14px;box-shadow:var(--shadow);margin:2px 2px 10px;text-align:center}
+.say b{font-size:17px;font-weight:900}
+.say .spk{width:40px;height:40px;flex:none;border-radius:50%;background:#fff6e9;display:grid;place-items:center;font-size:18px;box-shadow:inset 0 0 0 2px var(--line)}
+.hint{text-align:center;color:var(--muted);font-weight:700;font-size:13px;margin:-4px 2px 10px}
+
+/* ingredient grid */
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.food{background:#fff;border-radius:20px;box-shadow:var(--shadow);padding:10px 6px 8px;text-align:center;border:3px solid transparent;transition:transform .1s,border-color .15s}
+.food:active{transform:scale(.95)}
+.food.picked{border-color:var(--leaf);background:#edfcf4}
+.food .em{font-size:46px;line-height:1.05;display:block}
+.food .nm{font-weight:900;font-size:14px;margin-top:2px}
+.food .fj{font-size:11px;color:var(--muted);font-weight:800}
+.food .tick{position:absolute}
+.pickcount{text-align:center;font-weight:900;color:var(--orange);margin:12px 0 2px;font-size:15px}
+
+/* station (wash / slice / mix / serve) */
+.stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:4px 16px;position:relative;min-height:0}
+.items{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;align-items:center;max-width:360px}
+.item{font-size:52px;line-height:1;position:relative;transition:transform .12s,opacity .3s;cursor:pointer}
+.item:active{transform:scale(.9)}
+.item .lbl{position:absolute;left:50%;bottom:-16px;transform:translateX(-50%);font-size:10px;font-weight:800;color:var(--muted);white-space:nowrap}
+.item.done{filter:none}
+.item.todo{animation:wiggle 1.6s ease-in-out infinite}
+@keyframes wiggle{45%,55%{transform:rotate(0)}48%{transform:rotate(-7deg)}52%{transform:rotate(7deg)}}
+.drip{position:absolute;inset:0;pointer-events:none}
+.splash{position:absolute;font-size:30px;animation:pop .5s ease forwards;pointer-events:none}
+@keyframes pop{0%{transform:scale(.3);opacity:0}40%{opacity:1}100%{transform:scale(1.4) translateY(-14px);opacity:0}}
+
+/* the big bowl / plate */
+.bowl{width:210px;height:150px;border-radius:0 0 120px 120px/0 0 150px 150px;background:linear-gradient(#fff,#ffe9d2);box-shadow:var(--shadow),inset 0 10px 0 rgba(0,0,0,.04);position:relative;display:flex;flex-wrap:wrap;align-content:flex-end;justify-content:center;gap:2px;padding:10px;overflow:hidden}
+.bowl::before{content:"";position:absolute;top:-10px;left:-6px;right:-6px;height:22px;border-radius:50%;background:#fff;box-shadow:var(--shadow)}
+.bowl .piece{font-size:30px;line-height:1;position:relative;animation:drop .4s cubic-bezier(.3,1.4,.6,1)}
+@keyframes drop{from{transform:translateY(-120px) scale(.6);opacity:0}}
+.spoon{position:absolute;right:-6px;top:-22px;font-size:40px;transform-origin:bottom center;animation:stir 1.4s ease-in-out infinite}
+@keyframes stir{50%{transform:rotate(-16deg) translateX(-10px)}}
+.plate{width:240px;height:240px;border-radius:50%;background:radial-gradient(circle at 50% 45%,#fff 60%,#eef3f6 61%,#dbe4ea 100%);box-shadow:var(--shadow);display:flex;flex-wrap:wrap;align-content:center;justify-content:center;gap:4px;padding:40px;position:relative}
+.plate .piece{font-size:34px;line-height:1;animation:drop .4s cubic-bezier(.3,1.4,.6,1)}
+.counter{font-size:40px;font-weight:900;color:var(--orange);min-height:46px}
+
+/* celebrate */
+.done{text-align:center;display:flex;flex-direction:column;justify-content:center;flex:1;padding:22px;position:relative;overflow:hidden}
+.done .big{font-size:120px;line-height:1;animation:bob 2.4s ease-in-out infinite}
+.done h2{font-size:30px;font-weight:900;margin-top:6px}
+.done p{color:var(--muted);font-weight:800;margin-top:6px}
+.stars{font-size:48px;letter-spacing:6px;margin-top:10px}
+.stars .off{filter:grayscale(1);opacity:.25}
+.badge{display:inline-block;margin:16px auto 0;background:#fff;border-radius:20px;padding:12px 18px;font-weight:900;box-shadow:var(--shadow);color:var(--orange)}
+.badge span{font-size:34px;display:block}
+.confetti{position:absolute;top:-30px;font-size:22px;animation:fall linear forwards;pointer-events:none}
+@keyframes fall{to{transform:translateY(900px) rotate(360deg)}}
+
+/* bottom action bar */
+.foot{padding:8px 16px calc(14px + env(safe-area-inset-bottom))}
+.foot .row{display:flex;gap:10px}
+.foot .row .btn{flex:1;margin:0}
+
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.confetti{display:none}}
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+<noscript><p style="padding:2rem;text-align:center">Little Chef Fiji needs JavaScript turned on.</p></noscript>
+<script>
+'use strict';
+
+/* ---------------- Foods ----------------
+   fj = the iTaukei word. Only words already reviewed in our Noqu Vuli game
+   are set here; the rest show in English only until a fluent speaker reviews
+   them. Please don't invent iTaukei words. */
+const FRUITS = [
+  {id:'banana',     en:'Banana',     e:'🍌', fj:'jaina', colour:'yellow', piece:'🍌'},
+  {id:'mango',      en:'Mango',      e:'🥭', fj:'maqo',  colour:'orange', piece:'🥭'},
+  {id:'pineapple',  en:'Pineapple',  e:'🍍',             colour:'yellow', piece:'🍍'},
+  {id:'watermelon', en:'Watermelon', e:'🍉',             colour:'red',    piece:'🍉'},
+  {id:'coconut',    en:'Coconut',    e:'🥥', fj:'niu',   colour:'brown',  piece:'🥥'},
+  {id:'orange',     en:'Orange',     e:'🍊',             colour:'orange', piece:'🍊'},
+];
+const TOPPINGS = [
+  {id:'mint',   en:'Mint leaf', e:'🌿'},
+  {id:'cherry', en:'Cherry',    e:'🍒'},
+  {id:'star',   en:'Star fruit',e:'⭐'},
+];
+const NUM_EN = ['', 'one','two','three','four','five','six','seven','eight'];
+
+/* ---------------- Saved progress (this device only) ---------------- */
+const KEY = 'littlechef.v1';
+const DEFAULTS = {name:'', lang:'en', sound:true, made:0, stars:0, badges:[]};
+function load(){ try{ const r = localStorage.getItem(KEY); if(r) return {...DEFAULTS, ...JSON.parse(r)}; }catch(e){} return {...DEFAULTS}; }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+let S = load();
+
+/* ---------------- Helpers ---------------- */
+const $app = document.getElementById('app');
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rand = n => Math.floor(Math.random()*n);
+const pick = a => a[rand(a.length)];
+
+/* Sound: a friendly voice and little effects */
+let voice = null;
+function pickVoice(){ try{ const vs = speechSynthesis.getVoices(); voice = vs.find(v=>/^en[-_](AU|NZ|GB)/i.test(v.lang)) || vs.find(v=>/^en/i.test(v.lang)) || null; }catch(e){ voice=null; } }
+if('speechSynthesis' in window){ pickVoice(); try{ speechSynthesis.onvoiceschanged = pickVoice; }catch(e){} }
+function say(text){
+  if(!S.sound || !('speechSynthesis' in window) || !text) return;
+  try{ speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); if(voice){u.voice=voice;u.lang=voice.lang;} else {u.lang='en-AU';} u.rate=0.92; u.pitch=1.12; speechSynthesis.speak(u); }catch(e){}
+}
+let ac=null;
+function tone(freqs, step, type, vol){
+  if(!S.sound) return;
+  try{ ac = ac || new (window.AudioContext||window.webkitAudioContext)(); const t0=ac.currentTime;
+    freqs.forEach((f,i)=>{ const o=ac.createOscillator(), g=ac.createGain(); o.type=type; o.frequency.value=f; const s=t0+i*step;
+      g.gain.setValueAtTime(0.0001,s); g.gain.exponentialRampToValueAtTime(vol,s+0.02); g.gain.exponentialRampToValueAtTime(0.0001,s+step+0.12);
+      o.connect(g); g.connect(ac.destination); o.start(s); o.stop(s+step+0.15); }); }catch(e){}
+}
+const sfxPop  = ()=> tone([520,760], 0.07,'triangle',0.12);
+const sfxGood = ()=> tone([660,880,1175],0.09,'triangle',0.14);
+const sfxWin  = ()=> tone([523,659,784,1047],0.11,'triangle',0.14);
+const sfxSplash = ()=> tone([300,900,500],0.05,'sine',0.1);
+
+/* The name of a food in the chosen helper language (iTaukei shown as a bonus) */
+function foodSpeak(f){ return f.en; }               // spoken in English (we don't synth iTaukei)
+function foodLabel(f){ return f.fj && S.lang==='fj' ? `${f.en} · ${f.fj}` : f.en; }
+
+/* ---------------- Game state for one cooking session ---------------- */
+let G = null;   // {step, chosen:[ids], washed:Set, sliced:Set, mixed:[ids], topping, plname}
+function newGame(){ G = {step:'choose', chosen:[], washed:new Set(), sliced:new Set(), mixed:[], topping:null}; }
+
+const STEPS = ['choose','wash','slice','mix','serve'];
+function stepsBar(){
+  const i = STEPS.indexOf(G.step);
+  return `<div class="steps" aria-hidden="true">${STEPS.map((_,k)=>`<i class="${k<i?'done':k===i?'on':''}"></i>`).join('')}</div>`;
+}
+function topbar(title, back='home'){
+  return `<div class="bar"><button class="iconbtn" data-act="${back==='home'?'home':'back'}" aria-label="Back">${back==='home'?'🏠':'‹'}</button>
+    <div class="title">${title}</div><button class="iconbtn" data-act="sound" aria-label="Sound on or off">${S.sound?'🔊':'🔇'}</button></div>${stepsBar()}`;
+}
+
+/* ---------------- Screens ---------------- */
+function welcomeScreen(){
+  const decos = [['🍌','8%','16%',34],['🍉','84%','12%',30],['🥭','88%','54%',30],['🍍','5%','54%',30],['🥥','78%','74%',28],['🍊','12%','76%',26]]
+    .map(([t,x,y,s],i)=>`<span class="deco" style="left:${x};top:${y};font-size:${s}px;animation-delay:${i*.6}s">${t}</span>`).join('');
+  return `<section class="screen welcome">${decos}<div class="scroll">
+    <div class="brand">LITTLE LEARNERS FIJI</div>
+    <h1 class="hero">Little <span class="y">Chef</span><br>Fiji</h1>
+    <div><div class="bubble">Bula! Let's cook a fruit salad!</div></div>
+    <div><span class="chef" aria-hidden="true">👨‍🍳</span></div>
+    <div class="wfield">
+      <label for="kidname">What's your name, little chef?</label>
+      <input id="kidname" class="name" maxlength="18" autocomplete="off" placeholder="Type your name" value="${esc(S.name)}">
+      <div class="langrow" role="group" aria-label="Helper language">
+        <button class="langbtn ${S.lang==='en'?'on':''}" data-act="lang" data-v="en">English</button>
+        <button class="langbtn ${S.lang==='fj'?'on':''}" data-act="lang" data-v="fj">iTaukei</button>
+      </div>
+      <button class="btn" data-act="start">▶ Start Cooking</button>
+      <div class="grownup">👪 A grown-up should play along. This is pretend cooking only — no real knives, stove or hot things. Just tap and have fun!</div>
+    </div>
+  </div></section>`;
+}
+
+/* Step 1: choose the fruit */
+function chooseScreen(){
+  const cards = FRUITS.map(f=>{
+    const on = G.chosen.includes(f.id);
+    return `<button class="food ${on?'picked':''}" data-act="pick" data-v="${f.id}" aria-pressed="${on}" aria-label="${esc(f.en)}" style="position:relative">
+      <span class="em">${f.e}</span><span class="nm">${f.en}</span>${f.fj?`<span class="fj">${f.fj}</span>`:''}
+      ${on?'<span class="tick" style="top:6px;right:8px;font-size:18px">✅</span>':''}</button>`;
+  }).join('');
+  const n = G.chosen.length;
+  return `<section class="screen">${topbar('Choose Fruit')}<div class="scroll">
+    <div class="say"><span class="spk" data-act="repeat">🔊</span><b>Tap the fruits you want</b></div>
+    <div class="grid">${cards}</div>
+    <div class="pickcount">${n===0?'Pick at least 3 fruits':`You picked ${n} ${n===1?'fruit':'fruits'} ${'🍴'.repeat(0)}`}</div>
+  </div><div class="foot"><button class="btn green" data-act="toWash" ${n<3?'disabled':''}>Wash the fruit →</button></div></section>`;
+}
+
+/* Step 2: wash */
+function washScreen(){
+  const items = G.chosen.map(id=>{ const f=FRUITS.find(x=>x.id===id); const w=G.washed.has(id);
+    return `<span class="item ${w?'done':'todo'}" data-act="wash" data-v="${id}" role="button" aria-label="Wash the ${esc(f.en)}">${w?'✨':''}${f.e}<span class="lbl">${w?'clean!':foodLabel(f)}</span></span>`;
+  }).join('');
+  const left = G.chosen.length - G.washed.size;
+  return `<section class="screen">${topbar('Wash','back')}<div class="scroll">
+    <div class="say"><span class="spk" data-act="repeat">🔊</span><b>💧 Tap each fruit to wash it clean</b></div>
+    <div class="hint">Clean fruit is healthy fruit!</div>
+    <div class="stage"><div class="items">${items}</div></div>
+  </div><div class="foot"><button class="btn green" data-act="toSlice" ${left>0?'disabled':''}>${left>0?`Wash ${left} more`:'Slice the fruit →'}</button></div></section>`;
+}
+
+/* Step 3: slice (safe, digital only) */
+function sliceScreen(){
+  const items = G.chosen.map(id=>{ const f=FRUITS.find(x=>x.id===id); const s=G.sliced.has(id);
+    return `<span class="item ${s?'done':'todo'}" data-act="slice" data-v="${id}" role="button" aria-label="Slice the ${esc(f.en)}">${f.e}${s?'<span style="position:absolute;top:-6px;right:-10px;font-size:24px">🔪</span>':''}<span class="lbl">${s?'sliced!':foodLabel(f)}</span></span>`;
+  }).join('');
+  const left = G.chosen.length - G.sliced.size;
+  return `<section class="screen">${topbar('Slice','back')}<div class="scroll">
+    <div class="say"><span class="spk" data-act="repeat">🔊</span><b>🔪 Tap to slice — it's all pretend!</b></div>
+    <div class="hint">A grown-up uses real knives, not you 😊</div>
+    <div class="stage"><div class="items">${items}</div></div>
+  </div><div class="foot"><button class="btn green" data-act="toMix" ${left>0?'disabled':''}>${left>0?`Slice ${left} more`:'Mix in the bowl →'}</button></div></section>`;
+}
+
+/* Step 4: mix — tap fruit to drop a piece into the bowl, counting as we go */
+function mixScreen(){
+  const toDrop = G.chosen.filter(id=>!G.mixed.includes(id));
+  const tray = toDrop.map(id=>{ const f=FRUITS.find(x=>x.id===id);
+    return `<span class="item todo" data-act="mix" data-v="${id}" role="button" aria-label="Add the ${esc(f.en)} to the bowl">${f.e}<span class="lbl">${foodLabel(f)}</span></span>`;
+  }).join('');
+  const pieces = G.mixed.map(id=>{ const f=FRUITS.find(x=>x.id===id); return `<span class="piece">${f.piece}</span>`; }).join('');
+  const n = G.mixed.length;
+  return `<section class="screen">${topbar('Mix','back')}<div class="scroll">
+    <div class="say"><span class="spk" data-act="repeat">🔊</span><b>🥣 Tap the fruit to add it to the bowl</b></div>
+    <div class="counter" aria-label="${n} in the bowl">${n>0?`${n} — ${NUM_EN[n]||n}!`:''}</div>
+    <div class="stage">
+      <div class="bowl">${pieces}${n>0?'<span class="spoon" aria-hidden="true">🥄</span>':''}</div>
+      <div class="items">${tray||'<span style="color:var(--muted);font-weight:800">All in the bowl! 🎉</span>'}</div>
+    </div>
+  </div><div class="foot"><button class="btn green" data-act="toServe" ${toDrop.length>0?'disabled':''}>Put on a plate →</button></div></section>`;
+}
+
+/* Step 5: serve — plate it, add a topping, serve */
+function serveScreen(){
+  const pieces = G.mixed.map(id=>{ const f=FRUITS.find(x=>x.id===id); return `<span class="piece">${f.piece}</span>`; }).join('');
+  const top = G.topping ? `<span class="piece" style="font-size:38px">${TOPPINGS.find(t=>t.id===G.topping).e}</span>` : '';
+  const chips = TOPPINGS.map(t=>`<button class="food" data-act="top" data-v="${t.id}" style="padding:8px 4px" aria-label="Add ${esc(t.en)}"><span class="em" style="font-size:34px">${t.e}</span><span class="nm" style="font-size:12px">${t.en}</span></button>`).join('');
+  return `<section class="screen">${topbar('Serve','back')}<div class="scroll">
+    <div class="say"><span class="spk" data-act="repeat">🔊</span><b>🍽️ Add a topping, then serve!</b></div>
+    <div class="stage"><div class="plate">${pieces}${top}</div>
+      <div class="grid" style="grid-template-columns:1fr 1fr 1fr;max-width:300px">${chips}</div>
+    </div>
+  </div><div class="foot"><button class="btn" data-act="finish">🎉 Serve my salad!</button></div></section>`;
+}
+
+/* Celebrate */
+function doneScreen(){
+  const msgs = ['Great job, Little Chef!','Wonderful creation!','You did it!','Yummy fruit salad!'];
+  const confetti = Array.from({length:22},()=>`<span class="confetti" style="left:${rand(96)}%;animation-duration:${2.2+Math.random()*1.6}s;animation-delay:${Math.random()*.6}s">${pick(['🍓','⭐','🎉','✨','🍌','🥭'])}</span>`).join('');
+  const name = S.name?esc(S.name)+'\'s':'Your';
+  return `<section class="screen"><div class="done">${confetti}
+    <div class="big" aria-hidden="true">🥗</div>
+    <h2>${pick(msgs)}</h2>
+    <p>${name} tropical fruit salad is ready 🌴</p>
+    <div class="stars" aria-label="3 of 3 stars">⭐⭐⭐</div>
+    <div class="badge"><span>🏅</span>Fruit Salad Chef badge!</div>
+    <div style="margin-top:22px"><button class="btn" data-act="again">Cook again</button>
+    <button class="btn light" data-act="home">Home</button></div>
+  </div></section>`;
+}
+
+function render(){
+  let html;
+  if(view==='welcome') html = welcomeScreen();
+  else if(view==='done') html = doneScreen();
+  else { const s = {choose:chooseScreen, wash:washScreen, slice:sliceScreen, mix:mixScreen, serve:serveScreen}[G.step]; html = s(); }
+  $app.innerHTML = html;
+}
+
+/* ---------------- Flow ---------------- */
+let view = S.name ? 'welcome' : 'welcome';   // always greet with the welcome
+function go(v){ view = v; render(); }
+function speakStep(){
+  const lines = {choose:'Tap the fruits you want for your salad.', wash:'Tap each fruit to wash it clean.',
+    slice:'Tap to slice the fruit. It is all pretend!', mix:'Tap the fruit to add it to the bowl.', serve:'Add a topping, then serve your salad!'};
+  if(view==='welcome') say("Bula! Let's cook a tropical fruit salad!");
+  else if(view==='done') say("Great job, little chef! Your fruit salad is ready.");
+  else say(lines[G.step]);
+}
+
+$app.addEventListener('click', e=>{
+  const el = e.target.closest('[data-act]'); if(!el) return;
+  const act = el.dataset.act, v = el.dataset.v;
+  switch(act){
+    case 'home': view='welcome'; render(); break;
+    case 'back': {
+      const order = ['choose','wash','slice','mix','serve'];
+      const i = order.indexOf(G.step);
+      if(i>0){ G.step = order[i-1]; render(); } else { view='welcome'; render(); }
+      break;
+    }
+    case 'sound': S.sound=!S.sound; save(); if(!S.sound){ try{speechSynthesis.cancel();}catch(e){} } render(); break;
+    case 'lang': S.lang=v; save(); render(); break;
+    case 'start': {
+      const inp = document.getElementById('kidname'); S.name = (inp?inp.value:'').trim().slice(0,18); save();
+      newGame(); go('game'); speakStep(); break;
+    }
+    case 'repeat': speakStep(); break;
+
+    case 'pick': {
+      const f = FRUITS.find(x=>x.id===v);
+      if(G.chosen.includes(v)) G.chosen = G.chosen.filter(id=>id!==v);
+      else if(G.chosen.length<5){ G.chosen.push(v); sfxPop(); say(f.fj && S.lang==='fj' ? `${f.en}. In iTaukei, ${f.fj}.` : f.en); }
+      render(); break;
+    }
+    case 'toWash': if(G.chosen.length>=3){ G.step='wash'; render(); speakStep(); } break;
+
+    case 'wash': {
+      if(!G.washed.has(v)){ G.washed.add(v); sfxSplash();
+        const it = el; const sp=document.createElement('span'); sp.className='splash'; sp.textContent='💦'; sp.style.left='40%'; sp.style.top='0'; it.appendChild(sp); setTimeout(()=>sp.remove(),500);
+        const f=FRUITS.find(x=>x.id===v); say(`Clean ${f.en}!`);
+        setTimeout(()=>render(),260);
+      }
+      break;
+    }
+    case 'toSlice': if(G.washed.size===G.chosen.length){ G.step='slice'; render(); speakStep(); } break;
+
+    case 'slice': {
+      if(!G.sliced.has(v)){ G.sliced.add(v); sfxPop(); const f=FRUITS.find(x=>x.id===v); say(`${f.en}, sliced!`); render(); }
+      break;
+    }
+    case 'toMix': if(G.sliced.size===G.chosen.length){ G.step='mix'; render(); speakStep(); } break;
+
+    case 'mix': {
+      if(!G.mixed.includes(v)){ G.mixed.push(v); sfxGood(); const n=G.mixed.length; say(`${NUM_EN[n]||n}!`); render(); }
+      break;
+    }
+    case 'toServe': if(G.mixed.length===G.chosen.length){ G.step='serve'; render(); speakStep(); } break;
+
+    case 'top': { G.topping=v; sfxPop(); const t=TOPPINGS.find(x=>x.id===v); say(t.en); render(); break; }
+
+    case 'finish': {
+      S.made=(S.made||0)+1; S.stars=(S.stars||0)+3; if(!S.badges.includes('fruit-salad')) S.badges.push('fruit-salad'); save();
+      go('done'); sfxWin(); speakStep(); break;
+    }
+    case 'again': newGame(); go('game'); speakStep(); break;
+  }
+});
+document.addEventListener('keydown', e=>{ if(e.key==='Enter' && e.target.id==='kidname') { const b=$app.querySelector('[data-act=start]'); if(b) b.click(); } });
+
+render();
+</script>
+</body>
+</html>
