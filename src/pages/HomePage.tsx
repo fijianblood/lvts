@@ -226,6 +226,9 @@ export default function HomePage({ onNav }: { onNav: (p: string) => void }) {
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'center' }}>
             {[
+              { label: 'Pacific Cement', url: 'https://pacificcementltd.vercel.app/' },
+              { label: 'Sukanaivalu Homestay', url: 'https://sukanaivalu-homestay.netlify.app/' },
+              { label: 'University of Fiji', url: 'https://unifiji.netlify.app/' },
               { label: 'Content Rental & Tours', url: 'https://contentrentaltours.com.fj' },
               { label: 'VeloTech', url: 'https://velotech.com.fj' },
               { label: 'Pacific Blue Shipping', url: 'https://pacificblueshippingpartnership.netlify.app' },
