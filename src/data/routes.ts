@@ -42,8 +42,8 @@ export const ROUTES: PageRoute[] = [
   },
   {
     id: 'services', label: 'Services', slug: 'services',
-    title: 'IT Services in Suva: Laptop & PC Repair, CCTV | LvTS',
-    description: 'Laptop and PC repair, networking and CCTV, antivirus, printers, email hosting and gas oven servicing from LomaVata Tech Services in Raiwai, Suva.',
+    title: 'IT Services in Suva: Laptop & PC Repair, Networking | LvTS',
+    description: 'Laptop and PC repair, Linux networking, antivirus, printers, email hosting and gas oven servicing from LomaVata Tech Services in Raiwai, Suva.',
     heading: 'IT services in Suva, Fiji',
   },
   {

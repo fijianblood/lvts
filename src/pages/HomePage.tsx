@@ -195,7 +195,7 @@ export default function HomePage({ onNav }: { onNav: (p: string) => void }) {
             <p style={{ color: '#64748b', lineHeight: 1.8, fontSize: '0.95rem', maxWidth: 760, margin: '0 auto' }}>
               LomaVata Tech Services is a locally owned IT and digital services firm based in Raiwai, Suva, founded by
               Josese Sahib. "Loma Vata" means togetherness — working alongside clients like family to solve real
-              problems with technology, across web development, IT support, networking, CCTV, and digital consulting.
+              problems with technology, across web development, IT support, networking, Linux, and digital consulting.
               What sets LvTS apart is a dual capability rare among Fiji-based web agencies: combining modern
               frontend/backend development with hands-on cybersecurity and OSINT skills using professional tools like
               Kali Linux — examining a site's infrastructure, security posture, and digital footprint the way a real
@@ -257,7 +257,7 @@ export default function HomePage({ onNav }: { onNav: (p: string) => void }) {
                 { icon: <Cpu size={22} />,   title: 'Hardware',    desc: 'BIOS · RAM · Storage · Motherboards' },
                 { icon: <Code2 size={22} />, title: 'Software',    desc: 'Windows · Office · Drivers · OS Install' },
                 { icon: <Globe size={22} />, title: 'Web Dev',     desc: 'React · Astro · Tailwind · Vite' },
-                { icon: <Award size={22} />, title: 'Networking',  desc: 'LAN · WiFi · CCTV · Setup' },
+                { icon: <Award size={22} />, title: 'Networking',  desc: 'LAN · WiFi · Linux · CCNA' },
               ].map(c => (
                 <div key={c.title} className="card-3d" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                   <div style={{ color: '#0891b2' }}>{c.icon}</div>

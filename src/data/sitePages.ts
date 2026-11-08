@@ -23,7 +23,7 @@ export const SITE_PAGES: SitePage[] = [
   { id: 'ask', label: 'Ask LvTS', icon: IconMessageCircle, color: '#6366f1',
     blurb: 'Chat with Loma, a free instant-answer assistant for repairs, Windows 11 troubleshooting, pricing, and general site questions.' },
   { id: 'services', label: 'Services', icon: IconTool, color: '#2563eb',
-    blurb: 'An overview of everything LomaVata Tech Services offers across Fiji — PC/laptop repair, gas oven servicing, networking/CCTV, antivirus, printers, email hosting, and the Vitikart store.' },
+    blurb: 'An overview of everything LomaVata Tech Services offers across Fiji — PC/laptop repair, gas oven servicing, Linux networking, antivirus, printers, email hosting, and the Vitikart store.' },
   { id: 'rewards', label: 'Rewards', icon: IconGift, color: '#f59e0b',
     blurb: 'LomaVata Rewards — a Fiji prize-draw loyalty program. Buy an entry or monthly membership via M-PAiSA/My Cash for weekly draws and a monthly Mega Draw.' },
   { id: 'tools', label: 'Tools', icon: IconHammer, color: '#f97316',
