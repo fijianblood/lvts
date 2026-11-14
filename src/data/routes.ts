@@ -79,7 +79,7 @@ export const ROUTES: PageRoute[] = [
   {
     id: 'labview', label: 'LabVIEW Help', slug: 'labview',
     title: 'LabVIEW Project Help for University Students in Fiji | LvTS',
-    description: 'One-to-one LabVIEW tutoring for university students in Fiji: debug your VI, control Arduino with NI-VISA, log data and finish your project yourself.',
+    description: 'One-to-one LabVIEW tutoring for university students in Fiji: NI DAQ with NI-DAQmx, Arduino with NI-VISA, debugging VIs and finishing your project.',
     heading: 'LabVIEW project help for university students in Fiji',
   },
   {
