@@ -77,6 +77,12 @@ export const ROUTES: PageRoute[] = [
     heading: 'Little Chef Fiji: pretend cooking for kids',
   },
   {
+    id: 'labview', label: 'LabVIEW Help', slug: 'labview',
+    title: 'LabVIEW Project Help for University Students in Fiji | LvTS',
+    description: 'One-to-one LabVIEW tutoring for university students in Fiji: debug your VI, control Arduino with NI-VISA, log data and finish your project yourself.',
+    heading: 'LabVIEW project help for university students in Fiji',
+  },
+  {
     id: 'tools', label: 'Tools', slug: 'tools',
     title: 'Free Image to PDF, PDF Merge & Photo Sketch Tools | LvTS',
     description: 'Free tools that run in your browser: turn photos (JPEG, HEIC, DNG) into a PDF, merge PDFs, or make a pencil sketch from a photo. Nothing is uploaded.',
