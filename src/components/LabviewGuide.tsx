@@ -67,7 +67,7 @@ function Chapter({ n, title, summary, children, open = false }: { n: number; tit
 
 export default function LabviewGuide() {
   return (
-    <section id="guide" style={{ padding: '80px 1.5rem', background: '#f8fafc' }}>
+    <section id="guide" style={{ padding: '80px 1.5rem', background: '#fff' }}>
       <style>{`
         .lv-chapter summary::-webkit-details-marker { display: none; }
         .lv-chapter[open] .lv-chevron { transform: rotate(180deg); }
@@ -197,16 +197,16 @@ export default function LabviewGuide() {
         </Chapter>
 
         <Chapter n={6} title="Talk to hardware: Arduino over NI-VISA" summary="Switch a real LED from a LabVIEW button">
-          <p style={p}>The most reliable student setup is your own small text protocol over USB serial. The Arduino listens for one command per line and replies.</p>
-          <Table first="code" head={['LabVIEW sends', 'Arduino replies']} rows={[
+          <p style={p}>The most reliable student setup is a small text protocol over USB serial. The Uno listens for one command per line and replies. The <a href="#kit" style={{ color: '#2563eb', fontWeight: 600 }}>LvTS Kit Firmware</a> above already does this for every part of the kit. A few of its commands:</p>
+          <Table first="code" head={['LabVIEW sends', 'Uno replies']} rows={[
             ['PING', 'PONG'],
             ['LED ON', 'OK LED ON'],
-            ['LED OFF', 'OK LED OFF'],
-            ['STATUS', 'LED=1 A0=512'],
+            ['SERVO 90', 'OK SERVO 90'],
+            ['STATUS', 'POT=512 LDR=300 JX=510 JY=520 JSW=0 BTN=0 LINE=1 LED=1'],
           ]} />
           <h4 style={h4}>Steps</h4>
           <ol>
-            <li style={li}>Upload a sketch to the Arduino Uno that reads lines at <strong>9600 baud</strong> and answers the commands above. Test it in the Arduino IDE’s Serial Monitor (line ending: Newline), then <strong>close the Serial Monitor</strong>. Only one program can use a COM port at a time.</li>
+            <li style={li}>Upload the <strong>LvTS Kit Firmware</strong> to your Uno (9600 baud). Test it with the kit tester above, or in the Arduino IDE’s Serial Monitor (line ending: Newline). Then <strong>close the tester and the Serial Monitor</strong>. Only one program can use a COM port at a time.</li>
             <li style={li}>In LabVIEW, from <strong>Instrument I/O » Serial</strong>, place <strong>VISA Configure Serial Port</strong>: 9600 baud, 8 data bits, no parity, 1 stop bit. Termination character is on by default and set to line feed (<C>\n</C>). Leave it that way.</li>
             <li style={li}>Add <strong>Wait (ms) = 2000</strong>. An Uno restarts when the port opens, and needs a moment.</li>
             <li style={li}>Add <strong>VISA Flush I/O Buffer</strong> to discard the start-up message.</li>
@@ -237,7 +237,7 @@ export default function LabviewGuide() {
             <li style={li}><strong>Saving to CSV:</strong> <em>File I/O » Write Delimited Spreadsheet</em> appends rows that open in Excel.</li>
             <li style={li}><strong>TDMS:</strong> NI’s file format for large or fast measurement data, with built-in channel names and properties.</li>
           </ul>
-          <p style={{ ...p, marginBottom: 0 }}>Example: in the loop’s timeout case, send <C>STATUS</C>, pull out the number after <C>A0=</C> with <strong>Match Pattern</strong> and <strong>Decimal String To Number</strong>, then send it to the chart and the file.</p>
+          <p style={{ ...p, marginBottom: 0 }}>Example: in the loop’s timeout case, send <C>STATUS</C> and read the reply with <strong>Scan From String</strong> using the format string <C>POT=%d LDR=%d JX=%d JY=%d JSW=%d BTN=%d LINE=%d LED=%d</C>. You get eight numbers in one step. Send <C>POT</C> to the chart and all of them to the file.</p>
         </Chapter>
 
         <Chapter n={9} title="Control your VI from a phone or web page" summary="LabVIEW Web Services on the NI Web Server">
@@ -262,7 +262,25 @@ export default function LabviewGuide() {
           </ul>
         </Chapter>
 
-        <Chapter n={11} title="Common problems and fixes" summary="The errors students hit most">
+        <Chapter n={11} title="Kit projects in LabVIEW" summary="Ten exercises using every part of the duinotech kit">
+          <p style={p}>Each project uses the LvTS Kit Firmware and one serial subVI (chapter 6) that opens the port once. Build them in order: each adds one new LabVIEW skill.</p>
+          <Table first="bold" head={['Project', 'Parts', 'How to build it in LabVIEW']} rows={[
+            ['1. LED switch', 'Built-in LED', 'Boolean switch on the front panel. In an Event Structure, the switch’s Value Change case uses Select to choose LED ON or LED OFF and sends it.'],
+            ['2. Knob chart', 'Potentiometer', 'Timeout case (200 ms) sends STATUS and reads it with Scan From String. Convert POT to volts with POT × 5 ÷ 1023 and wire it to a Waveform Chart.'],
+            ['3. Night light', 'LDR + red LED', 'A numeric control sets the threshold. Compare LDR with it and send RED ON or RED OFF only when the result changes (keep the last value in a shift register). Watch your readings first: some LDR modules go up in the dark, some go down.'],
+            ['4. Servo dial', 'Servo', 'A Dial or Slide from 0 to 180 (integer). Its Value Change case builds the command with Format Into String, format SERVO %d.'],
+            ['5. Joystick steering', 'Joystick + servo', 'Map JX (0–1023) to an angle: JX × 180 ÷ 1023, rounded. Only send when the angle changes by 2° or more, so the serial line isn’t flooded.'],
+            ['6. Matrix drawer', '8×8 matrix', 'Front panel: a 2D array of Boolean buttons, 8×8. A For Loop takes each row, uses Reverse 1D Array then Boolean Array To Number to make one byte, and formats it with %02x. Join the eight bytes after MATRIX and send.'],
+            ['7. Over-limit alarm', 'Potentiometer, RGB LED, buzzer', 'A state machine with Normal and Alarm states. Normal sends RGB 0 255 0. If POT goes over a limit, switch to Alarm: RGB 255 0 0 and BEEP 2000 200 once a second until it drops back.'],
+            ['8. Button counter', 'Button', 'Keep the last BTN value in a shift register. Add 1 to a counter only when BTN goes from 0 to 1 (a rising edge), not every time you read 1.'],
+            ['9. Line detector', 'Line trace module', 'Show LINE on a round LED indicator. Count edges like project 8 to count dark marks passing the sensor.'],
+            ['10. Data logger', 'All sensors', 'Producer/consumer: one loop sends STATUS every 200 ms and puts the readings in a queue. The second loop takes them out and writes rows with a timestamp using Write Delimited Spreadsheet.'],
+          ]} />
+          <h4 style={h4}>Timing tip</h4>
+          <p style={{ ...p, marginBottom: 0 }}>At 9600 baud a STATUS reply takes about 60 ms to arrive, so don’t ask for readings faster than every 100 ms. Send output commands only when something changes, not in every loop.</p>
+        </Chapter>
+
+        <Chapter n={12} title="Common problems and fixes" summary="The errors students hit most">
           <Table head={['Problem', 'Likely cause', 'Fix']} rows={[
             ['Serial palette is empty', 'NI-VISA missing, or installed before LabVIEW', 'Install NI-VISA after LabVIEW, then restart LabVIEW'],
             ['“Resource busy” or can’t open the COM port', 'Arduino Serial Monitor or another VI has the port open', 'Close the Serial Monitor. Open the port in only one place'],
@@ -273,6 +291,9 @@ export default function LabviewGuide() {
             ['Phone can’t open the page', 'Firewall, or using “localhost” on the phone', 'Use the PC’s IP address and add a firewall rule for Private networks'],
             ['Python Node fails', '64-bit Python with 32-bit LabVIEW', 'Install 32-bit Python'],
             ['LINX toolkit won’t load', 'Using 64-bit LabVIEW, or Mac/Linux', 'Use 32-bit LabVIEW on Windows'],
+            ['Board keeps printing READY LVTS KIT', 'The servo pulls too much current and the Uno restarts', 'Power the servo from a separate 5 V supply. Join its GND to the Uno’s GND'],
+            ['Matrix picture is mirrored or upside down', 'Modules are wired in different orientations', 'Remove Reverse 1D Array (or tick Mirror in the kit tester), or turn the module round'],
+            ['ERR USE … reply', 'A number is out of range or a value is missing', 'Check the command table. For example SERVO takes 0–180'],
           ]} />
           <p style={{ ...p, marginBottom: 0 }}>Still stuck? That’s exactly what the sessions below are for.</p>
         </Chapter>

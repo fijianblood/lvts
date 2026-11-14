@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import LabviewGuide from '../components/LabviewGuide';
+import KitSection from '../components/KitSection';
 import {
   MessageCircle, Mail, Phone, Cpu, Cable, Workflow, LineChart, Globe, Code2, Package, CircuitBoard,
   CheckCircle2, ShieldCheck, AlertTriangle, GraduationCap, Wrench, Users, FileSearch,
@@ -36,10 +37,11 @@ const TOPICS: { icon: ReactNode; title: string; items: string[] }[] = [
 ];
 
 const IDEAS = [
-  'Room temperature and humidity logger with a live web dashboard',
-  'Phone-controlled lamp or fan through a 5 V relay module',
-  'Serial device tester that sends a script of commands and logs the replies',
-  'Potentiometer or sensor reading plotted live, with alarms and a CSV log',
+  'Joystick-steered servo with the live position on a LabVIEW gauge',
+  'Message board: draw on an 8×8 grid in LabVIEW and show it on the LED matrix',
+  'Automatic night light: LDR reading, adjustable threshold and a CSV log',
+  'Over-limit alarm: a state machine with RGB status light and buzzer',
+  'Control the kit from your phone through a LabVIEW Web Service',
 ];
 
 const STEPS = [
@@ -91,7 +93,10 @@ export default function LabviewPage() {
             Hardware control with Arduino and NI-VISA, data logging, state machines and web control: I help you understand it, debug it and finish it yourself.
           </p>
           <ContactButtons />
-          <a href="#guide" style={{ display: 'inline-block', marginTop: '1rem', color: ACCENT, fontWeight: 600, fontSize: '0.92rem' }}>New to LabVIEW? Read the free step-by-step guide ↓</a>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1.5rem', marginTop: '1rem' }}>
+            <a href="#kit" style={{ color: ACCENT, fontWeight: 600, fontSize: '0.92rem' }}>See the Uno kit and try it from this page ↓</a>
+            <a href="#guide" style={{ color: ACCENT, fontWeight: 600, fontSize: '0.92rem' }}>New to LabVIEW? Read the free guide ↓</a>
+          </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.25rem', marginTop: '1.5rem', color: '#94a3b8', fontSize: '0.85rem' }}>
             {['In person in Raiwai, Suva', 'Online anywhere', 'Free first look at your brief'].map((t) => (
               <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}><CheckCircle2 size={16} color={ACCENT} /> {t}</span>
@@ -120,14 +125,16 @@ export default function LabviewPage() {
         </div>
       </section>
 
+      <KitSection />
+
       {/* Topics */}
-      <section style={{ padding: '80px 1.5rem', background: '#fff' }}>
+      <section style={{ padding: '80px 1.5rem', background: '#f8fafc' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <SectionLabel>What we can cover</SectionLabel>
           <H2>LabVIEW and NI topics</H2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(320px,100%),1fr))', gap: '1.25rem', marginTop: '1.5rem' }}>
             {TOPICS.map((t) => (
-              <div key={t.title} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 14, padding: '1.4rem' }}>
+              <div key={t.title} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '1.4rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.8rem' }}>
                   <span style={{ display: 'inline-flex', width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', background: 'rgba(245,165,36,0.14)', color: '#b45309' }}>{t.icon}</span>
                   <span style={{ fontWeight: 700, color: INK }}>{t.title}</span>
@@ -153,7 +160,7 @@ export default function LabviewPage() {
           <div>
             <SectionLabel>Project ideas</SectionLabel>
             <H2>Need a project idea?</H2>
-            <p style={{ color: MUTED, lineHeight: 1.7, marginBottom: '1.25rem' }}>Good starting points that use cheap, safe hardware (an Arduino Uno, LEDs, sensors and a 5 V relay module):</p>
+            <p style={{ color: MUTED, lineHeight: 1.7, marginBottom: '1.25rem' }}>Good starting points, all built with the duinotech kit and the LvTS Kit Firmware above:</p>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '0.75rem' }}>
               {IDEAS.map((i) => (
                 <li key={i} style={{ display: 'flex', gap: '0.65rem', alignItems: 'flex-start', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '0.9rem 1rem', color: '#334155', fontSize: '0.92rem', lineHeight: 1.5 }}>
