@@ -15,6 +15,7 @@ import SeoToolsPage from './pages/SeoToolsPage';
 import ActivationHelpPage from './pages/ActivationHelpPage';
 import KidsLearnPage from './pages/KidsLearnPage';
 import LittleChefPage from './pages/LittleChefPage';
+import LabviewPage from './pages/LabviewPage';
 import { canonicalFor, pageFromPath, routeById } from './data/routes';
 import { BASE, hrefFor } from './links';
 
@@ -83,6 +84,7 @@ function renderPage(page: string, onNav: (p: string) => void) {
     );
     case 'kids':     return <KidsLearnPage onNav={onNav} />;
     case 'little-chef': return <LittleChefPage onNav={onNav} />;
+    case 'labview':  return <LabviewPage />;
     case 'tools':    return <ToolsPage />;
     case 'whiteboard': return <WhiteboardPage />;
     case 'meditrack': return <MediTrackPage />;

@@ -2,7 +2,7 @@ import type { ComponentType } from 'react';
 import {
   IconTool, IconGift,
   IconHammer, IconChalkboard, IconHeartbeat, IconSeo, IconMessageCircle,
-  IconKey, IconHomeSearch, IconAbc, IconChefHat,
+  IconKey, IconHomeSearch, IconAbc, IconChefHat, IconCpu,
 } from '@tabler/icons-react';
 
 export interface SitePage {
@@ -26,6 +26,8 @@ export const SITE_PAGES: SitePage[] = [
     blurb: 'Chat with Loma, a free instant-answer assistant for repairs, Windows 11 troubleshooting, pricing, and general site questions.' },
   { id: 'services', label: 'Services', icon: IconTool, color: '#2563eb',
     blurb: 'An overview of everything LomaVata Tech Services offers across Fiji — PC/laptop repair, gas oven servicing, Linux networking, antivirus, printers, email hosting, and the Vitikart store.' },
+  { id: 'labview', label: 'LabVIEW Help', icon: IconCpu, color: '#f5a524',
+    blurb: 'LabVIEW project help for university students: one-to-one tutoring in Raiwai, Suva or online. Debugging VIs, Arduino control over NI-VISA, state machines, data logging and web control. Students build their own project; LvTS coaches them.' },
   { id: 'rewards', label: 'Rewards', icon: IconGift, color: '#f59e0b',
     blurb: 'LomaVata Rewards — a Fiji prize-draw loyalty program. Buy an entry or monthly membership via M-PAiSA/My Cash for weekly draws and a monthly Mega Draw.' },
   { id: 'tools', label: 'Tools', icon: IconHammer, color: '#f97316',

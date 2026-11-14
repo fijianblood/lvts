@@ -69,6 +69,23 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
       "Need your network set up, secured or fixed? [Message us on WhatsApp](https://wa.me/6797466941).",
   },
   {
+    id: 'labview-student-help',
+    keywords: [
+      'labview', 'lab view', 'ni labview', 'national instruments', 'ni-visa', 'visa serial',
+      'block diagram', 'front panel', 'vi project', 'labview project', 'labview assignment',
+      'labview tutor', 'labview help', 'final year project', 'arduino labview', 'linx',
+    ],
+    answer:
+      "**LabVIEW project help for university students**\n\n" +
+      "LvTS offers one-to-one LabVIEW tutoring and project mentoring, in person in Raiwai, Suva or online:\n" +
+      "- Debugging your VI and explaining errors\n" +
+      "- Arduino and other devices over USB serial with NI-VISA\n" +
+      "- State machines, event structures, queues, data logging and charts\n" +
+      "- Controlling your project from a web page (LabVIEW Web Services)\n\n" +
+      "You build the project and LvTS coaches you, so you understand it for your demo. We don't do graded work for you.\n\n" +
+      "See the [LabVIEW Help page](https://fijianblood.github.io/lvts/labview/) or [send your brief and deadline on WhatsApp](https://wa.me/6797466941) for a free first look and a quote.",
+  },
+  {
     id: 'computer-laptop-repair',
     keywords: [
       'fix my laptop', 'fix my computer', 'laptop repair', 'computer repair', 'pc repair',
