@@ -63,11 +63,6 @@ export function hourOf(d: Date): number {
   return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
 }
 
-/** 1 at full day, 0 at full night (for anything that should only show after dark). */
-export function darkness(hour: number): number {
-  return 1 - skyAt(hour).hemiI / DAY.hemiI;
-}
-
 // Diwali (Deepavali) days, by local date (YYYY-MM-DD). Add each year as it comes.
 export const DIWALI_DATES = new Set<string>(['2026-11-08']);
 

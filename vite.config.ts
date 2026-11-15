@@ -141,7 +141,7 @@ export default defineConfig(({ mode }) => {
           // precached — they're cached lazily via runtimeCaching below the
           // first time they're actually requested, so a first-time visitor
           // isn't forced to download megabytes of code/media they never use.
-          globPatterns: ['index.html', 'favicon.png', 'pwa-192.png', 'pwa-512.png', 'apple-touch-icon.png', 'icons.svg', 'assets/index-*.js', 'assets/index-*.css'],
+          globPatterns: ['index.html', 'favicon.png', 'pwa-192.png', 'pwa-512.png', 'apple-touch-icon.png', 'assets/index-*.js', 'assets/index-*.css'],
           navigateFallback: `${base}index.html`,
           // Don't hijack direct navigations to real static files (images, videos,
           // pdfs, etc — anything with a file extension) — only fall back to the
