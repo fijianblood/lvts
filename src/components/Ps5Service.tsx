@@ -60,6 +60,29 @@ function BenchVideo() {
  */
 function RepairMap() {
   const [live, setLive] = useState(false);
+  const [frameHeight, setFrameHeight] = useState(900);
+  const frameRef = useRef<HTMLIFrameElement>(null);
+
+  // Grow the frame to the map page's full height, so nothing scrolls inside it and the mouse wheel
+  // or a swipe always scrolls this page (the map page is on the same site, so its height is readable).
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!live || !frame) return;
+    let obs: ResizeObserver | undefined;
+    const fit = () => {
+      const doc = frame.contentDocument;
+      if (!doc?.body) return;
+      const measure = () => setFrameHeight(Math.ceil(doc.documentElement.scrollHeight));
+      measure();
+      obs?.disconnect();
+      obs = new ResizeObserver(measure);
+      obs.observe(doc.body);
+    };
+    frame.addEventListener('load', fit);
+    fit();
+    return () => { frame.removeEventListener('load', fit); obs?.disconnect(); };
+  }, [live]);
+
   const base = import.meta.env.BASE_URL;
   const src = `${base}services/ps5-repair-map.html`;
   return (
@@ -74,15 +97,15 @@ function RepairMap() {
             Our PS5 Repair Map shows every part we take out, step by step: faceplates, fan, shield plate, main board and the liquid metal on the processor, with the screws for each step. Turn it, pull it apart and tap any part.
           </p>
         </div>
-        <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(148,163,184,0.3)', background: '#e3e6e2', height: live ? 'min(860px, 88vh)' : undefined }}>
+        <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(148,163,184,0.3)', background: '#e3e6e2' }}>
           {live ? (
-            <iframe src={src} title="PS5 Repair Map: interactive 3D model of the PS5" style={{ width: '100%', height: '100%', border: 0, display: 'block' }} />
+            <iframe ref={frameRef} src={src} title="PS5 Repair Map: interactive 3D model of the PS5" scrolling="no" style={{ width: '100%', height: frameHeight, border: 0, display: 'block' }} />
           ) : (
             <button type="button" aria-label="Open the interactive 3D PS5 Repair Map"
               onClick={() => {
-                // On phones the map's 3D area takes every swipe (to turn the console), so embedded it would
-                // trap the page scroll. Open it as its own page there instead; it links back to this page.
-                if (window.matchMedia('(max-width: 899px)').matches) window.location.href = src;
+                // On phones and touch tablets, open the map as its own page (it links back here): turning
+                // the model with a finger and scrolling the page would fight over the same swipes.
+                if (window.matchMedia('(max-width: 899px), (pointer: coarse)').matches) window.location.href = src;
                 else setLive(true);
               }}
               style={{ display: 'block', width: '100%', padding: 0, border: 0, cursor: 'pointer', background: 'none', position: 'relative' }}>

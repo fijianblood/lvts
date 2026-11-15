@@ -2,6 +2,7 @@
 <title>PS5 Repair Map | LomaVata Tech Services</title>
 <meta name="description" content="Interactive 3D map of the original PS5: which parts come off, in what order, and which screws come out at each step. By LomaVata Tech Services, Suva, Fiji.">
 <meta name="robots" content="noindex">
+<script>if (window.self !== window.top) document.documentElement.classList.add("embed");</script>
 </head><body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -135,6 +136,12 @@ footer { margin-top: 18px; font-size: 12px; color: var(--muted); font-family: va
   .toggles { justify-content: flex-start; }
 }
 @media (prefers-reduced-motion: reduce) { .hint { transition: none; } }
+/* Embedded in the LvTS Services page: the frame grows to fit this page, so nothing scrolls inside it,
+   and swipes and the mouse wheel scroll the Services page (Ctrl + scroll or a pinch zooms the model). */
+.embed .wrap { padding-block: 12px 16px; }
+.embed .stage { position: relative; top: auto; height: 600px; min-height: 0; max-height: none; touch-action: pan-y; }
+.embed nav.card[aria-label="All steps"] { display: none; }
+@media (max-width: 900px) { .embed .stage { height: 440px; } }
 </style>
 
 <div class="wrap">
@@ -642,6 +649,16 @@ controls.minDistance = 120;
 controls.maxDistance = 2600;
 controls.maxPolarAngle = Math.PI * 0.94;
 controls.update();
+const EMBED = document.documentElement.classList.contains("embed");
+if (EMBED) {
+  hintEl.textContent = "Drag to turn · Ctrl + scroll or pinch to zoom · Tap a part";
+  // Runs before the orbit controls' own wheel handler: without Ctrl/Cmd, zoom is off for this
+  // event, so the controls leave it alone and the Services page scrolls.
+  stageEl.addEventListener("wheel", (e) => { controls.enableZoom = e.ctrlKey || e.metaKey; }, { capture: true, passive: true });
+  // The orbit controls set touch-action: none on the canvas; let vertical swipes scroll the page instead
+  // (sideways drags still turn the model).
+  canvas.style.touchAction = "pan-y";
+}
 
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new THREE.RoomEnvironment(), 0.04).texture;
