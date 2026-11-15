@@ -9,6 +9,13 @@ Last updated: 15 November 2026.
 ## Where the site is now
 
 - **This is the official LomaVata Tech Services website, not a portfolio.**
+- **Services page = PS5 service first** (`src/components/Ps5Service.tsx`): bench video
+  (`public/services/ps5-service.mp4`), signs, what's included, liquid metal, questions to ask,
+  then the owner's interactive 3D **PS5 Repair Map** (`public/services/ps5-repair-map.html`,
+  three.js 0.147 from jsDelivr, noindex). The map loads only on tap; embedded on desktop it never
+  scrolls inside and the wheel scrolls the page (Ctrl + scroll zooms); phones and touch tablets
+  open it as its own page. Then PC repair, Vitikart, gas ovens, Website Design. No PS5 price on
+  purpose ("quoted before we start").
 - **Pages (14 in Google):** Home, Services (with a Website Design section),
   Loma (was Ask LvTS, at /loma/), Rewards, Noqublox, Kids (Noqu Vuli + Little Chef), LabVIEW Help,
   Free Tools (image to PDF, PDF merge, photo sketch), MediTrack, Activation,
