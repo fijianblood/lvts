@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { type ChatMessage, WELCOME, findAnswer, uid, LVTS_KNOWLEDGE_SUMMARY } from './lvtsChat';
 import { type ApiBlock, type ApiMessage, fitHistory, hasFiles, toTextOnly } from './chatPayload';
 import type { Attachment } from './chatFiles';
+import { WorkerError, isOldWorker, postChat } from './lomaApi';
 
-const WORKER_URL = 'https://lvts-loma.lomavatatechfiji.workers.dev/';
 const LEARNED_KEY = 'lvts_loma_learned_v1';
 
 // ── Supabase ──────────────────────────────────────────────────────────────────
@@ -124,40 +124,15 @@ async function buildKnowledgeSummary(currentQuestion: string = ''): Promise<stri
 }
 
 // ── Claude via Worker ─────────────────────────────────────────────────────────
-/** A problem the Worker explained (for example a file Claude couldn't read). Shown to the visitor. */
-class WorkerError extends Error {
-  status: number;
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-  }
-}
-
-async function postToWorker(messages: unknown, knowledge: string): Promise<string> {
-  const response = await fetch(WORKER_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, knowledge }),
-  });
-  const data = await response.json().catch(() => null);
-  if (!response.ok) throw new WorkerError(response.status, data?.error?.message ?? `Worker error: ${response.status}`);
-  const content = data?.content;
-  if (Array.isArray(content)) {
-    const textBlock = content.find((b: { type: string }) => b.type === 'text');
-    if (textBlock?.text) return textBlock.text;
-  }
-  throw new Error('No text in response');
-}
-
 async function askClaude(history: ApiMessage[], knowledge: string): Promise<string> {
   const fitted = fitHistory(history);
   try {
-    return await postToWorker(fitted, knowledge);
+    return await postChat(fitted, knowledge);
   } catch (err) {
     // The Worker before file support refuses anything but plain text ("No messages provided").
     // Send the same conversation as text: text files still work, images and PDFs get a note.
-    if (err instanceof WorkerError && err.status === 400 && /No messages provided/.test(err.message) && hasFiles(fitted)) {
-      return postToWorker(toTextOnly(fitted), knowledge);
+    if (isOldWorker(err) && hasFiles(fitted)) {
+      return postChat(toTextOnly(fitted), knowledge);
     }
     throw err;
   }

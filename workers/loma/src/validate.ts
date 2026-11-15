@@ -1,6 +1,8 @@
 // Checks and cleans what the website sends before it goes to Claude.
-// Only the block types Loma uses get through (text, images, PDFs, plain-text
-// documents), rebuilt field by field so nothing else can be smuggled in.
+// Files are uploaded separately (POST /upload, stored in Claude's Files API) and
+// messages refer to them by file id, so a chat message stays small and quick to
+// check: Cloudflare's free plan allows only about 10 ms of processing per request.
+// Only the block types Loma uses get through, rebuilt field by field.
 // Plain TypeScript with no Worker or SDK runtime imports, so test/validate.test.ts
 // can run it with node --test.
 
@@ -13,21 +15,22 @@ export const LIMITS = {
   maxFilesPerMessage: 5,
   /** Files across the whole conversation that is sent. */
   maxFilesTotal: 8,
-  /** Base64 length of one image (about 5 MB of image). */
-  maxImageBase64: 7_000_000,
-  /** Base64 length of one PDF (about 15 MB of PDF). */
-  maxPdfBase64: 20_000_000,
-  /** Characters in one text block or plain-text document. */
-  maxTextChars: 400_000,
-  /** The whole request body, in bytes (Claude's limit is 32 MB per request). */
-  maxBodyBytes: 30_000_000,
+  /** Characters in one text block or message. */
+  maxTextChars: 20_000,
+  /** The whole chat request body, in bytes. Files never travel in it. */
+  maxChatBytes: 1_000_000,
   /** Characters of the site's knowledge summary. */
   maxKnowledgeChars: 60_000,
+  /** Largest file accepted by POST /upload (Cloudflare's free plan allows 100 MB per request). */
+  maxUploadBytes: 50 * 1024 * 1024,
+  /** Uploaded files expire after this many seconds (Claude's Files API allows 1 hour to 90 days). */
+  fileLifetimeSeconds: 24 * 60 * 60,
 };
 
-const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'] as const;
-type ImageType = (typeof IMAGE_TYPES)[number];
-const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
+/** File types /upload accepts: the ones Claude reads as images or documents. */
+export const UPLOAD_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf', 'text/plain'] as const;
+
+const FILE_ID = /^file_[A-Za-z0-9_-]{6,120}$/;
 
 export type Cleaned = { ok: true; messages: MessageParam[]; files: number } | { ok: false; error: string };
 
@@ -39,7 +42,7 @@ function cleanTitle(v: unknown): string | undefined {
   return typeof v === 'string' && v.trim() ? v.trim().slice(0, 200) : undefined;
 }
 
-/** One content block, or an error message. `files` counts images and documents. */
+/** One content block, or an error message. `file` is true for images and documents. */
 function cleanBlock(b: unknown, role: 'user' | 'assistant'): { block: ContentBlockParam; file: boolean } | string {
   if (!isObject(b)) return 'a content block is not an object';
   if (b.type === 'text') {
@@ -50,30 +53,11 @@ function cleanBlock(b: unknown, role: 'user' | 'assistant'): { block: ContentBlo
   if (b.type !== 'image' && b.type !== 'document') return `blocks of type "${String(b.type)}" are not accepted`;
   if (role === 'assistant') return 'replies can only contain text';
   const src = b.source;
-  if (!isObject(src)) return 'a file has no source';
-  if (b.type === 'image') {
-    if (src.type !== 'base64' || typeof src.data !== 'string') return 'images must be sent as base64';
-    if (!IMAGE_TYPES.includes(src.media_type as ImageType)) return 'images must be JPEG, PNG, GIF or WebP';
-    if (src.data.length > LIMITS.maxImageBase64) return 'an image is too large';
-    if (!BASE64.test(src.data)) return 'an image is not valid base64';
-    return { block: { type: 'image', source: { type: 'base64', media_type: src.media_type as ImageType, data: src.data } }, file: true };
-  }
-  if (b.type === 'document') {
-    const title = cleanTitle(b.title);
-    if (src.type === 'base64') {
-      if (src.media_type !== 'application/pdf' || typeof src.data !== 'string') return 'documents sent as base64 must be PDFs';
-      if (src.data.length > LIMITS.maxPdfBase64) return 'a PDF is too large';
-      if (!BASE64.test(src.data)) return 'a PDF is not valid base64';
-      return { block: { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: src.data }, ...(title ? { title } : {}) }, file: true };
-    }
-    if (src.type === 'text') {
-      if (typeof src.data !== 'string' || !src.data.trim()) return 'a text document is empty';
-      if (src.data.length > LIMITS.maxTextChars) return 'a text document is too long';
-      return { block: { type: 'document', source: { type: 'text', media_type: 'text/plain', data: src.data }, ...(title ? { title } : {}) }, file: true };
-    }
-    return 'documents must be PDFs or plain text';
-  }
-  return `blocks of type "${String(b.type)}" are not accepted`;
+  if (!isObject(src) || src.type !== 'file' || typeof src.file_id !== 'string') return 'files must be uploaded first and sent by file id';
+  if (!FILE_ID.test(src.file_id)) return 'a file id is not valid';
+  if (b.type === 'image') return { block: { type: 'image', source: { type: 'file', file_id: src.file_id } }, file: true };
+  const title = cleanTitle(b.title);
+  return { block: { type: 'document', source: { type: 'file', file_id: src.file_id }, ...(title ? { title } : {}) }, file: true };
 }
 
 /** Cleans the conversation the website sends. */
@@ -121,4 +105,24 @@ export function cleanKnowledge(v: unknown): string {
 /** The CORS origin to answer with: the caller's, when it is one of the site's addresses. */
 export function allowedOrigin(origin: string | null, allowed: readonly string[]): string {
   return origin && allowed.includes(origin) ? origin : allowed[0];
+}
+
+export type UploadCheck = { ok: true; type: (typeof UPLOAD_TYPES)[number]; name: string } | { ok: false; status: number; error: string };
+
+/** Checks an upload's declared size, type and name (from its headers) before any of it is read. */
+export function checkUpload(contentLength: string | null, contentType: string | null, fileName: string | null): UploadCheck {
+  const size = Number(contentLength);
+  if (!contentLength || !Number.isFinite(size) || size <= 0) return { ok: false, status: 411, error: 'The file size is missing' };
+  if (size > LIMITS.maxUploadBytes) return { ok: false, status: 413, error: `Files can be up to ${LIMITS.maxUploadBytes / 1024 / 1024} MB` };
+  const type = (contentType ?? '').split(';')[0].trim().toLowerCase();
+  if (!UPLOAD_TYPES.includes(type as (typeof UPLOAD_TYPES)[number])) return { ok: false, status: 415, error: 'Only images, PDFs and text can be uploaded' };
+  let name = 'file';
+  try {
+    // Removing control characters from the name is the point here.
+    // eslint-disable-next-line no-control-regex
+    name = decodeURIComponent(fileName ?? '').replace(/[\\/\u0000-\u001f]/g, '_').trim().slice(0, 200) || 'file';
+  } catch {
+    name = 'file';
+  }
+  return { ok: true, type: type as (typeof UPLOAD_TYPES)[number], name };
 }

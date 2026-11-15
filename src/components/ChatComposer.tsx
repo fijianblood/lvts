@@ -1,10 +1,10 @@
-import { useRef, type CSSProperties, type RefObject } from 'react';
+import { useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { FileText, FileSpreadsheet, FileImage, File as FileIcon, Paperclip, Send, X, Loader2, AlertCircle } from 'lucide-react';
 import type { Attachment } from '../lib/chatFiles';
 import type { ChatFile } from '../lib/lvtsChat';
 import type { useAttachments } from '../lib/useAttachments';
 
-// The message box for Loma's chat (the chat window and the Ask LvTS page): text,
+// The message box for Loma's chat (the chat window and the Loma page): text,
 // a paperclip to attach files, drag-and-drop and paste, and chips for each file.
 
 function FileKindIcon({ kind, size = 15 }: { kind: ChatFile['kind'] | Attachment['kind']; size?: number }) {
@@ -89,6 +89,7 @@ export default function ChatComposer({ input, setInput, busy, onSend, files, inp
           <Send size={16} color={canSend ? '#fff' : '#94a3b8'} />
         </button>
       </form>
+      <PrivacyLink />
       <style>{`.lvts-spin { animation: lvts-spin 0.9s linear infinite; } @keyframes lvts-spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
@@ -106,6 +107,27 @@ export function BubbleFiles({ files }: { files: ChatFile[] }) {
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>{f.name}</span>
           </span>
         ))}
+    </div>
+  );
+}
+
+/** A small grey "Privacy" link under the message box; the note shows only when someone opens it. */
+function PrivacyLink() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ padding: '0.25rem 0.9rem 0', textAlign: 'right' }}>
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-controls="loma-privacy"
+        style={{ background: 'none', border: 'none', padding: 0, fontSize: '0.65rem', color: '#cbd5e1', cursor: 'pointer', fontFamily: "'Space Grotesk',sans-serif" }}>
+        Privacy
+      </button>
+      {open && (
+        <div id="loma-privacy" role="note"
+          style={{ textAlign: 'left', marginTop: '0.35rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '0.6rem 0.75rem', fontSize: '0.72rem', color: '#475569', lineHeight: 1.55 }}>
+          Messages and files you send go to Loma’s AI (Claude, made by Anthropic) only to answer you. Uploaded files expire
+          automatically after 24 hours, and LvTS doesn’t keep them. Chats that include files are never added to Loma’s shared
+          answers. Please don’t share passwords, PINs or bank details.
+        </div>
+      )}
     </div>
   );
 }

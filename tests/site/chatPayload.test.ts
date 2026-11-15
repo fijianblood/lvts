@@ -107,3 +107,25 @@ test('the text-only version keeps text files and notes the rest', () => {
   assert.match(m.content, /What is this\?$/);
   assert.ok(!hasFiles([{ role: 'user', content: 'hi' }]));
 });
+
+test('uploaded files (by file id) count as files and become a note for the older Worker', () => {
+  const history: ApiMessage[] = [{ role: 'user', content: [
+    { type: 'image', source: { type: 'file', file_id: 'file_abc123' }, title: 'router.jpg' },
+    { type: 'document', source: { type: 'file', file_id: 'file_def456' }, title: 'manual.pdf' },
+    { type: 'text', text: 'Help' },
+  ] }];
+  assert.ok(hasFiles(history));
+  const [m] = toTextOnly(history);
+  assert.match(m.content, /router\.jpg, but it couldn't be read/);
+  assert.match(m.content, /manual\.pdf, but it couldn't be read/);
+  const many: ApiMessage[] = [];
+  for (let i = 0; i < 5; i++) {
+    many.push({ role: 'user', content: [{ type: 'document', source: { type: 'file', file_id: `file_${i}aaaaaa` }, title: `f${i}.pdf` }, { type: 'document', source: { type: 'file', file_id: `file_${i}bbbbbb` }, title: `g${i}.pdf` }, { type: 'text', text: 'q' }] });
+    many.push({ role: 'assistant', content: 'a' });
+  }
+  many.push({ role: 'user', content: 'last' });
+  const fitted = fitHistory(many);
+  const kept = fitted.reduce((n, x) => n + (Array.isArray(x.content) ? x.content.filter((b) => b.type === 'document').length : 0), 0);
+  assert.ok(kept <= FILE_LIMITS.inConversation, `${kept} files kept`);
+  assert.match(JSON.stringify(fitted[0].content), /f0\.pdf; it is no longer attached/);
+});

@@ -3,9 +3,15 @@
 // tests/site/chatPayload.test.ts can check them. Reading the actual files in
 // the browser is in src/lib/chatFiles.ts.
 
-/** A block in a message to the Worker. The Worker accepts exactly these (workers/loma/src/validate.ts). */
+/**
+ * A block in a message to the Worker. Files are uploaded first and sent by file id
+ * (workers/loma/src/validate.ts). The base64 and inline-text forms are only used to
+ * talk to the older Worker, which takes plain text (see toTextOnly).
+ */
 export type ApiBlock =
   | { type: 'text'; text: string }
+  | { type: 'image'; source: { type: 'file'; file_id: string }; title?: string }
+  | { type: 'document'; source: { type: 'file'; file_id: string }; title?: string }
   | { type: 'image'; source: { type: 'base64'; media_type: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'; data: string } }
   | { type: 'document'; source: { type: 'base64'; media_type: 'application/pdf'; data: string }; title?: string }
   | { type: 'document'; source: { type: 'text'; media_type: 'text/plain'; data: string }; title?: string };
@@ -22,12 +28,12 @@ export const FILE_LIMITS = {
   inConversation: 8,
   /** Photos are resized to this many pixels on the long side (Claude's recommended size). */
   imageLongSide: 1568,
-  /** Largest file accepted before reading it. */
-  maxFileBytes: 25 * 1024 * 1024,
-  /** Largest PDF (sent whole). */
-  maxPdfBytes: 15 * 1024 * 1024,
-  /** Characters of text taken from one file; longer files are refused, not cut. */
-  maxTextChars: 400_000,
+  /** Largest file accepted (the Worker's upload limit; Cloudflare's free plan allows 100 MB per request). */
+  maxFileBytes: 50 * 1024 * 1024,
+  /** Largest PDF (sent whole). Claude also reads at most 600 pages of one PDF. */
+  maxPdfBytes: 50 * 1024 * 1024,
+  /** Characters of text taken from one file (about 200,000 words); longer files are refused, not cut. */
+  maxTextChars: 800_000,
   /** Base64 characters of files sent in one request, leaving room under the 30 MB the Worker accepts. */
   maxPayloadBase64: 24_000_000,
   /** Files up to this size with an unknown extension are tried as text. */
@@ -141,11 +147,12 @@ export function looksLikeText(decoded: string): boolean {
 const isFileBlock = (b: ApiBlock) => b.type === 'image' || b.type === 'document';
 
 function blockTitle(b: ApiBlock): string {
-  return b.type === 'document' && b.title ? b.title : b.type === 'image' ? 'an image' : 'a file';
+  if ('title' in b && b.title) return b.title;
+  return b.type === 'image' ? 'an image' : 'a file';
 }
 
 function base64Size(b: ApiBlock): number {
-  return b.type === 'image' || (b.type === 'document' && b.source.type === 'base64') ? b.source.data.length : 0;
+  return (b.type === 'image' || b.type === 'document') && b.source.type === 'base64' ? b.source.data.length : 0;
 }
 
 /**

@@ -29,13 +29,13 @@ export default function AskLvtsPage() {
 
       <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center', marginBottom: '2rem', position: 'relative' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#7c3aed', marginBottom: '0.75rem' }}>
-          <Sparkles size={14} /> Loma
+          <Sparkles size={14} /> LvTS AI assistant
         </div>
         <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(2rem,5vw,3.2rem)', color: '#0f172a', lineHeight: 1.1, marginBottom: '1rem' }}>
-          Ask <span className="grad-text">LvTS</span>
+          <span className="grad-text">Loma</span>
         </h1>
         <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: 1.75 }}>
-          PC & laptop repairs, Windows 11 troubleshooting, websites, or our online store — ask away, or get straight through to a real person on WhatsApp.
+          Ask about PC and laptop problems, Windows, websites or our store, or attach a photo, screenshot, PDF or document and ask about it. A real person is always on WhatsApp too.
         </p>
       </div>
 
@@ -108,9 +108,6 @@ export default function AskLvtsPage() {
         {/* Input bar */}
         <div style={{ borderTop: '1px solid #f1f5f9', flexShrink: 0, background: '#fff', paddingBottom: '0.8rem' }}>
           <ChatComposer input={input} setInput={setInput} busy={busy} onSend={(t, a) => handleSend(t, a)} files={files} inputRef={inputRef} fontSize="0.9rem" />
-          <div style={{ fontSize: '0.68rem', color: '#94a3b8', padding: '0.45rem 1rem 0' }}>
-            Attach a photo, screenshot, PDF, Word, Excel, PowerPoint or text file and ask about it. Files go to Loma’s AI (Claude, by Anthropic) to answer you; LvTS doesn’t keep them.
-          </div>
         </div>
       </div>
 

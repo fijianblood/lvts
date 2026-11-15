@@ -6,7 +6,7 @@ import { useLvtsChat } from '../lib/useLvtsChat';
 import ChatComposer, { BubbleFiles } from './ChatComposer';
 import { dropProps, useAttachments } from '../lib/useAttachments';
 
-// Loma's chat window on every page (the Ask LvTS page has its own full-page chat).
+// Loma's chat window on every page (the Loma page has its own full-page chat).
 // Three states: closed (the round button), open (the full chat), and minimized
 // (a small bar that keeps the conversation and shows Loma's latest reply).
 type Mode = 'closed' | 'open' | 'minimized';
@@ -129,9 +129,6 @@ export default function ChatWidget({ page }: { page: string }) {
           {/* Input */}
           <div style={{ flexShrink: 0, background: '#fff', borderTop: '1px solid #f1f5f9', paddingBottom: 'max(0.7rem, env(safe-area-inset-bottom))' }}>
             <ChatComposer input={input} setInput={setInput} busy={busy} onSend={(t, a) => handleSend(t, a)} files={files} inputRef={inputRef} />
-            <div style={{ fontSize: '0.68rem', color: '#94a3b8', padding: '0.4rem 0.9rem 0' }}>
-              Files go to Loma’s AI (Claude, by Anthropic) to answer you; LvTS doesn’t keep them. Don’t share passwords or bank details.
-            </div>
           </div>
         </div>
       )}
