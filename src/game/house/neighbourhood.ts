@@ -11,7 +11,7 @@ import { SHOPS, SHOP_FRONTS, type ShopKind } from './shops.ts';
 import type { Character, Look } from './characters.ts';
 import { cleanLook, cleanName, type VisitorCharacter, type VisitorLook } from '../../../workers/neighbourhood/src/rules.ts';
 
-export { SKIN, HAIR, CLOTHES, HAIR_STYLES, SIZES, cleanName, cleanLook, type VisitorLook, type VisitorCharacter } from '../../../workers/neighbourhood/src/rules.ts';
+export { SKIN, HAIR, CLOTHES, SIZES, cleanName, cleanLook, type VisitorLook, type VisitorCharacter } from '../../../workers/neighbourhood/src/rules.ts';
 
 declare const __NEIGHBOURHOOD_API__: string | undefined;
 /** Where the server lives (set at build time; see vite.config.ts). */

@@ -1,6 +1,7 @@
 import { useScrollFade } from '../hooks/useScrollFade';
 import { Monitor, Wrench, Wifi, ShieldCheck, Globe, Printer, Rss, ExternalLink, Award, BadgeCheck, Tag, Star } from 'lucide-react';
 import { openWhatsApp } from '../data/contact';
+import WebDesignSection from '../components/WebDesignSection';
 
 const BOOK_REPAIR_MESSAGE = "Bula LvTS, I'd like to book a repair.";
 
@@ -9,11 +10,6 @@ const GOOGLE_REVIEWS_URL = 'https://www.google.com/maps?cid=7436351358223208834'
 const TRUST_STATS = [
   { icon: <Award size={22} />, value: '10+', label: 'Years IT Experience', color: '#2563eb' },
   { icon: <Wrench size={22} />, value: '1500+', label: 'Devices Repaired', color: '#06b6d4' },
-];
-
-const TRUST_CERTS = [
-  { title: 'Career Skills in Software Development', issuer: 'LinkedIn Learning', url: 'https://www.linkedin.com/learning/certificates/9415915c8a737909b30a164b9d03fd868b04b7abe90a5f0abbdd275d41f26aa6' },
-  { title: 'Career Essentials in System Administration', issuer: 'LinkedIn Learning', url: 'https://www.linkedin.com/learning/certificates/ca37c329baa5d7ba0dd24c667cb6bd51b73c4db26b1014daa23c082255ac73db' },
 ];
 
 const SERVICES = [
@@ -114,6 +110,8 @@ export default function ServicesPage() {
         </div>
       </section>
 
+      <WebDesignSection />
+
       {/* Additional services grid */}
       <section style={{ padding: '60px 1.5rem', background: '#f8fafc' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
@@ -148,7 +146,7 @@ export default function ServicesPage() {
               Why Fiji Trusts <span className="grad-text">LomaVata</span>
             </h2>
             <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.7, maxWidth: 560, margin: '0 auto' }}>
-              A decade of hands-on repair work, verifiable credentials, and a 5-star record you can check on Google — trust you can check, not just take our word for.
+              A decade of hands-on repair work and a 5-star record you can check on Google — trust you can check, not just take our word for.
             </p>
           </div>
 
@@ -178,21 +176,6 @@ export default function ServicesPage() {
 
           {/* Bottom bento row */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: '1.25rem' }}>
-            <div className="card-3d" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 14, padding: '1.6rem' }}>
-              <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '0.9rem' }}>Verified Credentials</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                {TRUST_CERTS.map(c => (
-                  <a key={c.title} href={c.url} target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '0.7rem 0.9rem', textDecoration: 'none' }}>
-                    <div>
-                      <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#0f172a' }}>{c.title}</div>
-                      <div style={{ fontSize: '0.72rem', color: '#2563eb' }}>{c.issuer}</div>
-                    </div>
-                    <ExternalLink size={15} color="#94a3b8" />
-                  </a>
-                ))}
-              </div>
-            </div>
             <div className="card-3d" style={{ background: 'linear-gradient(135deg,rgba(37,99,235,0.06),rgba(124,58,237,0.06))', border: '1px solid rgba(37,99,235,0.15)', borderRadius: 14, padding: '1.6rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ color: '#2563eb', marginBottom: '0.6rem' }}><Tag size={22} /></div>

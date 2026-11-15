@@ -1,26 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useScrollFade } from '../hooks/useScrollFade';
-import { ExternalLink, Award, Code2, Cpu, Globe, Shield, Gauge, Users, Search, FileCheck } from 'lucide-react';
+import { ExternalLink, Shield, Gauge, Users, Search, FileCheck } from 'lucide-react';
 import SitePagesFaq from '../components/SitePagesFaq';
 import NoquDuo from '../components/NoquDuo';
 import DiscoverServices from '../components/DiscoverServices';
 import DiscoverVision from '../components/DiscoverVision';
+import WhyLvts from '../components/WhyLvts';
 import { pageLink } from '../links';
 
 // The line that types itself under the slogan in the hero.
 const TITLES = ['Explore Raiwai in 3D', 'Learn in English & iTaukei', 'Play together online', 'Connect with local tech', 'Websites for Fiji businesses', 'PC & laptop repair'];
-
-const SKILLS = [
-  { label: 'Technical Knowledge', pct: 95, color: '#2563eb' },
-  { label: 'Communication',       pct: 85, color: '#0891b2' },
-  { label: 'Problem Solving',     pct: 82, color: '#7c3aed' },
-  { label: 'Market Knowledge',    pct: 78, color: '#d97706' },
-];
-
-const CERTS = [
-  { title: 'Career Skills in Software Development',       issuer: 'LinkedIn Learning', url: 'https://www.linkedin.com/learning/certificates/9415915c8a737909b30a164b9d03fd868b04b7abe90a5f0abbdd275d41f26aa6' },
-  { title: 'Career Essentials in System Administration',  issuer: 'LinkedIn Learning', url: 'https://www.linkedin.com/learning/certificates/ca37c329baa5d7ba0dd24c667cb6bd51b73c4db26b1014daa23c082255ac73db' },
-];
 
 function TypeWriter() {
   const [idx, setIdx] = useState(0);
@@ -44,36 +33,9 @@ function TypeWriter() {
   );
 }
 
-function SkillBar({ label, pct, color }: { label: string; pct: number; color: string }) {
-  const ref = useScrollFade();
-  const [filled, setFilled] = useState(0);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) { setFilled(pct); obs.unobserve(el); }
-    }, { threshold: 0.2 });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [pct, ref]);
-  return (
-    <div ref={ref} className="fade-in" style={{ marginBottom: '1.2rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-        <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1e293b' }}>{label}</span>
-        <span style={{ fontSize: '0.8rem', fontFamily: "'JetBrains Mono',monospace", color }}>{pct}%</span>
-      </div>
-      <div style={{ height: 8, borderRadius: 9999, background: '#e2e8f0' }}>
-        <div className="skill-bar-fill" style={{ width: `${filled}%`, background: `linear-gradient(90deg, ${color}, #0891b2)` }} />
-      </div>
-    </div>
-  );
-}
-
 export default function HomePage({ onNav }: { onNav: (p: string) => void }) {
   const aboutRef  = useScrollFade();
-  const skillsRef = useScrollFade();
   const newsRef   = useScrollFade();
-  const certsRef  = useScrollFade();
 
   return (
     <>
@@ -204,7 +166,7 @@ export default function HomePage({ onNav }: { onNav: (p: string) => void }) {
           </div>
 
           {/* What an audit covers */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: '1.25rem', marginBottom: '3rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: '1.25rem' }}>
             {[
               { icon: <Shield size={20} />, title: 'Infrastructure & Security', desc: 'WHOIS, DNS, SSL, open ports, vulnerability scanning, OSINT digital footprint.' },
               { icon: <Gauge size={20} />, title: 'Performance', desc: 'PageSpeed, Core Web Vitals, Lighthouse, load times, CDN assessment.' },
@@ -220,82 +182,11 @@ export default function HomePage({ onNav }: { onNav: (p: string) => void }) {
             ))}
           </div>
 
-          {/* Real delivered work */}
-          <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#64748b', marginBottom: '1rem', textAlign: 'center' }}>
-            Delivered For Real Fijian & Pacific Clients
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'center' }}>
-            {[
-              { label: 'Pacific Cement', url: 'https://pacificcementltd.vercel.app/' },
-              { label: 'Sukanaivalu Homestay', url: 'https://sukanaivalu-homestay.netlify.app/' },
-              { label: 'University of Fiji', url: 'https://unifiji.netlify.app/' },
-              { label: 'Content Rental & Tours', url: 'https://contentrentaltours.com.fj' },
-              { label: 'VeloTech', url: 'https://velotech.com.fj' },
-              { label: 'Pacific Blue Shipping', url: 'https://pacificblueshippingpartnership.netlify.app' },
-              { label: 'Red Hill Real Estate', url: 'https://redhillrealestate.netlify.app' },
-              { label: 'One Nation Fiji', url: 'https://onenationfiji.netlify.app' },
-            ].map(w => (
-              <a key={w.label} href={w.url} target="_blank" rel="noopener noreferrer"
-                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.2)', color: '#2563eb', padding: '0.5rem 1rem', borderRadius: 999, fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}>
-                {w.label} <ExternalLink size={11} />
-              </a>
-            ))}
-          </div>
         </div>
       </section>
 
-      {/* SKILLS */}
-      <section style={{ padding: '80px 1.5rem', background: '#fff' }}>
-        <div style={{ maxWidth: 900, margin: '0 auto' }}>
-          <div ref={skillsRef} className="fade-in" style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#2563eb', marginBottom: '0.75rem' }}>Expertise</div>
-            <h2 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(1.8rem,4vw,2.4rem)', color: '#0f172a' }}>
-              Skills & <span className="grad-text">Capabilities</span>
-            </h2>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(380px,100%),1fr))', gap: '3rem' }}>
-            <div>{SKILLS.map(s => <SkillBar key={s.label} {...s} />)}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              {[
-                { icon: <Cpu size={22} />,   title: 'Hardware',    desc: 'BIOS · RAM · Storage · Motherboards' },
-                { icon: <Code2 size={22} />, title: 'Software',    desc: 'Windows · Office · Drivers · OS Install' },
-                { icon: <Globe size={22} />, title: 'Web Dev',     desc: 'React · Astro · Tailwind · Vite' },
-                { icon: <Award size={22} />, title: 'Networking',  desc: 'LAN · WiFi · Linux · CCNA' },
-              ].map(c => (
-                <div key={c.title} className="card-3d" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                  <div style={{ color: '#0891b2' }}>{c.icon}</div>
-                  <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>{c.title}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.5 }}>{c.desc}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CERTS */}
-      <section style={{ padding: '60px 1.5rem', background: '#f8fafc' }}>
-        <div style={{ maxWidth: 900, margin: '0 auto' }}>
-          <div ref={certsRef} className="fade-in" style={{ marginBottom: '2rem' }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#2563eb', marginBottom: '0.5rem' }}>Verified</div>
-            <h2 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: '1.8rem', color: '#0f172a' }}>Certifications</h2>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {CERTS.map(c => (
-              <a key={c.title} href={c.url} target="_blank" rel="noopener noreferrer" className="card-3d"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '1.2rem 1.5rem', textDecoration: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', transition: 'border-color 0.2s' }}
-                onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(37,99,235,0.4)')}
-                onMouseLeave={e => (e.currentTarget.style.borderColor = '#e2e8f0')}>
-                <div>
-                  <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '0.25rem' }}>{c.title}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#2563eb' }}>{c.issuer}</div>
-                </div>
-                <ExternalLink size={18} color="#94a3b8" />
-              </a>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* WHY LVTS: business reasons to choose LvTS, and how a job works */}
+      <WhyLvts onNav={onNav} />
 
       {/* RESOURCES */}
       <section style={{ padding: '80px 1.5rem', background: '#fff' }}>
