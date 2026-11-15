@@ -7,12 +7,12 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { encodePrizeCodes } from './src/game/house/prizeCodec.ts'
 import { SHOP_PROMOS, PROMO_CODE } from './src/game/house/promos.ts'
-import { ROUTES, canonicalFor, pathFor, type PageRoute } from './src/data/routes.ts'
+import { LISTED_ROUTES, ROUTES, canonicalFor, ogImageFor, pathFor, type PageRoute } from './src/data/routes.ts'
 
 // Every page has a real address (/lvts/services/), and GitHub Pages only serves
 // files that exist, so after the build this writes one HTML file per page
 // (dist/services/index.html, ...) from dist/index.html. Each has the page's own
-// title, description and canonical address for Google and link previews, and a
+// title, description, canonical address and preview image for Google and link previews, and a
 // heading, summary and links to every page inside #root, which the app replaces
 // as soon as it starts. It also writes sitemap.xml (every page) and 404.html.
 // The pages, their addresses and their wording are in src/data/routes.ts.
@@ -23,7 +23,7 @@ function pageFiles(base: string): Plugin {
     if (!re.test(html)) throw new Error(`[pages] index.html has no ${what} to replace`)
     return html.replace(re, () => value)
   }
-  const listed = ROUTES.filter((r) => r.index !== false)
+  const listed = LISTED_ROUTES
   const links = listed.map((r) => `<a href="${pathFor(r.id, base)}" style="color:#2563eb;margin:0 .5rem;white-space:nowrap">${esc(r.label)}</a>`).join(' ')
   const body = (heading: string, text: string) =>
     `<div style="max-width:760px;margin:0 auto;padding:120px 24px 60px;text-align:center;font-family:'Space Grotesk',system-ui,sans-serif;color:#0f172a">` +
@@ -42,6 +42,11 @@ function pageFiles(base: string): Plugin {
     html = swap(html, tag('property', 'og:description'), `<meta property="og:description" content="${esc(r.description)}" />`, 'og:description')
     html = swap(html, tag('name', 'twitter:title'), `<meta name="twitter:title" content="${esc(r.title)}" />`, 'twitter:title')
     html = swap(html, tag('name', 'twitter:description'), `<meta name="twitter:description" content="${esc(r.description)}" />`, 'twitter:description')
+    // Each page's own preview image (public/og/<id>.jpg), so a shared link shows that page.
+    const img = ogImageFor(r.id)
+    html = swap(html, tag('property', 'og:image'), `<meta property="og:image" content="${img}" />`, 'og:image')
+    html = swap(html, tag('property', 'og:image:alt'), `<meta property="og:image:alt" content="${esc(r.heading)}" />`, 'og:image:alt')
+    html = swap(html, tag('name', 'twitter:image'), `<meta name="twitter:image" content="${img}" />`, 'twitter:image')
     if (r.index === false) html = html.replace('</title>', '</title>\n    <meta name="robots" content="noindex" />')
     return swap(html, /<div id="root"><\/div>/, `<div id="root">${body(r.heading, r.description)}</div>`, '<div id="root">')
   }

@@ -46,7 +46,9 @@ function toJpegDataUrl(url: string, w: number, h: number, quality: number): Prom
 
 let idCounter = 0;
 
-export default function ToolsPage() {
+export default function ToolsPage({ embedded = false }: { embedded?: boolean }) {
+  // Inside a combined page (Free Tools, Kids) the page already has the main heading.
+  const Heading = embedded ? 'h2' : 'h1';
   const heroRef = useScrollFade();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<ImgItem[]>([]);
@@ -288,16 +290,16 @@ export default function ToolsPage() {
 
   return (
     <>
-      <section style={{ padding: '120px 1.5rem 80px', position: 'relative', overflow: 'hidden' }}>
+      <section style={{ padding: embedded ? '40px 1.5rem 80px' : '120px 1.5rem 80px', position: 'relative', overflow: 'hidden' }}>
         <div className="orb" style={{ width: 400, height: 400, background: 'rgba(37,99,235,0.06)', top: '-10%', right: '-5%' }} />
 
         <div ref={heroRef} className="fade-in" style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center', marginBottom: '3rem' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#2563eb', marginBottom: '0.75rem' }}>
             <Shield size={14} /> Free Tool
           </div>
-          <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(2rem,5vw,3.2rem)', color: '#0f172a', lineHeight: 1.1, marginBottom: '1rem' }}>
+          <Heading style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(2rem,5vw,3.2rem)', color: '#0f172a', lineHeight: 1.1, marginBottom: '1rem' }}>
             Image <span className="grad-text">→ PDF</span>
-          </h1>
+          </Heading>
           <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: 1.75 }}>
             Drop in any images, arrange the order, download one merged PDF. Everything happens right here in your browser — nothing is ever uploaded anywhere.
           </p>

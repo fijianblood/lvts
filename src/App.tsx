@@ -6,20 +6,17 @@ import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import ServicesPage from './pages/ServicesPage';
 import RewardsPage from './pages/RewardsPage';
-import ToolsPage from './pages/ToolsPage';
+import FreeToolsPage from './pages/FreeToolsPage';
 import AskLvtsPage from './pages/AskLvtsPage';
 import ChatWidget from './components/ChatWidget';
-import WhiteboardPage from './pages/WhiteboardPage';
 import MediTrackPage from './pages/MediTrackPage';
-import SeoToolsPage from './pages/SeoToolsPage';
 import ActivationHelpPage from './pages/ActivationHelpPage';
-import KidsLearnPage from './pages/KidsLearnPage';
-import LittleChefPage from './pages/LittleChefPage';
+import KidsPage from './pages/KidsPage';
 import LabviewPage from './pages/LabviewPage';
 import BlogPage from './pages/BlogPage';
 import BlogPostPage from './pages/BlogPostPage';
 import { postById } from './data/blogPosts';
-import { canonicalFor, pageFromPath, routeById } from './data/routes';
+import { canonicalFor, ogImageFor, pageFromPath, routeById } from './data/routes';
 import { BASE, hrefFor } from './links';
 
 // three.js is heavy, so the game (Noqublox) loads only when someone opens it.
@@ -37,8 +34,19 @@ function upgradeOldHashLink() {
   }
 }
 
+/** An old address that is now a tab of another page: the page's address, with ?tab=. */
+function aliasTarget(id: string): { page: string; path: string } | null {
+  const r = routeById(id);
+  return r?.aliasOf ? { page: r.aliasOf, path: `${hrefFor(r.aliasOf)}${r.tab ? `?tab=${r.tab}` : ''}` } : null;
+}
+
 function currentPage(): string {
   const page = pageFromPath(window.location.pathname, BASE);
+  const alias = page ? aliasTarget(page) : null;
+  if (alias) {
+    window.history.replaceState(null, '', alias.path);
+    return alias.page;
+  }
   if (page) return page;
   // Not one of the pages (an old or mistyped address): show the home page at the home address.
   window.history.replaceState(null, '', BASE);
@@ -62,6 +70,9 @@ function applyPageHead(id: string) {
   setHeadAttr('meta[property="og:description"]', 'content', route.description);
   setHeadAttr('meta[name="twitter:title"]', 'content', route.title);
   setHeadAttr('meta[name="twitter:description"]', 'content', route.description);
+  setHeadAttr('meta[property="og:image"]', 'content', ogImageFor(id));
+  setHeadAttr('meta[name="twitter:image"]', 'content', ogImageFor(id));
+  setHeadAttr('meta[property="og:image:alt"]', 'content', route.heading);
   let robots = document.head.querySelector('meta[name="robots"]');
   if (route.index === false) {
     if (!robots) {
@@ -85,13 +96,13 @@ function renderPage(page: string, onNav: (p: string) => void) {
         <HouseHuntPage onNav={onNav} />
       </Suspense>
     );
-    case 'kids':     return <KidsLearnPage onNav={onNav} />;
-    case 'little-chef': return <LittleChefPage onNav={onNav} />;
+    case 'kids':     return <KidsPage onNav={onNav} />;
+    case 'little-chef': return <KidsPage onNav={onNav} />; // old address: currentPage opens the Kids tab
     case 'labview':  return <LabviewPage />;
-    case 'tools':    return <ToolsPage />;
-    case 'whiteboard': return <WhiteboardPage />;
+    case 'tools':    return <FreeToolsPage />;
+    case 'whiteboard': return <FreeToolsPage />; // old address: currentPage opens the Free Tools tab
     case 'meditrack': return <MediTrackPage />;
-    case 'seo':      return <SeoToolsPage />;
+    case 'seo':      return <FreeToolsPage />; // old address, as above
     case 'ask':      return <AskLvtsPage />;
     case 'activation': return <ActivationHelpPage />;
     case 'neighbours-admin': return <Suspense fallback={null}><NeighbourhoodAdminPage /></Suspense>;
@@ -114,9 +125,10 @@ export default function App() {
   const reduceMotion = useReducedMotion();
 
   const navigate = useCallback((p: string) => {
-    const path = hrefFor(p);
-    if (window.location.pathname !== path || window.location.hash) window.history.pushState(null, '', path);
-    setPage(p);
+    const alias = aliasTarget(p);
+    const path = alias ? alias.path : hrefFor(p);
+    if (`${window.location.pathname}${window.location.search}` !== path || window.location.hash) window.history.pushState(null, '', path);
+    setPage(alias ? alias.page : p);
   }, []);
 
   // The browser's back and forward buttons (and someone typing an old # link).

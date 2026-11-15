@@ -5,9 +5,11 @@ const Excalidraw = lazy(() =>
   import('@excalidraw/excalidraw').then(mod => ({ default: mod.Excalidraw })),
 );
 
-export default function WhiteboardPage() {
+export default function WhiteboardPage({ embedded = false }: { embedded?: boolean }) {
+  // Inside a combined page (Free Tools, Kids) the page already has the main heading.
+  const Heading = embedded ? 'h2' : 'h1';
   return (
-    <section style={{ padding: '96px 1.5rem 100px', position: 'relative', overflow: 'hidden' }}>
+    <section style={{ padding: embedded ? '40px 1.5rem 100px' : '96px 1.5rem 100px', position: 'relative', overflow: 'hidden' }}>
       <div className="orb" style={{ width: 420, height: 420, background: 'rgba(6,182,212,0.08)', top: '-5%', right: '-5%' }} />
       <div className="orb" style={{ width: 280, height: 280, background: 'rgba(124,58,237,0.06)', bottom: '5%', left: '0%', animationDelay: '2s' }} />
 
@@ -15,9 +17,9 @@ export default function WhiteboardPage() {
         <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#0891b2', marginBottom: '0.75rem' }}>
           Free Tool
         </div>
-        <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(2rem,5vw,3.2rem)', color: '#0f172a', lineHeight: 1.1, marginBottom: '1rem' }}>
+        <Heading style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(2rem,5vw,3.2rem)', color: '#0f172a', lineHeight: 1.1, marginBottom: '1rem' }}>
           <span className="grad-text">Whiteboard</span>
-        </h1>
+        </Heading>
         <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.75 }}>
           Sketch a diagram, jot down notes, or draw out an idea — right here in your browser, powered by the
           open-source <a href="https://github.com/excalidraw/excalidraw" target="_blank" rel="noopener noreferrer" style={{ color: '#0891b2', fontWeight: 600 }}>Excalidraw</a>.

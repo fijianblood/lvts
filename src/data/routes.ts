@@ -33,6 +33,14 @@ export interface PageRoute {
   heading: string;
   /** false keeps the page out of Google and out of the sitemap. */
   index?: boolean;
+  /**
+   * An old address that now opens a tab of another page (e.g. /whiteboard/ opens the
+   * Whiteboard tab of Free Tools). It keeps working for shared links, points Google
+   * at that page (canonical), shares its preview image and isn't in the sitemap.
+   */
+  aliasOf?: string;
+  /** The tab it opens on that page. */
+  tab?: string;
 }
 
 export const ROUTES: PageRoute[] = [
@@ -44,8 +52,8 @@ export const ROUTES: PageRoute[] = [
   },
   {
     id: 'services', label: 'Services', slug: 'services',
-    title: 'IT Services in Suva: Laptop & PC Repair, Networking | LvTS',
-    description: 'Laptop and PC repair, Linux networking, antivirus, printers, email hosting and gas oven servicing from LomaVata Tech Services in Raiwai, Suva.',
+    title: 'IT Services in Suva: PC Repair, Web Design, Networking | LvTS',
+    description: 'Laptop and PC repair, website design (see sites we have built), networking, antivirus and business email from LomaVata Tech Services in Raiwai, Suva.',
     heading: 'IT services in Suva, Fiji',
   },
   {
@@ -67,13 +75,13 @@ export const ROUTES: PageRoute[] = [
     heading: 'Noqublox: explore Raiwai, Suva in 3D',
   },
   {
-    id: 'kids', label: 'Kids Learn', slug: 'kids',
-    title: 'Noqu Vuli: Kids Learning Games in English & iTaukei | LvTS',
-    description: 'Free play-and-learn games for young children in Fiji: ABC, numbers, animals, shapes and colours in English and iTaukei. No sign-up, no ads.',
-    heading: 'Noqu Vuli: kids learning games in English and iTaukei',
+    id: 'kids', label: 'Kids', slug: 'kids',
+    title: 'Free Kids Learning Games in English & iTaukei | LvTS',
+    description: 'Two free games for young children in Fiji: Noqu Vuli (ABC, numbers, animals, shapes) and Little Chef pretend cooking, in English and iTaukei. No ads.',
+    heading: 'Free kids learning games in English and iTaukei: Noqu Vuli and Little Chef',
   },
   {
-    id: 'little-chef', label: 'Little Chef', slug: 'little-chef',
+    id: 'little-chef', label: 'Little Chef', slug: 'little-chef', aliasOf: 'kids', tab: 'little-chef',
     title: 'Little Chef Fiji: Pretend Cooking Game for Kids | LvTS',
     description: 'A free pretend-cooking game for young children in Fiji: make a tropical fruit salad and learn fruit names, colours and counting in English and iTaukei.',
     heading: 'Little Chef Fiji: pretend cooking for kids',
@@ -85,13 +93,13 @@ export const ROUTES: PageRoute[] = [
     heading: 'LabVIEW project help for university students in Fiji',
   },
   {
-    id: 'tools', label: 'Tools', slug: 'tools',
-    title: 'Free Image to PDF, PDF Merge & Photo Sketch Tools | LvTS',
-    description: 'Free tools that run in your browser: turn photos (JPEG, HEIC, DNG) into a PDF, merge PDFs, or make a pencil sketch from a photo. Nothing is uploaded.',
-    heading: 'Free image to PDF, PDF merge and photo sketch tools',
+    id: 'tools', label: 'Free Tools', slug: 'tools',
+    title: 'Free Online Tools: Image to PDF, PDF Merge, Whiteboard | LvTS',
+    description: 'Free browser tools from LvTS: photos to PDF, merge PDFs, photo to pencil sketch, an online whiteboard and an SEO checker. Your files are not uploaded.',
+    heading: 'Free online tools: image to PDF, PDF merge, photo sketch, whiteboard and SEO checker',
   },
   {
-    id: 'whiteboard', label: 'Whiteboard', slug: 'whiteboard',
+    id: 'whiteboard', label: 'Whiteboard', slug: 'whiteboard', aliasOf: 'tools', tab: 'whiteboard',
     title: 'Free Online Whiteboard | LomaVata Tech Services',
     description: 'A free online whiteboard for sketching diagrams and jotting notes right in your browser, from LomaVata Tech Services in Suva, Fiji.',
     heading: 'Free online whiteboard',
@@ -103,7 +111,7 @@ export const ROUTES: PageRoute[] = [
     heading: 'MediTrack: a private health dashboard',
   },
   {
-    id: 'seo', label: 'SEO Tools', slug: 'seo-tools',
+    id: 'seo', label: 'SEO Tools', slug: 'seo-tools', aliasOf: 'tools', tab: 'seo',
     title: 'Free SEO & Website Analysis Tools | LvTS',
     description: 'Free SEO, keyword and website analysis tools in one place, powered by SEOStudio Tools, from LomaVata Tech Services in Suva, Fiji.',
     heading: 'Free SEO and website analysis tools',
@@ -142,11 +150,22 @@ export function pathFor(id: string, base: string): string {
   return slug ? `${base}${slug}/` : base;
 }
 
-/** The page's main (canonical) address, always on SITE_URL. */
+/** The page's main (canonical) address, always on SITE_URL. An old alias address points at its page. */
 export function canonicalFor(id: string): string {
-  const slug = routeById(id)?.slug ?? '';
+  const r = routeById(id);
+  if (r?.aliasOf) return canonicalFor(r.aliasOf);
+  const slug = r?.slug ?? '';
   return slug ? `${SITE_URL}${slug}/` : SITE_URL;
 }
+
+/** The page's own link-preview image (public/og/<id>.jpg, made by tools/og/make_og.py). */
+export function ogImageFor(id: string): string {
+  const r = routeById(id);
+  return `${SITE_URL}og/${r?.aliasOf ?? id}.jpg`;
+}
+
+/** Pages that belong in Google's index and the sitemap: not hidden, not an old alias. */
+export const LISTED_ROUTES: PageRoute[] = ROUTES.filter((r) => r.index !== false && !r.aliasOf);
 
 /** Which page an address is for: 'home' for the base path, null when it isn't one of the pages. */
 export function pageFromPath(pathname: string, base: string): string | null {

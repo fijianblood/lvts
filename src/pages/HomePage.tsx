@@ -17,11 +17,6 @@ const SKILLS = [
   { label: 'Market Knowledge',    pct: 78, color: '#d97706' },
 ];
 
-const CERTS = [
-  { title: 'Career Skills in Software Development',       issuer: 'LinkedIn Learning', url: 'https://www.linkedin.com/learning/certificates/9415915c8a737909b30a164b9d03fd868b04b7abe90a5f0abbdd275d41f26aa6' },
-  { title: 'Career Essentials in System Administration',  issuer: 'LinkedIn Learning', url: 'https://www.linkedin.com/learning/certificates/ca37c329baa5d7ba0dd24c667cb6bd51b73c4db26b1014daa23c082255ac73db' },
-];
-
 function TypeWriter() {
   const [idx, setIdx] = useState(0);
   const [char, setChar] = useState(0);
@@ -73,7 +68,6 @@ export default function HomePage({ onNav }: { onNav: (p: string) => void }) {
   const aboutRef  = useScrollFade();
   const skillsRef = useScrollFade();
   const newsRef   = useScrollFade();
-  const certsRef  = useScrollFade();
 
   return (
     <>
@@ -269,30 +263,6 @@ export default function HomePage({ onNav }: { onNav: (p: string) => void }) {
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CERTS */}
-      <section style={{ padding: '60px 1.5rem', background: '#f8fafc' }}>
-        <div style={{ maxWidth: 900, margin: '0 auto' }}>
-          <div ref={certsRef} className="fade-in" style={{ marginBottom: '2rem' }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#2563eb', marginBottom: '0.5rem' }}>Verified</div>
-            <h2 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: '1.8rem', color: '#0f172a' }}>Certifications</h2>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {CERTS.map(c => (
-              <a key={c.title} href={c.url} target="_blank" rel="noopener noreferrer" className="card-3d"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '1.2rem 1.5rem', textDecoration: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', transition: 'border-color 0.2s' }}
-                onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(37,99,235,0.4)')}
-                onMouseLeave={e => (e.currentTarget.style.borderColor = '#e2e8f0')}>
-                <div>
-                  <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '0.25rem' }}>{c.title}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#2563eb' }}>{c.issuer}</div>
-                </div>
-                <ExternalLink size={18} color="#94a3b8" />
-              </a>
-            ))}
           </div>
         </div>
       </section>

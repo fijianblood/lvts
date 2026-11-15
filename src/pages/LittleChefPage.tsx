@@ -6,13 +6,15 @@ import { pageLink } from '../links';
 // MediTrack). It needs nothing from the internet and saves progress on the
 // device only. It is digital pretend play — no real knives, stove or heat.
 
-export default function LittleChefPage({ onNav }: { onNav: (p: string) => void }) {
+export default function LittleChefPage({ onNav, embedded = false }: { onNav: (p: string) => void; embedded?: boolean }) {
+  // Inside a combined page (Free Tools, Kids) the page already has the main heading.
+  const Heading = embedded ? 'h2' : 'h1';
   const card: React.CSSProperties = { background: '#fff', border: '1px solid #f0e2d0', borderRadius: 16, padding: '1.3rem 1.4rem' };
   const h3: React.CSSProperties = { fontFamily: "'Syne',sans-serif", fontWeight: 800, color: '#3b2a1e', fontSize: '1rem', marginBottom: '0.5rem' };
   const p: React.CSSProperties = { color: '#6b5544', fontSize: '0.9rem', lineHeight: 1.7 };
 
   return (
-    <section style={{ padding: '96px 1.5rem 100px', position: 'relative', overflow: 'hidden' }}>
+    <section style={{ padding: embedded ? '40px 1.5rem 100px' : '96px 1.5rem 100px', position: 'relative', overflow: 'hidden' }}>
       <div className="orb" style={{ width: 420, height: 420, background: 'rgba(255,122,47,0.10)', top: '-5%', right: '-5%' }} />
       <div className="orb" style={{ width: 280, height: 280, background: 'rgba(255,210,63,0.14)', bottom: '5%', left: '0%', animationDelay: '2s' }} />
 
@@ -20,9 +22,9 @@ export default function LittleChefPage({ onNav }: { onNav: (p: string) => void }
         <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#e85d12', marginBottom: '0.75rem' }}>
           Little Learners Fiji · Ages 3–5 · Free
         </div>
-        <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(2rem,5vw,3.2rem)', color: '#3b2a1e', lineHeight: 1.1, marginBottom: '1rem' }}>
+        <Heading style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(2rem,5vw,3.2rem)', color: '#3b2a1e', lineHeight: 1.1, marginBottom: '1rem' }}>
           Little <span className="grad-text">Chef</span> Fiji
-        </h1>
+        </Heading>
         <p style={{ color: '#6b5544', fontSize: '1rem', lineHeight: 1.75 }}>
           A friendly pretend-cooking game for young children. Step into a colourful kitchen and make a fruit salad,
           fry or boil an egg, butter some toast, or cook chicken and rice — pouring, cracking, mixing, flipping and

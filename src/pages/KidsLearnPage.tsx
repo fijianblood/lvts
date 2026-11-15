@@ -8,13 +8,15 @@ import { pageLink } from '../links';
 // progress on the device only. The iTaukei words and how to add your own
 // recordings are explained at the top of that file.
 
-export default function KidsLearnPage({ onNav }: { onNav: (p: string) => void }) {
+export default function KidsLearnPage({ onNav, embedded = false }: { onNav: (p: string) => void; embedded?: boolean }) {
+  // Inside a combined page (Free Tools, Kids) the page already has the main heading.
+  const Heading = embedded ? 'h2' : 'h1';
   const card: React.CSSProperties = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '1.3rem 1.4rem' };
   const h3: React.CSSProperties = { fontFamily: "'Syne',sans-serif", fontWeight: 800, color: '#0f172a', fontSize: '1rem', marginBottom: '0.5rem' };
   const p: React.CSSProperties = { color: '#475569', fontSize: '0.9rem', lineHeight: 1.7 };
 
   return (
-    <section style={{ padding: '96px 1.5rem 100px', position: 'relative', overflow: 'hidden' }}>
+    <section style={{ padding: embedded ? '40px 1.5rem 100px' : '96px 1.5rem 100px', position: 'relative', overflow: 'hidden' }}>
       <div className="orb" style={{ width: 420, height: 420, background: 'rgba(109,74,255,0.08)', top: '-5%', right: '-5%' }} />
       <div className="orb" style={{ width: 280, height: 280, background: 'rgba(255,210,63,0.12)', bottom: '5%', left: '0%', animationDelay: '2s' }} />
 
@@ -22,9 +24,9 @@ export default function KidsLearnPage({ onNav }: { onNav: (p: string) => void })
         <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#6d4aff', marginBottom: '0.75rem' }}>
           Kids · English + iTaukei · Free
         </div>
-        <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(2rem,5vw,3.2rem)', color: '#0f172a', lineHeight: 1.1, marginBottom: '1rem' }}>
+        <Heading style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(2rem,5vw,3.2rem)', color: '#0f172a', lineHeight: 1.1, marginBottom: '1rem' }}>
           Noqu <span className="grad-text">Vuli</span>
-        </h1>
+        </Heading>
         <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: 1.75 }}>
           Play and learn for young children: letters, counting, simple maths, animals, shapes and colours, plus a
           matching-pairs game, a daily challenge, stars and a sticker book. Questions are read out loud, and the
