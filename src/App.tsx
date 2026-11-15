@@ -16,6 +16,9 @@ import ActivationHelpPage from './pages/ActivationHelpPage';
 import KidsLearnPage from './pages/KidsLearnPage';
 import LittleChefPage from './pages/LittleChefPage';
 import LabviewPage from './pages/LabviewPage';
+import BlogPage from './pages/BlogPage';
+import BlogPostPage from './pages/BlogPostPage';
+import { postById } from './data/blogPosts';
 import { canonicalFor, pageFromPath, routeById } from './data/routes';
 import { BASE, hrefFor } from './links';
 
@@ -92,7 +95,11 @@ function renderPage(page: string, onNav: (p: string) => void) {
     case 'ask':      return <AskLvtsPage />;
     case 'activation': return <ActivationHelpPage />;
     case 'neighbours-admin': return <Suspense fallback={null}><NeighbourhoodAdminPage /></Suspense>;
-    default:         return null;
+    case 'blog':     return <BlogPage onNav={onNav} />;
+    default: {
+      const post = postById(page);
+      return post ? <BlogPostPage post={post} onNav={onNav} /> : null;
+    }
   }
 }
 
@@ -130,7 +137,7 @@ export default function App() {
 
   return (
     <>
-      <NavBar page={page} onNav={navigate} />
+      <NavBar page={page.startsWith('post-') ? 'blog' : page} onNav={navigate} />
       <AnimatePresence mode="wait" onExitComplete={() => window.scrollTo(0, 0)}>
         <motion.div
           key={page}

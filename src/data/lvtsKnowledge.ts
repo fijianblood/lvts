@@ -74,11 +74,13 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
       'labview', 'lab view', 'ni labview', 'national instruments', 'ni-visa', 'visa serial',
       'block diagram', 'front panel', 'vi project', 'labview project', 'labview assignment',
       'labview tutor', 'labview help', 'final year project', 'arduino labview', 'linx',
+      'daqmx', 'ni-daqmx', 'daq assistant', 'ni daq', 'ni max', 'usb-6453',
     ],
     answer:
       "**LabVIEW project help for university students**\n\n" +
       "LvTS offers one-to-one LabVIEW tutoring and project mentoring, in person in Raiwai, Suva or online:\n" +
       "- Debugging your VI and explaining errors\n" +
+      "- NI DAQ devices with NI-DAQmx (NI MAX, simulated devices, DAQ Assistant, DAQmx functions)\n" +
       "- Arduino and other devices over USB serial with NI-VISA\n" +
       "- State machines, event structures, queues, data logging and charts\n" +
       "- Controlling your project from a web page (LabVIEW Web Services)\n\n" +

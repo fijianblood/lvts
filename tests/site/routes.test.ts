@@ -10,7 +10,8 @@ test('ids and addresses are unique, and only home has an empty address', () => {
   assert.equal(new Set(ROUTES.map((r) => r.id)).size, ROUTES.length);
   assert.equal(new Set(ROUTES.map((r) => r.slug)).size, ROUTES.length);
   assert.deepEqual(ROUTES.filter((r) => r.slug === '').map((r) => r.id), ['home']);
-  for (const r of ROUTES) assert.match(r.slug, /^$|^[a-z0-9]+(-[a-z0-9]+)*$/, r.id);
+  const part = '[a-z0-9]+(-[a-z0-9]+)*';
+  for (const r of ROUTES) assert.match(r.slug, new RegExp(`^$|^${part}$|^blog/${part}$`), r.id);
 });
 
 test('every page address turns back into its page, on both hosts', () => {
@@ -33,6 +34,8 @@ test('addresses that are not pages are not mistaken for one', () => {
     assert.equal(pageFromPath(p, '/lvts/'), null, p);
   }
   assert.equal(pageFromPath('/meditrack/app.html', '/'), null);
+  assert.equal(pageFromPath('/lvts/blog/nope/', '/lvts/'), null);
+  assert.equal(pageFromPath('/lvts/blog/x/y/', '/lvts/'), null);
 });
 
 test('canonical addresses are all on the main site', () => {
@@ -66,5 +69,7 @@ test('every page in the menu has an address, and the app can show every address'
   const menuIds = [...sitePages.matchAll(/\{ id: '([^']+)'/g)].map((m) => m[1]);
   for (const id of menuIds) assert.ok(routeById(id), `menu page ${id} has no address in routes.ts`);
   const app = readFileSync('src/App.tsx', 'utf8');
-  for (const r of ROUTES) assert.ok(app.includes(`case '${r.id}':`), `App.tsx renderPage has no case for ${r.id}`);
+  // Blog posts share one branch: renderPage looks them up with postById.
+  for (const r of ROUTES.filter((x) => !x.id.startsWith('post-'))) assert.ok(app.includes(`case '${r.id}':`), `App.tsx renderPage has no case for ${r.id}`);
+  assert.ok(app.includes('postById(page)'), 'App.tsx renderPage must show blog posts with postById');
 });

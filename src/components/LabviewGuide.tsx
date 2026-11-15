@@ -114,7 +114,7 @@ export default function LabviewGuide() {
             ['NI Package Manager (NIPM)', 'Installs, updates and removes all NI software.', 'Always. Use it to install drivers and apply updates.'],
             ['NI-VISA', 'Driver for talking to instruments over serial (COM ports), USB, Ethernet and GPIB.', 'Any project with an Arduino or instrument over USB serial.'],
             ['Hobbyist (LINX) Toolkit', 'Ready-made VIs for Arduino and Raspberry Pi. Menu: Tools » MakerHub » LINX.', 'Maker boards. Windows only, 32-bit LabVIEW only.'],
-            ['NI-DAQmx', 'Driver for NI data-acquisition (DAQ) hardware.', 'If your lab uses NI DAQ devices.'],
+            ['NI-DAQmx', 'Driver for NI data-acquisition (DAQ) hardware, such as the USB-6453.', 'If your lab uses NI DAQ devices. See chapter 7.'],
             ['NI Web Server', 'Hosts LabVIEW Web Services so a browser or phone can talk to your VI.', 'Web control projects. Windows only.'],
             ['Application Builder', 'Turns your VI into a stand-alone .exe.', 'When you need to run it without opening LabVIEW.'],
             ['G Web Development Software', 'Draw a browser interface in G (WebVIs). It runs in any modern browser.', 'If you want a web UI without writing HTML/JS. 64-bit only.'],
@@ -219,7 +219,63 @@ export default function LabviewGuide() {
           </p>
         </Chapter>
 
-        <Chapter n={7} title="Design patterns that markers like" summary="State machine, event structure, producer/consumer, FGV">
+        <Chapter n={7} title="NI DAQ hardware with NI-DAQmx" summary="The USB data-acquisition boxes in university labs">
+          <p style={p}>
+            Many university labs use <strong>NI DAQ devices</strong>: boxes with screw or spring terminals that measure voltages and switch signals, such as NI’s USB-6453.
+            <strong> NI-DAQmx</strong> is the <em>driver</em> that lets LabVIEW talk to them. The device is the hardware; NI-DAQmx is the software.
+          </p>
+          <Table first="bold" head={['Word', 'What it means']} rows={[
+            ['Channel', 'One input or output, named like Dev1/ai0 (analog input 0) or Dev1/port0/line0 (a digital line).'],
+            ['Task', 'One or more channels plus their timing, set up together and started together.'],
+            ['Sample rate', 'How many readings per second. Read at least twice as fast as the fastest change you care about.'],
+            ['Input range', 'The voltage span the channel expects, for example ±10 V. A tighter range gives finer readings.'],
+            ['NI MAX', 'Measurement & Automation Explorer: NI’s tool to see your devices, test them and make simulated ones.'],
+          ]} />
+          <h4 style={h4}>Install and check the device</h4>
+          <ol>
+            <li style={li}>Install <strong>NI-DAQmx</strong> with NI Package Manager, after LabVIEW.</li>
+            <li style={li}>Plug in the device and open <strong>NI MAX</strong>. Look under <strong>Devices and Interfaces</strong>. Note its name, usually <C>Dev1</C>.</li>
+            <li style={li}>Right-click it → <strong>Self-Test</strong>. Then open <strong>Test Panels</strong> to read a channel before you write any code.</li>
+          </ol>
+          <h4 style={h4}>No device at home? Use a simulated one</h4>
+          <p style={p}>
+            In NI MAX, right-click <strong>Devices and Interfaces</strong> → <strong>Create New…</strong> → <strong>Simulated NI-DAQmx Device or Modular Instrument</strong>, and pick the same model as your lab.
+            Simulated devices have a yellow icon. Your VI runs as if the hardware were plugged in, so you can build and debug at home and bring it to the lab ready to go.
+          </p>
+          <h4 style={h4}>The quick way: DAQ Assistant</h4>
+          <ol>
+            <li style={li}>On the block diagram, place the <strong>DAQ Assistant</strong> Express VI (Functions » Express » Input).</li>
+            <li style={li}>Choose <strong>Acquire Signals » Analog Input » Voltage</strong>, then the channel, for example <C>ai0</C>.</li>
+            <li style={li}>Set the input range, the acquisition mode (continuous, or a set number of samples) and the rate. Click <strong>OK</strong>.</li>
+            <li style={li}>Put it inside a While Loop and wire its data output to a Waveform Chart. Run.</li>
+          </ol>
+          <h4 style={h4}>The proper way: the DAQmx functions</h4>
+          <p style={p}>The DAQ Assistant is fine for a first test, but for a project, build the task yourself from the <strong>Measurement I/O » DAQmx</strong> palette. It’s clearer to explain and easier to control:</p>
+          <ol>
+            <li style={li}><strong>DAQmx Create Virtual Channel</strong> (AI Voltage): channel name, input range.</li>
+            <li style={li}><strong>DAQmx Timing</strong> (Sample Clock): rate and continuous or finite samples.</li>
+            <li style={li}><strong>DAQmx Start Task</strong>.</li>
+            <li style={li}>In a While Loop: <strong>DAQmx Read</strong> to a chart, and to a file if you log.</li>
+            <li style={li}>After the loop: <strong>DAQmx Stop Task</strong>, then <strong>DAQmx Clear Task</strong>, then a <strong>Simple Error Handler</strong>. Wire the task and error cluster through every node.</li>
+          </ol>
+          <p style={p}>NI ships working examples: <strong>Help » Find Examples » Hardware Input and Output » DAQmx</strong>. Start from one and change it.</p>
+          <h4 style={h4}>Wiring an analog input</h4>
+          <ul>
+            <li style={li}><strong>Single-ended (RSE):</strong> one wire per signal, measured against the device’s ground. Simple, but picks up more noise.</li>
+            <li style={li}><strong>Differential:</strong> two wires per signal (AI+ and AI−). Better for small or noisy signals, but uses two terminals per channel.</li>
+            <li style={li}>Never go above the input voltage the device’s specifications allow. Check the pinout for your model in NI’s documentation before wiring.</li>
+          </ul>
+          <h4 style={h4}>Arduino kit or NI DAQ?</h4>
+          <Table first="bold" head={['', 'Arduino Uno + LvTS firmware', 'NI DAQ + NI-DAQmx']} rows={[
+            ['Cost', 'A low-cost learning kit', 'Thousands of dollars (NI lists the USB-6453 from US$3,199)'],
+            ['LabVIEW link', 'NI-VISA serial, text commands', 'NI-DAQmx driver, native LabVIEW functions'],
+            ['Speed and accuracy', '10-bit readings, a few per second over serial', 'High resolution and fast hardware-timed sampling'],
+            ['Best for', 'Learning LabVIEW at home, control projects', 'Lab measurements and projects that need real accuracy'],
+          ]} />
+          <p style={{ ...p, marginBottom: 0 }}>Good plan: learn LabVIEW at home with the Arduino kit or a simulated DAQ, then take your VI to the lab’s real DAQ device.</p>
+        </Chapter>
+
+        <Chapter n={8} title="Design patterns that markers like" summary="State machine, event structure, producer/consumer, FGV">
           <Table first="bold" head={['Pattern', 'What it is', 'Use it for']} rows={[
             ['State machine', 'A While Loop with a Case Structure inside. An enum in a shift register picks the next state: Init → Idle → Measure → Save → Stop.', 'Almost any test or control sequence. The most common pattern in student projects.'],
             ['Event Structure', 'Waits for user actions, such as a button press or a value change, instead of checking them constantly.', 'Responsive front panels that don’t waste CPU. Put the button inside its own event case.'],
@@ -229,7 +285,7 @@ export default function LabviewGuide() {
           <p style={{ ...p, marginBottom: 0 }}>Explaining <em>why</em> you chose a pattern is often worth as many marks as the code.</p>
         </Chapter>
 
-        <Chapter n={8} title="Charts, timing and saving data" summary="Plot readings live and log them to a file">
+        <Chapter n={9} title="Charts, timing and saving data" summary="Plot readings live and log them to a file">
           <ul>
             <li style={li}><strong>Waveform Chart:</strong> plots one new point each loop run, like a strip chart. Good for live readings.</li>
             <li style={li}><strong>Waveform Graph:</strong> plots a whole array at once. Good for a finished measurement.</li>
@@ -240,7 +296,7 @@ export default function LabviewGuide() {
           <p style={{ ...p, marginBottom: 0 }}>Example: in the loop’s timeout case, send <C>STATUS</C> and read the reply with <strong>Scan From String</strong> using the format string <C>POT=%d LDR=%d JX=%d JY=%d JSW=%d BTN=%d LINE=%d LED=%d</C>. You get eight numbers in one step. Send <C>POT</C> to the chart and all of them to the file.</p>
         </Chapter>
 
-        <Chapter n={9} title="Control your VI from a phone or web page" summary="LabVIEW Web Services on the NI Web Server">
+        <Chapter n={10} title="Control your VI from a phone or web page" summary="LabVIEW Web Services on the NI Web Server">
           <ol>
             <li style={li}>In your project: right-click <strong>My Computer » New » Web Service</strong> and give it a name, for example <C>lvtslab</C>. The name becomes part of the web address.</li>
             <li style={li}>Right-click <strong>Web Resources » New VI</strong>. This is an <strong>HTTP Method VI</strong>. Its connector-pane inputs arrive as URL query parameters, and its indicators are sent back as JSON.</li>
@@ -253,7 +309,7 @@ export default function LabviewGuide() {
           <p style={{ ...p, marginBottom: 0 }}><strong>Keep it on your local network.</strong> Don’t open it to the internet. For remote access, use a VPN and set up authentication on the NI Web Server first.</p>
         </Chapter>
 
-        <Chapter n={10} title="Build an .exe and keep your work safe" summary="Application Builder, Git and good habits">
+        <Chapter n={11} title="Build an .exe and keep your work safe" summary="Application Builder, Git and good habits">
           <ul>
             <li style={li}><strong>Build an application:</strong> in the project, right-click <strong>Build Specifications » New » Application (EXE)</strong>, choose your top-level VI as the startup VI, then <strong>Build</strong>. The PC that runs it needs the LabVIEW Run-Time Engine.</li>
             <li style={li}><strong>Git:</strong> in each VI’s properties, tick <em>Separate compiled code from source file</em> so Git only sees real changes. Don’t commit <C>.lvlps</C> or <C>.aliases</C> files: they’re machine-specific.</li>
@@ -262,7 +318,7 @@ export default function LabviewGuide() {
           </ul>
         </Chapter>
 
-        <Chapter n={11} title="Kit projects in LabVIEW" summary="Ten exercises using every part of the duinotech kit">
+        <Chapter n={12} title="Kit projects in LabVIEW" summary="Ten exercises using every part of the duinotech kit">
           <p style={p}>Each project uses the LvTS Kit Firmware and one serial subVI (chapter 6) that opens the port once. Build them in order: each adds one new LabVIEW skill.</p>
           <Table first="bold" head={['Project', 'Parts', 'How to build it in LabVIEW']} rows={[
             ['1. LED switch', 'Built-in LED', 'Boolean switch on the front panel. In an Event Structure, the switch’s Value Change case uses Select to choose LED ON or LED OFF and sends it.'],
@@ -280,7 +336,7 @@ export default function LabviewGuide() {
           <p style={{ ...p, marginBottom: 0 }}>At 9600 baud a STATUS reply takes about 60 ms to arrive, so don’t ask for readings faster than every 100 ms. Send output commands only when something changes, not in every loop.</p>
         </Chapter>
 
-        <Chapter n={12} title="Common problems and fixes" summary="The errors students hit most">
+        <Chapter n={13} title="Common problems and fixes" summary="The errors students hit most">
           <Table head={['Problem', 'Likely cause', 'Fix']} rows={[
             ['Serial palette is empty', 'NI-VISA missing, or installed before LabVIEW', 'Install NI-VISA after LabVIEW, then restart LabVIEW'],
             ['“Resource busy” or can’t open the COM port', 'Arduino Serial Monitor or another VI has the port open', 'Close the Serial Monitor. Open the port in only one place'],
@@ -294,6 +350,8 @@ export default function LabviewGuide() {
             ['Board keeps printing READY LVTS KIT', 'The servo pulls too much current and the Uno restarts', 'Power the servo from a separate 5 V supply. Join its GND to the Uno’s GND'],
             ['Matrix picture is mirrored or upside down', 'Modules are wired in different orientations', 'Remove Reverse 1D Array (or tick Mirror in the kit tester), or turn the module round'],
             ['ERR USE … reply', 'A number is out of range or a value is missing', 'Check the command table. For example SERVO takes 0–180'],
+            ['DAQ device missing in LabVIEW or MAX', 'NI-DAQmx not installed, or the device was unplugged when LabVIEW opened', 'Install NI-DAQmx with NI Package Manager, plug in, and check it in NI MAX'],
+            ['DAQmx error about a resource or reserved channel', 'Another task, Test Panel or VI is still using the channel', 'Stop and clear the other task, close Test Panels, then run again'],
           ]} />
           <p style={{ ...p, marginBottom: 0 }}>Still stuck? That’s exactly what the sessions below are for.</p>
         </Chapter>

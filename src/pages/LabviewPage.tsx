@@ -3,7 +3,7 @@ import LabviewGuide from '../components/LabviewGuide';
 import KitSection from '../components/KitSection';
 import {
   MessageCircle, Mail, Phone, Cpu, Cable, Workflow, LineChart, Globe, Code2, Package, CircuitBoard,
-  CheckCircle2, ShieldCheck, AlertTriangle, GraduationCap, Wrench, Users, FileSearch,
+  CheckCircle2, ShieldCheck, Gauge, AlertTriangle, GraduationCap, Wrench, Users, FileSearch,
 } from 'lucide-react';
 
 // LabVIEW project help for university students: tutoring and mentoring, not doing graded work for them.
@@ -21,7 +21,7 @@ const MUTED = '#64748b';
 const HELP: { icon: ReactNode; title: string; desc: string }[] = [
   { icon: <Users size={22} />, title: 'One-to-one sessions', desc: 'In person in Raiwai, Suva, or online by video call. We work through your project together at your pace.' },
   { icon: <Wrench size={22} />, title: 'Debugging your VI', desc: 'Broken wires, errors you can’t explain, a VISA read that times out, a loop that never stops. I show you why it happens and how to find it next time.' },
-  { icon: <CircuitBoard size={22} />, title: 'Getting hardware talking', desc: 'Arduino or other devices over USB serial with NI-VISA, wiring checks, COM port problems, and safe low-voltage setups.' },
+  { icon: <CircuitBoard size={22} />, title: 'Getting hardware talking', desc: 'NI DAQ devices with NI-DAQmx, or an Arduino over USB serial with NI-VISA. Wiring checks, channel and COM port problems, and safe low-voltage setups.' },
   { icon: <FileSearch size={22} />, title: 'Review before you submit', desc: 'I go through your block diagram and front panel and tell you what to improve: structure, error handling, naming and documentation.' },
   { icon: <GraduationCap size={22} />, title: 'Understanding the concepts', desc: 'Dataflow, shift registers, case structures, state machines and queues, explained with small examples until they make sense.' },
   { icon: <Workflow size={22} />, title: 'Planning your project', desc: 'Turn the brief into a plan: what the VI must do, which design pattern fits, what hardware you need and a realistic timeline.' },
@@ -33,6 +33,7 @@ const TOPICS: { icon: ReactNode; title: string; items: string[] }[] = [
   { icon: <Cable size={20} />, title: 'Serial and NI-VISA', items: ['Arduino control over USB', 'Baud rate, termination characters, timeouts', 'Your own command protocol', 'Hobbyist (LINX) Toolkit'] },
   { icon: <LineChart size={20} />, title: 'Measurement and logging', items: ['Charts and graphs', 'Logging to CSV or TDMS', 'Loop timing', 'Reading sensors on analog pins'] },
   { icon: <Globe size={20} />, title: 'Control from a web page', items: ['LabVIEW Web Services', 'HTTP method VIs returning JSON', 'An HTML/JS page on your phone', 'Keeping it safe on your network'] },
+  { icon: <Gauge size={20} />, title: 'NI DAQ with NI-DAQmx', items: ['Checking devices in NI MAX', 'Simulated devices for working at home', 'DAQ Assistant and the DAQmx functions', 'Analog input wiring: single-ended or differential'] },
   { icon: <Code2 size={20} />, title: 'Going further', items: ['Python Node (matching bitness)', 'Building an EXE with Application Builder', 'Source control with Git', 'Raspberry Pi with LINX'] },
 ];
 
@@ -90,7 +91,7 @@ export default function LabviewPage() {
           </h1>
           <p style={{ color: '#cbd5e1', fontSize: '1.05rem', lineHeight: 1.75, maxWidth: 680, marginBottom: '2rem' }}>
             One-to-one LabVIEW tutoring and project mentoring for engineering, physics and IT students at USP, FNU, the University of Fiji and online.
-            Hardware control with Arduino and NI-VISA, data logging, state machines and web control: I help you understand it, debug it and finish it yourself.
+            NI DAQ hardware with NI-DAQmx, Arduino control with NI-VISA, data logging, state machines and web control: I help you understand it, debug it and finish it yourself.
           </p>
           <ContactButtons />
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1.5rem', marginTop: '1rem' }}>
