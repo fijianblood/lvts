@@ -27,6 +27,15 @@ export interface BlogPost {
 
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'windows-activators-risks',
+    title: 'Windows activation scripts: how they work, and the risks the tutorials don’t mention',
+    seoTitle: 'Windows Activators Explained: the Real Risks | LvTS',
+    description: 'What Windows activation tools like MAS really do, how they spread online, the fake copies that carried malware, and affordable ways to go genuine in Fiji.',
+    date: '2026-11-15',
+    author: 'Josese Sahib',
+    tags: ['Security', 'Windows', 'Licensing'],
+  },
+  {
     slug: 'cracked-software-malware',
     title: '“Free” cracked software can empty your bank account. Here’s how to check your PC',
     seoTitle: 'Cracked Software Malware: Check and Clean Your PC | LvTS',
