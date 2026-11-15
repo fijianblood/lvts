@@ -18,13 +18,12 @@ test('no leftover preview images for pages that no longer exist', () => {
   }
 });
 
-test('old addresses open a tab of their page, point Google at it and stay out of the sitemap', () => {
+test('old addresses open their page (or a tab of it), point Google at it and stay out of the sitemap', () => {
   const aliases = ROUTES.filter((r) => r.aliasOf);
   assert.deepEqual(aliases.map((r) => r.id).sort(), ['little-chef', 'seo', 'whiteboard']);
   for (const a of aliases) {
     const target = routeById(a.aliasOf as string);
     assert.ok(target && !target.aliasOf, `${a.id} points at a real page`);
-    assert.ok(a.tab, `${a.id} names its tab`);
     assert.equal(canonicalFor(a.id), canonicalFor(target.id));
     assert.equal(ogImageFor(a.id), ogImageFor(target.id));
     assert.ok(!LISTED_ROUTES.includes(a), `${a.id} is not in the sitemap`);

@@ -34,12 +34,13 @@ export interface PageRoute {
   /** false keeps the page out of Google and out of the sitemap. */
   index?: boolean;
   /**
-   * An old address that now opens a tab of another page (e.g. /whiteboard/ opens the
-   * Whiteboard tab of Free Tools). It keeps working for shared links, points Google
-   * at that page (canonical), shares its preview image and isn't in the sitemap.
+   * An old address that now opens another page, or a tab of it (e.g. /little-chef/ opens
+   * the Little Chef tab of Kids; the removed /whiteboard/ and /seo-tools/ open Free Tools).
+   * It keeps working for shared links, points Google at that page (canonical), shares its
+   * preview image and isn't in the sitemap.
    */
   aliasOf?: string;
-  /** The tab it opens on that page. */
+  /** The tab it opens on that page, if any. */
   tab?: string;
 }
 
@@ -53,7 +54,7 @@ export const ROUTES: PageRoute[] = [
   {
     id: 'services', label: 'Services', slug: 'services',
     title: 'IT Services in Suva: PC Repair, Web Design, Networking | LvTS',
-    description: 'Laptop and PC repair, website design (see sites we have built), networking, antivirus and business email from LomaVata Tech Services in Raiwai, Suva.',
+    description: 'Laptop and PC repair, website design, networking, antivirus, printers and business email from LomaVata Tech Services in Raiwai, Suva, Fiji.',
     heading: 'IT services in Suva, Fiji',
   },
   {
@@ -94,12 +95,12 @@ export const ROUTES: PageRoute[] = [
   },
   {
     id: 'tools', label: 'Free Tools', slug: 'tools',
-    title: 'Free Online Tools: Image to PDF, PDF Merge, Whiteboard | LvTS',
-    description: 'Free browser tools from LvTS: photos to PDF, merge PDFs, photo to pencil sketch, an online whiteboard and an SEO checker. Your files are not uploaded.',
-    heading: 'Free online tools: image to PDF, PDF merge, photo sketch, whiteboard and SEO checker',
+    title: 'Free Image to PDF, PDF Merge & Photo Sketch Tools | LvTS',
+    description: 'Free tools that run in your browser: turn photos (JPEG, HEIC, DNG) into a PDF, merge PDFs, or make a pencil sketch from a photo. Nothing is uploaded.',
+    heading: 'Free image to PDF, PDF merge and photo sketch tools',
   },
   {
-    id: 'whiteboard', label: 'Whiteboard', slug: 'whiteboard', aliasOf: 'tools', tab: 'whiteboard',
+    id: 'whiteboard', label: 'Whiteboard', slug: 'whiteboard', aliasOf: 'tools',
     title: 'Free Online Whiteboard | LomaVata Tech Services',
     description: 'A free online whiteboard for sketching diagrams and jotting notes right in your browser, from LomaVata Tech Services in Suva, Fiji.',
     heading: 'Free online whiteboard',
@@ -111,7 +112,7 @@ export const ROUTES: PageRoute[] = [
     heading: 'MediTrack: a private health dashboard',
   },
   {
-    id: 'seo', label: 'SEO Tools', slug: 'seo-tools', aliasOf: 'tools', tab: 'seo',
+    id: 'seo', label: 'SEO Tools', slug: 'seo-tools', aliasOf: 'tools',
     title: 'Free SEO & Website Analysis Tools | LvTS',
     description: 'Free SEO, keyword and website analysis tools in one place, powered by SEOStudio Tools, from LomaVata Tech Services in Suva, Fiji.',
     heading: 'Free SEO and website analysis tools',

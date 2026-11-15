@@ -31,7 +31,7 @@ export const SITE_PAGES: SitePage[] = [
   { id: 'rewards', label: 'Rewards', icon: IconGift, color: '#f59e0b',
     blurb: 'LomaVata Rewards — a Fiji prize-draw loyalty program. Buy an entry or monthly membership via M-PAiSA/My Cash for weekly draws and a monthly Mega Draw.' },
   { id: 'tools', label: 'Free Tools', icon: IconHammer, color: '#f97316',
-    blurb: 'Free browser tools on one page: an image-to-PDF converter (JPEG, HEIC, DNG), a PDF merger and a photo-to-pencil-sketch maker that never upload your files, plus an online whiteboard (Excalidraw) and an SEO checker (SEOStudio Tools).' },
+    blurb: 'Free browser tools: an image-to-PDF converter (JPEG, HEIC, DNG), a PDF merger and a photo-to-pencil-sketch maker. Your files are never uploaded.' },
   { id: 'meditrack', label: 'MediTrack', icon: IconHeartbeat, color: '#c1443b',
     blurb: 'A private, device-only health dashboard for blood pressure trends, test results, appointments, and medical history — nothing uploads.' },
   { id: 'activation', label: 'Activation', icon: IconKey, color: '#8b5cf6',

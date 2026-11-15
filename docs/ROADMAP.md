@@ -8,12 +8,13 @@ Last updated: 15 November 2026.
 
 ## Where the site is now
 
-- **Pages (14 in Google):** Home, Services (with Website Design and portfolio),
+- **This is the official LomaVata Tech Services website, not a portfolio.**
+- **Pages (14 in Google):** Home, Services (with a Website Design section),
   Ask LvTS, Rewards, Noqublox, Kids (Noqu Vuli + Little Chef), LabVIEW Help,
-  Free Tools (PDF and photo tools, Whiteboard, SEO checker), MediTrack,
-  Activation, Blog, and one page per blog post.
-- **Old addresses still work:** `/whiteboard/` and `/seo-tools/` open their tab
-  on Free Tools; `/little-chef/` opens its tab on Kids (`aliasOf` in
+  Free Tools (image to PDF, PDF merge, photo sketch), MediTrack, Activation,
+  Blog, and one page per blog post.
+- **Old addresses still work:** `/little-chef/` opens its tab on Kids; the
+  removed `/whiteboard/` and `/seo-tools/` open Free Tools (`aliasOf` in
   `src/data/routes.ts`).
 - **Every page has its own link-preview image** in `public/og/`, made by
   `python3 tools/og/make_og.py`. Run it after adding a page or blog post.
@@ -30,6 +31,8 @@ Last updated: 15 November 2026.
   accounts once the database exists (below).
 - **Keep Ask LvTS.** It will grow into the accounts platform (below).
 - LinkedIn certificates were removed from the site on purpose.
+- The SEO tool, the Whiteboard and the client-site portfolio were removed on purpose.
+  Don't add client sites to the website.
 - Blog posts are reviewed and approved by the owner before going live.
 
 ## Next: accounts, memory and uploads (Ask LvTS, then MediTrack)

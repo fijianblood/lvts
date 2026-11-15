@@ -6,7 +6,7 @@ import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import ServicesPage from './pages/ServicesPage';
 import RewardsPage from './pages/RewardsPage';
-import FreeToolsPage from './pages/FreeToolsPage';
+import ToolsPage from './pages/ToolsPage';
 import AskLvtsPage from './pages/AskLvtsPage';
 import ChatWidget from './components/ChatWidget';
 import MediTrackPage from './pages/MediTrackPage';
@@ -99,10 +99,10 @@ function renderPage(page: string, onNav: (p: string) => void) {
     case 'kids':     return <KidsPage onNav={onNav} />;
     case 'little-chef': return <KidsPage onNav={onNav} />; // old address: currentPage opens the Kids tab
     case 'labview':  return <LabviewPage />;
-    case 'tools':    return <FreeToolsPage />;
-    case 'whiteboard': return <FreeToolsPage />; // old address: currentPage opens the Free Tools tab
+    case 'tools':    return <ToolsPage />;
+    case 'whiteboard': return <ToolsPage />; // removed page: its old address opens Free Tools
     case 'meditrack': return <MediTrackPage />;
-    case 'seo':      return <FreeToolsPage />; // old address, as above
+    case 'seo':      return <ToolsPage />; // removed page, as above
     case 'ask':      return <AskLvtsPage />;
     case 'activation': return <ActivationHelpPage />;
     case 'neighbours-admin': return <Suspense fallback={null}><NeighbourhoodAdminPage /></Suspense>;
