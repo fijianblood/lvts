@@ -5,6 +5,7 @@ import { type ChatMessage, SUGGESTED_PROMPTS, markdownComponents } from '../lib/
 import { useLvtsChat } from '../lib/useLvtsChat';
 import ChatComposer, { BubbleFiles } from '../components/ChatComposer';
 import { dropProps, useAttachments } from '../lib/useAttachments';
+import LomaRoadmap from '../components/LomaRoadmap';
 
 export default function AskLvtsPage() {
   const { messages, input, setInput, isTyping, busy, handleSend, resetChat } = useLvtsChat(true);
@@ -112,8 +113,10 @@ export default function AskLvtsPage() {
       </div>
 
       <p style={{ maxWidth: 700, margin: '0.9rem auto 0', textAlign: 'center', fontSize: '0.72rem', color: '#94a3b8' }}>
-        This assistant answers common questions instantly — for anything else, WhatsApp <a href="https://wa.me/6797466941" target="_blank" rel="noopener noreferrer" style={{ color: '#7c3aed', fontWeight: 600 }}>746 6941</a> or call 833 1088.
+        Loma answers instantly, day and night — for anything else, WhatsApp <a href="https://wa.me/6797466941" target="_blank" rel="noopener noreferrer" style={{ color: '#7c3aed', fontWeight: 600 }}>746 6941</a> or call 833 1088.
       </p>
+
+      <LomaRoadmap />
 
       <style>{`
         @keyframes lvts-typing-bounce {
