@@ -2,7 +2,7 @@ import type { ComponentType } from 'react';
 import {
   IconTool, IconGift,
   IconHammer, IconChalkboard, IconHeartbeat, IconSeo, IconMessageCircle,
-  IconKey, IconHomeSearch, IconAbc, IconChefHat, IconCpu,
+  IconKey, IconHomeSearch, IconAbc, IconChefHat, IconCpu, IconNews,
 } from '@tabler/icons-react';
 
 export interface SitePage {
@@ -26,6 +26,8 @@ export const SITE_PAGES: SitePage[] = [
     blurb: 'Chat with Loma, a free instant-answer assistant for repairs, Windows 11 troubleshooting, pricing, and general site questions.' },
   { id: 'services', label: 'Services', icon: IconTool, color: '#2563eb',
     blurb: 'An overview of everything LomaVata Tech Services offers across Fiji — PC/laptop repair, gas oven servicing, Linux networking, antivirus, printers, email hosting, and the Vitikart store.' },
+  { id: 'blog', label: 'Blog', icon: IconNews, color: '#0ea5e9',
+    blurb: 'The LvTS Blog: practical articles on PC security, Windows fixes, websites, networking and technology news for Fiji and the Pacific.' },
   { id: 'labview', label: 'LabVIEW Help', icon: IconCpu, color: '#f5a524',
     blurb: 'LabVIEW project help for university students: one-to-one tutoring in Raiwai, Suva or online. Debugging VIs, Arduino control over NI-VISA, state machines, data logging and web control. Students build their own project; LvTS coaches them.' },
   { id: 'rewards', label: 'Rewards', icon: IconGift, color: '#f59e0b',

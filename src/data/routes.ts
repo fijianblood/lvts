@@ -13,6 +13,8 @@
 // menu, and in renderPage (src/App.tsx). Keep titles to about 60 characters and
 // descriptions to about 155: Google cuts off anything longer.
 
+import { BLOG_POSTS } from './blogPosts.ts';
+
 /** The main address. The Cloudflare copy points search engines here too. */
 export const SITE_URL = 'https://fijianblood.github.io/lvts/';
 
@@ -21,7 +23,7 @@ export interface PageRoute {
   id: string;
   /** Its short name, as in the menu. */
   label: string;
-  /** Its address after the site's base path: '' for home, 'services' for /lvts/services/. */
+  /** Its address after the site's base path: '' for home, 'services' for /lvts/services/, 'blog/<post>' for a blog post. */
   slug: string;
   /** The <title>: shown in Google's results and the browser tab. */
   title: string;
@@ -113,6 +115,17 @@ export const ROUTES: PageRoute[] = [
     heading: 'Windows and software activation help',
   },
   {
+    id: 'blog', label: 'Blog', slug: 'blog',
+    title: 'LvTS Blog: Tech Tips, Security and IT News for Fiji',
+    description: 'Practical tech articles from LomaVata Tech Services in Suva: PC security, Windows fixes, websites, networking and technology news for Fiji and the Pacific.',
+    heading: 'LvTS Blog: tech tips, security and IT news for Fiji',
+  },
+  // One page per blog post (src/data/blogPosts.ts), at /blog/<slug>/.
+  ...BLOG_POSTS.map((p): PageRoute => ({
+    id: `post-${p.slug}`, label: p.title, slug: `blog/${p.slug}`,
+    title: p.seoTitle, description: p.description, heading: p.title,
+  })),
+  {
     // LvTS only: approve visitors' neighbourhood characters. Not linked anywhere.
     id: 'neighbours-admin', label: 'Admin', slug: 'neighbours-admin', index: false,
     title: 'Neighbourhood admin | LvTS',
@@ -141,6 +154,6 @@ export function pageFromPath(pathname: string, base: string): string | null {
   if (pathname === b.slice(0, -1) || pathname === b || pathname === `${b}index.html`) return 'home';
   if (!pathname.startsWith(b)) return null;
   const rest = pathname.slice(b.length).replace(/\/index\.html$/, '').replace(/\/+$/, '');
-  if (!rest || rest.includes('/')) return null;
+  if (!rest) return null;
   return ROUTES.find((r) => r.slug === rest)?.id ?? null;
 }
