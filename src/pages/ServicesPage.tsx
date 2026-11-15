@@ -2,6 +2,7 @@ import { useScrollFade } from '../hooks/useScrollFade';
 import { Monitor, Wrench, Wifi, ShieldCheck, Globe, Printer, Rss, ExternalLink, Award, BadgeCheck, Tag, Star } from 'lucide-react';
 import { openWhatsApp } from '../data/contact';
 import WebDesignSection from '../components/WebDesignSection';
+import Ps5Service from '../components/Ps5Service';
 
 const BOOK_REPAIR_MESSAGE = "Bula LvTS, I'd like to book a repair.";
 
@@ -12,34 +13,10 @@ const TRUST_STATS = [
   { icon: <Wrench size={22} />, value: '1500+', label: 'Devices Repaired', color: '#06b6d4' },
 ];
 
-const SERVICES = [
-  {
-    icon: <Wrench size={28} />,
-    title: 'PC & Laptop Repair',
-    color: '#2563eb',
-    desc: 'Any brand, any problem. Hardware faults, screen replacement, OS install, virus removal. Repairs from FJD $25.',
-    video: 'https://www.facebook.com/plugins/video.php?height=476&href=https%3A%2F%2Fwww.facebook.com%2Flvtsfiji%2Fvideos%2F688488585674443%2F&show_text=false&width=382&t=0',
-    tags: ['Dell','HP','Acer','ASUS','Toshiba','Apple'],
-  },
-  {
-    icon: <Monitor size={28} />,
-    title: 'Commercial Gas Oven',
-    color: '#f59e0b',
-    desc: 'Supply and service of commercial gas ovens for bakeries, restaurants, and food businesses across Fiji.',
-    video: 'https://www.youtube.com/embed/HeQvnVyRKL0?si=d8BfJr-YfsCBa1Aa',
-    tags: ['Commercial','Supply','Service','Warranty'],
-  },
-  {
-    icon: <Globe size={28} />,
-    title: 'Vitikart Store Setup',
-    color: '#06b6d4',
-    desc: 'Get your own online store on Vitikart.com.fj. Sell products digitally in Fiji with your own marketplace page.',
-    video: 'https://www.youtube.com/embed/eG8yy1N62h4?si=8rqO9h1NGXL1NYvp',
-    tags: ['eCommerce','Digital','Fiji','Online'],
-  },
-];
-
 const EXTRA = [
+  { icon: <Wrench size={20} />, title: 'PC & Laptop Repair', desc: 'Any brand: Dell, HP, Acer, ASUS, Toshiba, Apple. Hardware faults, screens, OS installs and virus removal. Repairs from FJD $25.' },
+  { icon: <Globe size={20} />, title: 'Vitikart Store Setup', desc: 'Your own online store on Vitikart.com.fj, to sell products digitally in Fiji.' },
+  { icon: <Monitor size={20} />, title: 'Commercial Gas Ovens', desc: 'Supply and service of commercial gas ovens for bakeries, restaurants and food businesses.' },
   { icon: <ShieldCheck size={20} />, title: 'Antivirus & Security', desc: 'Remove viruses, malware, ransomware. Install proper antivirus protection.' },
   { icon: <Wifi size={20} />, title: 'Networking', desc: 'Home and office network setup and troubleshooting — Wi-Fi, LAN and Linux diagnostics.' },
   { icon: <Globe size={20} />, title: 'Web Designing', desc: 'Modern websites, landing pages and portfolio sites for your business.' },
@@ -48,39 +25,7 @@ const EXTRA = [
   { icon: <ShieldCheck size={20} />, title: 'Email Hosting', desc: 'Business email setup, hosting, and domain configuration.' },
 ];
 
-function ServiceCard({ s, i }: { s: (typeof SERVICES)[number]; i: number }) {
-  const ref = useScrollFade();
-  return (
-    <div key={s.title} ref={ref} className="fade-in card-3d"
-      style={{ background: '#fff', border: `1px solid ${s.color}30`, borderTop: `3px solid ${s.color}`, borderRadius: 14, overflow: 'hidden', transitionDelay: `${i * 0.1}s` }}>
-      {/* Video */}
-      <div style={{ position: 'relative', paddingBottom: '60%', height: 0, overflow: 'hidden', background: '#000' }}>
-        <iframe
-          src={s.video}
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
-          allow="autoplay; encrypted-media"
-          allowFullScreen
-          title={s.title}
-        />
-      </div>
-      <div style={{ padding: '1.4rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-          <div style={{ color: s.color }}>{s.icon}</div>
-          <h3 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: '1.1rem', color: '#0f172a' }}>{s.title}</h3>
-        </div>
-        <p style={{ fontSize: '0.875rem', color: '#64748b', lineHeight: 1.7, marginBottom: '1rem' }}>{s.desc}</p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-          {s.tags.map(t => (
-            <span key={t} style={{ background: `${s.color}18`, border: `1px solid ${s.color}35`, color: s.color, borderRadius: 6, padding: '0.2rem 0.55rem', fontSize: '0.7rem', fontWeight: 600 }}>{t}</span>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function ServicesPage() {
-  const heroRef = useScrollFade();
   const extraRef = useScrollFade();
   const trustRef = useScrollFade();
   const flyerRef = useScrollFade();
@@ -88,36 +33,16 @@ export default function ServicesPage() {
 
   return (
     <>
-      {/* Hero */}
-      <section style={{ padding: '120px 1.5rem 60px', position: 'relative', overflow: 'hidden' }}>
-        <div className="orb" style={{ width: 400, height: 400, background: 'rgba(37,99,235,0.06)', top: '-10%', right: '-5%' }} />
+      {/* PS5 service: the main service on this page */}
+      <Ps5Service />
 
-        <div ref={heroRef} className="fade-in" style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center', marginBottom: '4rem' }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#2563eb', marginBottom: '0.75rem' }}>What We Do</div>
-          <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(2rem,5vw,3.2rem)', color: '#0f172a', lineHeight: 1.1, marginBottom: '1rem' }}>
-            Tech Services Built for <span className="grad-text">Fiji</span>
-          </h1>
-          <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: 1.75 }}>
-            From laptop repairs to full network installations — LomaVata Tech Services covers all your IT needs across Suva and the wider Fiji region.
-          </p>
-        </div>
-
-        {/* Main service cards with video */}
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(320px,100%),1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
-          {SERVICES.map((s, i) => (
-            <ServiceCard key={s.title} s={s} i={i} />
-          ))}
-        </div>
-      </section>
-
-      <WebDesignSection />
 
       {/* Additional services grid */}
       <section style={{ padding: '60px 1.5rem', background: '#f8fafc' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div ref={extraRef} className="fade-in" style={{ marginBottom: '2.5rem' }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#2563eb', marginBottom: '0.5rem' }}>Full Offerings</div>
-            <h2 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: '2rem', color: '#0f172a' }}>Everything We Cover</h2>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#2563eb', marginBottom: '0.5rem' }}>More from LvTS</div>
+            <h2 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: '2rem', color: '#0f172a' }}>Other services we provide</h2>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: '1rem' }}>
             {EXTRA.map((e, i) => (
@@ -133,6 +58,8 @@ export default function ServicesPage() {
           </div>
         </div>
       </section>
+
+      <WebDesignSection />
 
       {/* Trust */}
       <section style={{ padding: '80px 1.5rem', background: '#fff' }}>

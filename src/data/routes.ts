@@ -53,9 +53,9 @@ export const ROUTES: PageRoute[] = [
   },
   {
     id: 'services', label: 'Services', slug: 'services',
-    title: 'IT Services in Suva: PC Repair, Web Design, Networking | LvTS',
-    description: 'Laptop and PC repair, website design, networking, antivirus, printers and business email from LomaVata Tech Services in Raiwai, Suva, Fiji.',
-    heading: 'IT services in Suva, Fiji',
+    title: 'PS5 Cleaning & Liquid Metal Service in Suva, Fiji | LvTS',
+    description: 'PS5 overheating, shutting down or loud? LvTS in Raiwai, Suva does a full teardown, deep dust clean and fresh liquid metal. Plus PC repair and IT services.',
+    heading: 'PS5 overheating, shutting down or loud like a jet engine? PS5 service in Suva, Fiji',
   },
   {
     id: 'ask', label: 'Loma', slug: 'loma',

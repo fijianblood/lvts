@@ -88,6 +88,22 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
       "See the [LabVIEW Help page](https://fijianblood.github.io/lvts/labview/) or [send your brief and deadline on WhatsApp](https://wa.me/6797466941) for a free first look and a quote.",
   },
   {
+    id: 'ps5-service',
+    keywords: [
+      'ps5', 'playstation', 'play station', 'console', 'liquid metal', 'jet engine', 'ps5 slim',
+      'ps5 overheating', 'ps5 loud', 'ps5 shutting down', 'ps5 clean', 'ps5 service', 'ps5 repair',
+    ],
+    answer:
+      "**PS5 service at LvTS** 🎮\n\n" +
+      "If your PS5 is overheating, shutting down mid-game or loud like a jet engine, it usually needs a clean inside. Our PS5 service includes:\n" +
+      "- A full teardown\n" +
+      "- A deep dust clean of the fan, heatsink and vents\n" +
+      "- Checking the liquid metal on the processor, and applying a fresh layer if it has dried or spread\n" +
+      "- Testing under load before you collect it\n\n" +
+      "We service the PS5 (original) and PS5 Slim, disc and digital. The price is quoted before we start. If it's still under Sony's warranty, check with your seller first.\n\n" +
+      "[Book on WhatsApp](https://wa.me/6797466941) or call **833 1088**. More on the [Services page](https://fijianblood.github.io/lvts/services/).",
+  },
+  {
     id: 'computer-laptop-repair',
     keywords: [
       'fix my laptop', 'fix my computer', 'laptop repair', 'computer repair', 'pc repair',

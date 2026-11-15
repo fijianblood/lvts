@@ -1,0 +1,1575 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>PS5 Repair Map | LomaVata Tech Services</title>
+<meta name="description" content="Interactive 3D map of the original PS5: which parts come off, in what order, and which screws come out at each step. By LomaVata Tech Services, Suva, Fiji.">
+<meta name="robots" content="noindex">
+<script>if (window.self !== window.top) document.documentElement.classList.add("embed");</script>
+</head><body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a sticky 3D bench on the left (top on phones), the step-by-step guide beside it. */
+:root {
+  --bg: #f2f3f1;
+  --surface: #ffffff;
+  --surface-2: #f7f8f6;
+  --ink: #15171a;
+  --muted: #5c626b;
+  --line: #dcdfdb;
+  --accent: #0b7a72;
+  --accent-ink: #ffffff;
+  --accent-soft: #dff1ee;
+  --warn: #9a5b00;
+  --warn-soft: #fff3dc;
+  --stage: #e3e6e2;
+  --mat: #dfe3de;
+  --mat-line: #c8cdc7;
+  --mat-line-strong: #b0b7b0;
+  --hud: rgba(255, 255, 255, 0.86);
+  --hud-line: rgba(21, 23, 26, 0.12);
+  --font-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111315; --surface: #1a1d20; --surface-2: #15181a; --ink: #eceeed; --muted: #a2a9b0;
+    --line: #2b3034; --accent: #38c2b4; --accent-ink: #062320; --accent-soft: #123a36;
+    --warn: #f0b552; --warn-soft: #2f2412; --stage: #171a1d; --mat: #1c2023; --mat-line: #262b2f;
+    --mat-line-strong: #343a3f; --hud: rgba(26, 29, 32, 0.86); --hud-line: rgba(236, 238, 237, 0.12);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111315; --surface: #1a1d20; --surface-2: #15181a; --ink: #eceeed; --muted: #a2a9b0;
+  --line: #2b3034; --accent: #38c2b4; --accent-ink: #062320; --accent-soft: #123a36;
+  --warn: #f0b552; --warn-soft: #2f2412; --stage: #171a1d; --mat: #1c2023; --mat-line: #262b2f;
+  --mat-line-strong: #343a3f; --hud: rgba(26, 29, 32, 0.86); --hud-line: rgba(236, 238, 237, 0.12);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px 32px; max-width: 1480px; margin: 0 auto; }
+header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; padding-block: 4px 14px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-stretch: 82%; font-weight: 800; font-size: clamp(28px, 4vw, 40px); line-height: 1.02; margin: 2px 0 0; letter-spacing: -0.01em; text-wrap: balance; }
+.sub { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
+.model-chip { font-family: var(--font-mono); font-size: 12px; border: 1px solid var(--line); background: var(--surface); padding: 6px 10px; border-radius: 6px; color: var(--muted); }
+.model-chip b { color: var(--ink); font-weight: 500; }
+
+.layout { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr); gap: 16px; align-items: start; }
+.stage { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); min-height: 460px; max-height: 920px; border-radius: 12px; overflow: hidden; background: var(--stage); border: 1px solid var(--line); touch-action: none; }
+.stage canvas { display: block; width: 100%; height: 100%; outline: none; }
+.stage canvas:focus-visible { box-shadow: inset 0 0 0 3px var(--accent); }
+.hud { position: absolute; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; z-index: 3; }
+.hud.views { top: 10px; left: 10px; right: 10px; }
+.hud.tools { left: 10px; right: 10px; bottom: 10px; justify-content: space-between; }
+.seg { display: flex; flex-wrap: wrap; gap: 2px; background: var(--hud); border: 1px solid var(--hud-line); border-radius: 8px; padding: 3px; backdrop-filter: blur(6px); }
+.seg button, .btn { font: 500 13px/1 var(--font-body); color: var(--ink); background: transparent; border: 0; border-radius: 6px; padding: 7px 10px; cursor: pointer; }
+.seg button:hover, .btn:hover { background: var(--accent-soft); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+button:focus-visible, input:focus-visible, a:focus-visible, .steplist button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.explode { display: flex; align-items: center; gap: 10px; background: var(--hud); border: 1px solid var(--hud-line); border-radius: 8px; padding: 6px 12px; backdrop-filter: blur(6px); flex: 1 1 260px; max-width: 460px; }
+.explode label { font: 500 13px/1 var(--font-body); white-space: nowrap; }
+.explode input[type="range"] { flex: 1; accent-color: var(--accent); min-width: 80px; }
+.explode output { font: 500 12px/1 var(--font-mono); color: var(--muted); width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; }
+.toggles { display: flex; gap: 6px; flex-wrap: wrap; }
+.toggle { display: flex; align-items: center; gap: 6px; background: var(--hud); border: 1px solid var(--hud-line); border-radius: 8px; padding: 6px 10px; font: 500 13px/1 var(--font-body); cursor: pointer; backdrop-filter: blur(6px); user-select: none; }
+.toggle input { accent-color: var(--accent); margin: 0; }
+.hint { position: absolute; left: 50%; transform: translateX(-50%); bottom: 64px; font: 400 12px/1.3 var(--font-body); color: var(--muted); background: var(--hud); border: 1px solid var(--hud-line); padding: 5px 10px; border-radius: 999px; pointer-events: none; white-space: nowrap; transition: opacity .6s; z-index: 2; }
+.labels { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.tag { position: absolute; transform: translate(-50%, -100%); padding: 5px 9px; border-radius: 6px; background: var(--ink); color: var(--bg); font: 500 12px/1.2 var(--font-body); white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+.tag::after { content: ""; position: absolute; left: 50%; top: 100%; width: 1px; height: 18px; background: var(--ink); }
+.tag small { display: block; font: 400 11px/1.2 var(--font-mono); opacity: .75; margin-top: 2px; }
+.tip { position: absolute; z-index: 4; pointer-events: none; padding: 5px 8px; border-radius: 6px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); font: 500 12px/1.3 var(--font-body); box-shadow: 0 6px 18px rgba(0,0,0,.14); max-width: 240px; }
+.tip small { display: block; color: var(--muted); font: 400 11px/1.3 var(--font-mono); }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; color: var(--muted); font: 500 14px/1.5 var(--font-body); z-index: 5; background: var(--stage); }
+
+.panel { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; min-width: 0; }
+.step-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.step-no { font: 500 12px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.branch { font: 500 11px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.card h2 { font-family: var(--font-display); font-stretch: 85%; font-weight: 750; font-size: 24px; line-height: 1.1; margin: 8px 0 10px; text-wrap: balance; }
+.card h3 { font: 600 13px/1.2 var(--font-body); margin: 16px 0 8px; color: var(--ink); }
+.card p { margin: 0 0 8px; max-width: 65ch; }
+.do { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.do li { padding-left: 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 500 12px/1 var(--font-mono); padding: 6px 8px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink); }
+.caution { margin-top: 12px; background: var(--warn-soft); color: var(--ink); border-left: 3px solid var(--warn); padding: 10px 12px; border-radius: 0 8px 8px 0; font-size: 14px; }
+.caution b { color: var(--warn); }
+.tray { display: grid; gap: 6px; }
+.tray-row { display: grid; grid-template-columns: 16px 40px minmax(0, 1fr); align-items: center; gap: 10px; padding: 7px 10px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); }
+.tray-row .dot { width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 3px var(--surface-2); border: 2px solid currentColor; }
+.tray-row .qty { font: 500 15px/1 var(--font-mono); font-variant-numeric: tabular-nums; }
+.tray-row .spec { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; min-width: 0; }
+.tray-row .len { font: 500 14px/1 var(--font-mono); font-variant-numeric: tabular-nums; }
+.tray-row .head { font-size: 12px; color: var(--muted); }
+.tray-row svg { display: block; height: 14px; }
+.note { font-size: 13px; color: var(--muted); margin-top: 8px; }
+.nav { display: flex; gap: 8px; margin-top: 16px; }
+.nav button { flex: 1; font: 600 14px/1 var(--font-body); padding: 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); cursor: pointer; }
+.nav button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.nav button:disabled { opacity: .45; cursor: default; }
+.steplist { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.steplist .grp { font: 500 11px/1.2 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 12px 8px 6px; }
+.steplist button { width: 100%; text-align: left; display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px; border: 0; border-radius: 8px; background: transparent; color: var(--ink); font: 400 14px/1.3 var(--font-body); cursor: pointer; }
+.steplist button:hover { background: var(--surface-2); }
+.steplist button[aria-current="step"] { background: var(--accent-soft); }
+.steplist .n { font: 500 12px/1 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.steplist button[aria-current="step"] .n { color: var(--accent); }
+.steplist .sc { font: 500 11px/1 var(--font-mono); color: var(--muted); white-space: nowrap; }
+.part-close { float: right; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); border-radius: 6px; padding: 4px 8px; cursor: pointer; font: 500 12px/1 var(--font-body); }
+.link-btn { border: 0; background: none; color: var(--accent); padding: 0; font: 600 14px/1.4 var(--font-body); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.sources { font-size: 13px; color: var(--muted); }
+.sources a { color: var(--accent); }
+.sources ul { margin: 6px 0 0; padding-left: 18px; }
+footer { margin-top: 18px; font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+@media (max-width: 900px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .stage { height: 52vh; height: 52dvh; min-height: 320px; max-height: none; top: calc(env(safe-area-inset-top, 0px) + 6px); z-index: 5; }
+  .hint { top: 54px; bottom: auto; font-size: 11px; white-space: normal; text-align: center; width: max-content; max-width: calc(100% - 24px); }
+  .seg button { padding: 7px 8px; }
+  .explode { flex-basis: 100%; max-width: none; }
+  .hud.tools { flex-direction: column-reverse; align-items: stretch; }
+  .toggles { justify-content: flex-start; }
+}
+@media (prefers-reduced-motion: reduce) { .hint { transition: none; } }
+/* Embedded in the LvTS Services page: the frame grows to fit this page, so nothing scrolls inside it,
+   and swipes and the mouse wheel scroll the Services page (Ctrl + scroll or a pinch zooms the model). */
+.embed .wrap { padding-block: 12px 16px; }
+.embed .stage { position: relative; top: auto; height: 600px; min-height: 0; max-height: none; touch-action: pan-y; }
+.embed nav.card[aria-label="All steps"] { display: none; }
+@media (max-width: 900px) { .embed .stage { height: 440px; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">LomaVata Tech Services · PS5 repair guide</div>
+      <h1>PS5 Repair Map</h1>
+      <p class="sub">Turn the console around, pull it apart, and see which screws come out at each step, in the order a repair goes.</p>
+    </div>
+    <div class="model-chip">Model: <b>original PS5, disc edition</b> · CFI-1000 / 1100 / 1200</div>
+  </header>
+
+  <main class="layout">
+    <section class="stage" id="stage" aria-label="3D model of the PS5. Drag to rotate, scroll or pinch to zoom.">
+      <canvas id="c" tabindex="0" aria-label="Interactive 3D PS5"></canvas>
+      <div class="labels" id="labels"></div>
+      <div class="hud views">
+        <div class="seg" role="group" aria-label="Camera view">
+          <button type="button" data-view="iso" aria-pressed="true">3/4</button>
+          <button type="button" data-view="front" aria-pressed="false">Front</button>
+          <button type="button" data-view="right" aria-pressed="false">Right</button>
+          <button type="button" data-view="left" aria-pressed="false">Left</button>
+          <button type="button" data-view="rear" aria-pressed="false">Rear</button>
+          <button type="button" data-view="top" aria-pressed="false">Top</button>
+        </div>
+      </div>
+      <div class="hud tools">
+        <div class="explode">
+          <label for="explode">Pull apart</label>
+          <input type="range" id="explode" min="0" max="100" value="0" step="1">
+          <output id="explodeOut" for="explode">0%</output>
+        </div>
+        <div class="toggles">
+          <label class="toggle"><input type="checkbox" id="allScrews"> All screws</label>
+          <label class="toggle"><input type="checkbox" id="spin"> Spin</label>
+        </div>
+      </div>
+      <div class="hint" id="hint">Drag to turn · Scroll or pinch to zoom · Right-drag to move · Tap a part</div>
+      <div class="tip" id="tip" hidden></div>
+      <div class="loading" id="loading">Loading the 3D model…</div>
+    </section>
+
+    <aside class="panel">
+      <article class="card" id="stepCard" aria-live="polite"></article>
+      <article class="card" id="partCard" hidden></article>
+      <nav class="card" aria-label="All steps" style="padding:10px 10px 12px">
+        <ol class="steplist" id="stepList"></ol>
+      </nav>
+      <section class="card sources">
+        <h3 style="margin-top:0">Where this comes from</h3>
+        <p>The order of the steps, the number of screws, their lengths and the tools come from iFixit's guides for the original PS5. The shape of the parts and where they sit follow teardown photos, including our own repair video. The model is simplified and not to scale in every detail, and screw positions are approximate. Keep each screw with the hole it came from: different lengths go in different holes.</p>
+        <ul>
+          <li><a href="https://www.ifixit.com/Guide/PlayStation+5+Optical+Drive+Replacement/141724" target="_blank" rel="noopener">iFixit: PlayStation 5 Optical Drive Replacement</a></li>
+          <li><a href="https://www.ifixit.com/Guide/PlayStation+5+Power+Supply+Replacement/141729" target="_blank" rel="noopener">iFixit: PlayStation 5 Power Supply Replacement</a></li>
+          <li><a href="https://www.ifixit.com/Guide/How+to+Apply+Liquid+Metal+in+a+PlayStation+5/170479" target="_blank" rel="noopener">iFixit: How to Apply Liquid Metal in a PlayStation 5</a></li>
+          <li><a href="https://www.ifixit.com/Teardown/PlayStation+5+Teardown/138280" target="_blank" rel="noopener">iFixit: PlayStation 5 Teardown</a></li>
+        </ul>
+      </section>
+    </aside>
+  </main>
+  <footer>PS5 Repair Map · built by <a href="../services/" target="_top" style="color:var(--accent)">LomaVata Tech Services</a>, Raiwai, Suva · Rather not open it yourself? <a href="https://wa.me/6797466941?text=Bula%20LvTS%2C%20I%27d%20like%20to%20book%20a%20PS5%20service." target="_blank" rel="noopener" style="color:var(--accent)">Book a PS5 service</a> · not affiliated with Sony Interactive Entertainment</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/geometries/RoundedBoxGeometry.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/environments/RoomEnvironment.js"></script>
+<script>
+(function () {
+"use strict";
+
+/* =========================================================================
+   DATA: steps, screws and parts
+   Units are millimetres. The console stands up: Y is up (0 = bottom),
+   Z is front (+) to back (-), X is the right side (+) to the left side (-).
+   ========================================================================= */
+
+const HEAD = {
+  T8: "T8 Torx Security (TR8)",
+  T9: "T9 Torx Security (TR9)",
+  PH: "Phillips",
+  FLAT: "Coin or flathead"
+};
+
+// Screw colours, one per step that removes screws.
+const SCREW_COLOR = {
+  stand: "#8b93a1",
+  shroud: "#e5484d",
+  ssd: "#f5a524",
+  caseR: "#f76b15",
+  shield: "#3b8ef0",
+  boardScrews: "#30a46c",
+  caseL: "#a855c7"
+};
+
+const STEPS = [
+  { id: "overview", branch: "start", title: "The whole console",
+    intro: "This is the original PS5 with a disc drive. Drag to turn it, use Pull apart to see every part, and tap any part to read what it is. When you're ready, start at step 1.",
+    tools: ["T8 Torx Security", "T9 Torx Security", "Phillips #0", "Spudger", "Tweezers", "Coin or flathead"],
+    do: [
+      "Shut the console down fully, unplug every cable and accessory.",
+      "Work on a clean, flat surface and touch a grounded metal object (or wear an anti-static strap) before handling the boards.",
+      "Use a magnetic mat or a tray with sections, and keep each step's screws together."
+    ],
+    caution: "Never open the power supply itself. Its capacitors can hold a dangerous charge even after it is unplugged.",
+    view: "iso" },
+
+  { id: "stand", branch: "common", title: "Remove the stand",
+    do: [
+      "Standing up: lay the console on its side with the stand facing you, then undo the stand screw with a coin or flathead.",
+      "Lift the stand straight off. The screw stores in the cubby under the stand, and the cap from the cubby plugs the screw hole.",
+      "Lying flat: rest the console on its face and lift the horizontal stand straight off. No screw."
+    ],
+    tools: ["Coin or flathead"],
+    screws: [{ n: 1, len: 26.5, head: HEAD.FLAT }],
+    cam: { pos: [300, 170, 360], target: [0, 90, -10] } },
+
+  { id: "faceR", branch: "common", title: "Take off the right faceplate",
+    do: [
+      "Lay the console down with the USB and Ethernet ports on your left. The right faceplate is the one without the PlayStation logo.",
+      "Lift one corner of the faceplate to unclip it.",
+      "Keep lifting while you slide it toward the bottom of the console, then take it off."
+    ],
+    tools: [],
+    cam: { pos: [560, 280, 300], target: [40, 190, 0] } },
+
+  { id: "grille", branch: "common", title: "Pry up the fan grille",
+    do: [
+      "Push the flat end of a spudger into the gap above the fan, under the grille.",
+      "Lever the grille up and lift it away from the case."
+    ],
+    tools: ["Spudger"],
+    cam: { pos: [560, 380, 170], target: [38, 292, 34] } },
+
+  { id: "shroud", branch: "common", title: "Remove the fan shroud",
+    do: [
+      "Undo the four screws around the fan with a T9 Torx Security driver.",
+      "Lift the fan shroud straight up."
+    ],
+    tools: ["T9 Torx Security"],
+    screws: [{ n: 2, len: 23.3, head: HEAD.T9 }, { n: 1, len: 11.4, head: HEAD.T9 }, { n: 1, len: 31, head: HEAD.T9 }],
+    cam: { pos: [560, 380, 170], target: [38, 292, 34] } },
+
+  { id: "fan", branch: "common", title: "Disconnect and lift out the fan",
+    do: [
+      "Pry up the black wire cover above the fan wires with a spudger. Pry on the cover only, not the wires, then peel it off.",
+      "Grip the edges of the fan connector and pull it straight up off the main board. Pull the connector, not the wires.",
+      "Lift the fan up and out of the case."
+    ],
+    tools: ["Spudger"],
+    cam: { pos: [540, 360, 260], target: [30, 270, 50] } },
+
+  { id: "ssd", branch: "common", title: "Remove the M.2 SSD cover",
+    do: [
+      "Undo the single Phillips screw on the SSD cover.",
+      "Slide the cover toward the top of the console to unclip it, then lift it off. The M.2 expansion slot is underneath."
+    ],
+    tools: ["Phillips #0"],
+    screws: [{ n: 1, len: 17, head: HEAD.PH }],
+    cam: { pos: [560, 250, 230], target: [39, 178, 45] } },
+
+  { id: "driveCable", branch: "common", title: "Unplug the disc drive cable",
+    do: [
+      "Grip the connector edges and pull the disc drive cable up off the main board.",
+      "Do the same at the disc drive end."
+    ],
+    tools: [],
+    cam: { pos: [540, 240, 40], target: [30, 180, -55] } },
+
+  { id: "caseR", branch: "common", title: "Remove the right case",
+    do: [
+      "Peel off the tamper-evident sticker with tweezers. It hides the last case screw.",
+      "Undo the eleven case screws with a T8 Torx Security driver.",
+      "Lift the black case straight up."
+    ],
+    tools: ["T8 Torx Security", "Tweezers"],
+    screws: [{ n: 6, len: 18.6, head: HEAD.T8 }, { n: 2, len: 23.3, head: HEAD.T8 }, { n: 2, len: 43.2, head: HEAD.T8 }, { n: 1, len: 7.3, head: HEAD.T8 }],
+    caution: "The four lengths go in different holes. Note where the two 43.2 mm screws and the single 7.3 mm screw came from before you move on.",
+    cam: { pos: [620, 280, 200], target: [30, 190, 0] } },
+
+  { id: "drive", branch: "common", title: "Remove the disc drive",
+    do: [
+      "Press the metal locking tab on the drive's ribbon connector down with a spudger.",
+      "Hold it down and pull the blue tab straight out with tweezers. Pull only on the tab.",
+      "Lift the disc drive away."
+    ],
+    tools: ["Spudger", "Tweezers"],
+    caution: "The disc drive is paired to this main board. iFixit reports that a replacement drive won't read discs, so keep the original drive with its console.",
+    cam: { pos: [580, 230, 280], target: [20, 100, 10] } },
+
+  { id: "cables", branch: "common", title: "Disconnect the ribbons and antenna wires",
+    do: [
+      "Disconnect the disc drive ribbon at the main board (same locking tab).",
+      "Pull the blue tabs to disconnect the power and eject button ribbon and the LED ribbon.",
+      "Lift off the Wi-Fi antenna wires, white then black, by gripping each at its metal base. Some boards don't have these.",
+      "Lift off the power supply antenna wires, the black or blue one, then the white one.",
+      "Peel back the five white stickers holding the antenna wires to the shield, free the wires, and press the stickers back down. Do the same with the sticker holding the LED ribbon to the heatsink."
+    ],
+    tools: ["Tweezers", "Spudger"],
+    cam: { pos: [520, 360, 140], target: [10, 240, -10] } },
+
+  { id: "shield", branch: "common", title: "Remove the top shield plate",
+    do: [
+      "Undo all 42 shield screws with a T8 Torx Security driver.",
+      "Lift the shield plate off the main board."
+    ],
+    tools: ["T8 Torx Security"],
+    screws: [{ n: 41, len: 7.3, head: HEAD.T8 }, { n: 1, len: 43.2, head: HEAD.T8 }],
+    caution: "Thermal pads sit between the shield and the chips. If one tears, replace it with a pad of the same thickness.",
+    cam: { pos: [560, 300, 170], target: [8, 160, 30] } },
+
+  { id: "usbCable", branch: "common", title: "Disconnect the USB board cable",
+    do: [
+      "Press the connector's locking tab down with a finger.",
+      "Pull the ribbon away with a spudger, pushing against its foam pad."
+    ],
+    tools: ["Spudger"],
+    after: "Now choose a repair: A takes out the main board (liquid metal, APU, board swap), B takes out the power supply.",
+    cam: { pos: [440, 200, 400], target: [8, 60, 100] } },
+
+  { id: "boardScrews", branch: "A", title: "Remove the main board screws",
+    do: [
+      "Undo the Phillips SSD screw by the M.2 slot. Watch for the small spacer under it.",
+      "Undo the two Phillips screws on the APU tension bracket, half a turn at a time on each, alternating.",
+      "Undo the two T8 Torx Security main board screws."
+    ],
+    tools: ["Phillips #0", "T8 Torx Security"],
+    screws: [{ n: 1, len: 11, head: HEAD.PH + " (SSD screw)" }, { n: 2, len: 11.8, head: HEAD.PH + " (APU bracket)" }, { n: 2, len: 7.3, head: HEAD.T8 }],
+    caution: "A commenter on iFixit's guide reports different screws here on an early unit. Check yours against this list before you force anything.",
+    cam: { pos: [500, 280, 220], target: [6, 160, 0] } },
+
+  { id: "brackets", branch: "A", title: "Lift off the APU brackets",
+    do: [
+      "Lift both brackets off the back of the board.",
+      "When you put them back, fit the plastic bracket first, then the metal bracket across it."
+    ],
+    tools: [],
+    cam: { pos: [480, 240, 200], target: [8, 150, -5] } },
+
+  { id: "board", branch: "A", title: "Take out the main board",
+    do: [
+      "Lift the edge with the cutout and work a spudger around the edge to free the board from the bottom shield. Don't take it out yet.",
+      "Twist a spudger near the two solder joints at the power-button corner to release the power supply prongs.",
+      "Lift the board out, flip it, and lay it APU side up on a clean surface."
+    ],
+    tools: ["Spudger"],
+    cam: { pos: [540, 300, 280], target: [5, 160, 0] } },
+
+  { id: "lm", branch: "A", title: "Clean and reapply the liquid metal",
+    do: [
+      "Wear gloves. Clean all old liquid metal off the heatsink with isopropyl alcohol (over 90%) and cotton swabs, then let it dry.",
+      "Clean the APU the same way. Leave the foam barrier around the chip in place.",
+      "Put a drop about the size of a matchstick head on the heatsink and spread it evenly.",
+      "With the same swab, spread a thin layer onto the APU.",
+      "Reassemble by following the steps backwards."
+    ],
+    tools: ["Gloves", "Isopropyl alcohol 90%+", "Cotton swabs"],
+    caution: "Liquid metal conducts electricity. A stray drop on the board can short it, so keep it inside the foam barrier.",
+    focus: ["heatsink"],
+    cam: { pos: [440, 260, 260], target: [0, 150, -5] } },
+
+  { id: "faceL", branch: "B", title: "Take off the left faceplate",
+    do: [
+      "Lift the corner of the left faceplate (the one with the PlayStation logo) to unclip it.",
+      "Slide it toward the bottom of the console and take it off."
+    ],
+    tools: [],
+    cam: { pos: [-560, 280, 300], target: [-40, 190, 0] } },
+
+  { id: "caseL", branch: "B", title: "Remove the left case",
+    do: [
+      "Undo the two case screws with a T8 Torx Security driver. They hold the case to the main board and heatsink.",
+      "Lift the front edge of the case off, push it back to free the power port, then take it off."
+    ],
+    tools: ["T8 Torx Security"],
+    screws: [{ n: 2, len: 29.4, head: HEAD.T8 }],
+    cam: { pos: [-580, 280, 220], target: [-30, 190, 0] } },
+
+  { id: "psu", branch: "B", title: "Lift out the power supply",
+    do: [
+      "Hold the rear shield plate down with one finger.",
+      "Grip the power supply and lift it straight up off the main board's connector.",
+      "Reassemble by following the steps backwards."
+    ],
+    tools: [],
+    caution: "Don't open the power supply. Replace it as a whole unit.",
+    cam: { pos: [-540, 240, 320], target: [-22, 110, 60] } }
+];
+
+const BRANCH_LABEL = { start: "Start here", common: "Both repairs start here", A: "Repair A · Main board and liquid metal", B: "Repair B · Power supply" };
+
+// Every part: name, what it is, which step removes it, and where it goes when pulled apart.
+const PART_INFO = {
+  stand:     { name: "Vertical stand", say: "Screws into the bottom of the console with one 26.5 mm screw.", step: "stand", ex: [0, -70, 0] },
+  faceR:     { name: "Right faceplate", say: "Clips on with no screws. The disc drive bulge is on this side.", step: "faceR", ex: [150, 10, 0] },
+  grille:    { name: "Fan grille", say: "A dust cover over the fan. It pries off.", step: "grille", ex: [128, 30, 10] },
+  shroud:    { name: "Fan shroud", say: "Holds the fan in place with four T9 Torx Security screws.", step: "shroud", ex: [110, 30, 10] },
+  wireCover: { name: "Fan wire cover", say: "A small cover over the fan wires, held with light adhesive.", step: "fan", ex: [96, 0, 30] },
+  fanCable:  { name: "Fan cable", say: "Plugs into the main board below the fan.", step: "fan", ex: [80, 10, 20] },
+  fan:       { name: "Cooling fan", say: "A 120 mm centrifugal fan. It pulls air in and pushes it over the heatsink.", step: "fan", ex: [88, 30, 10] },
+  ssdCover:  { name: "M.2 SSD cover", say: "One 17 mm Phillips screw. Under it is the M.2 expansion slot for extra storage.", step: "ssd", ex: [118, -10, 30] },
+  driveCable:{ name: "Disc drive power cable", say: "A short four-wire cable from the main board to the disc drive's little board.", step: "driveCable", ex: [70, 0, -10] },
+  sticker:   { name: "Tamper-evident sticker", say: "Covers one of the right case screws and shows if the console has been opened.", step: "caseR", ex: [80, 0, 0] },
+  caseR:     { name: "Right case", say: "The black shell on the right side. Eleven T8 Torx Security screws.", step: "caseR", ex: [72, 0, 0] },
+  driveRibbon:{ name: "Disc drive ribbon cable", say: "Flat cable with a blue pull tab and a metal locking tab at each end.", step: "drive", ex: [52, 10, 0] },
+  drive:     { name: "Disc drive", say: "Ultra HD Blu-ray drive on rubber mounts. It is paired to the main board.", step: "drive", ex: [52, 0, 0] },
+  cables:    { name: "Ribbons and antenna wires", say: "Power and eject button ribbon, LED ribbon, Wi-Fi and power supply antenna wires, and the stickers that hold them.", step: "cables", ex: [36, 10, 0] },
+  shield:    { name: "Top shield plate", say: "Steel plate over the main board. 42 T8 Torx Security screws. Thermal pads underneath.", step: "shield", ex: [26, 0, 0] },
+  usbCable:  { name: "USB board cable", say: "Ribbon from the main board to the front USB board.", step: "usbCable", ex: [22, 0, 10] },
+  brackets:  { name: "APU brackets", say: "A plastic bracket and a metal tension bracket that press the APU against the heatsink.", step: "brackets", ex: [18, 0, 0] },
+  board:     { name: "Main board", say: "Carries the APU (the CPU and GPU in one chip), the GDDR6 memory, the built-in SSD chips and Wi-Fi.", step: "board", ex: [10, 0, 0] },
+  heatsink:  { name: "Heatsink and bottom shield", say: "Copper heat pipes carry heat from the APU to the fin stacks. iFixit found no vapor chamber.", step: null, ex: [-22, 0, 0] },
+  psu:       { name: "Power supply", say: "An enclosed unit made by Delta. It plugs straight into the main board. Replace it whole; don't open it.", step: "psu", ex: [-52, 0, 0] },
+  caseL:     { name: "Left case", say: "The black shell on the left side, with two T8 Torx Security screws and the power port opening.", step: "caseL", ex: [-78, 0, 0] },
+  faceL:     { name: "Left faceplate", say: "Clips on with no screws. It carries the PlayStation logo.", step: "faceL", ex: [-150, 10, 0] },
+  usbBoard:  { name: "Front USB board", say: "The front USB-A and USB-C ports. It stays in for both repairs here.", step: null, ex: [30, 0, 40] }
+};
+
+/* Screw positions [x, y, z] and the direction the screw comes out. */
+const FAN_C = { y: 292, z: 34 };
+function shroudScrews() {
+  return [40, 140, 220, 320].map(function (a) {
+    const r = a * Math.PI / 180;
+    return [40.2, FAN_C.y + 80 * Math.sin(r), FAN_C.z + 80 * Math.cos(r)];
+  });
+}
+const SCREW_POS = {
+  stand: { dir: [0, -1, 0], pts: [[0, -14.2, -20]] },
+  shroud: { dir: [1, 0, 0], pts: shroudScrews() },
+  ssd: { dir: [1, 0, 0], pts: [[40.6, 178, -4]] },
+  caseR: { dir: [1, 0, 0], pts: [
+    [39.2, 372, -104], [39.2, 372, 116], [39.2, 300, -115], [39.2, 200, -115], [39.2, 100, -115],
+    [39.2, 16, -100], [39.2, 16, 10], [39.2, 16, 112], [39.2, 228, 116], [39.2, 120, 116], [39.2, 232, -60]
+  ] },
+  shield: { dir: [1, 0, 0], pts: null }, // built from the shield outline below
+  boardScrews: { dir: [1, 0, 0], pts: [[6.4, 190, 2], [10.6, 116, -5], [10.6, 184, -5], [5.8, 40, -106], [5.8, 236, -108]] },
+  caseL: { dir: [-1, 0, 0], pts: [[-39.2, 250, -40], [-39.2, 110, -40]] }
+};
+
+/* =========================================================================
+   PAGE ELEMENTS
+   ========================================================================= */
+const $ = (s) => document.querySelector(s);
+const stageEl = $("#stage"), canvas = $("#c"), labelsEl = $("#labels"), tipEl = $("#tip"), loadingEl = $("#loading"), hintEl = $("#hint");
+const stepCard = $("#stepCard"), partCard = $("#partCard"), stepList = $("#stepList");
+const explodeInput = $("#explode"), explodeOut = $("#explodeOut"), allScrewsInput = $("#allScrews"), spinInput = $("#spin");
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+if (!window.THREE || !THREE.OrbitControls || !THREE.RoundedBoxGeometry) {
+  loadingEl.textContent = "The 3D viewer couldn't load. Check your connection and reload the page. The written steps below still work.";
+}
+
+const stepIndex = Object.fromEntries(STEPS.map((s, i) => [s.id, i]));
+let current = 0;
+let selectedPart = null;
+
+function stepNumberLabel(s) {
+  if (s.branch === "start") return "Overview";
+  const common = STEPS.filter((x) => x.branch === "common");
+  if (s.branch === "common") return "Step " + (common.indexOf(s) + 1);
+  const br = STEPS.filter((x) => x.branch === s.branch);
+  return "Step " + s.branch + (br.indexOf(s) + 1);
+}
+function screwCount(s) { return (s.screws || []).reduce((a, g) => a + g.n, 0); }
+
+/* Steps that have been done before the given step, following its branch. */
+function doneBefore(stepId) {
+  const s = STEPS[stepIndex[stepId]];
+  const done = new Set();
+  if (s.branch === "start") return done;
+  for (const x of STEPS) {
+    if (x.id === stepId) break;
+    if (x.branch === "common" || x.branch === s.branch) done.add(x.id);
+  }
+  return done;
+}
+
+/* ---------- step list ---------- */
+function buildStepList() {
+  let lastBranch = null;
+  const frag = document.createDocumentFragment();
+  STEPS.forEach((s, i) => {
+    if (s.branch !== lastBranch) {
+      const li = document.createElement("li");
+      li.className = "grp";
+      li.textContent = BRANCH_LABEL[s.branch];
+      frag.appendChild(li);
+      lastBranch = s.branch;
+    }
+    const li = document.createElement("li");
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.i = i;
+    const n = s.branch === "start" ? "·" : stepNumberLabel(s).replace("Step ", "");
+    const sc = screwCount(s);
+    b.innerHTML = '<span class="n">' + n + '</span><span></span><span class="sc">' + (sc ? sc + (sc === 1 ? " screw" : " screws") : "") + "</span>";
+    b.children[1].textContent = s.title;
+    b.addEventListener("click", () => goTo(i, true));
+    li.appendChild(b);
+    frag.appendChild(li);
+  });
+  stepList.appendChild(frag);
+}
+
+function screwSvg(len, color) {
+  const px = 2.4, w = Math.round(len * px) + 10;
+  return '<svg viewBox="0 0 ' + w + ' 14" width="' + w + '" height="14" aria-hidden="true">' +
+    '<rect x="0" y="1" width="7" height="12" rx="2" fill="' + color + '"></rect>' +
+    '<rect x="7" y="4.5" width="' + (len * px) + '" height="5" fill="' + color + '" opacity="0.55"></rect>' +
+    '<path d="M' + (7 + len * px) + ' 4.5 l3 2.5 l-3 2.5z" fill="' + color + '" opacity="0.55"></path></svg>';
+}
+
+function esc(t) { return String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+function renderStepCard() {
+  const s = STEPS[current];
+  const color = SCREW_COLOR[s.id] || "var(--accent)";
+  let html = '<div class="step-head"><span class="step-no">' + stepNumberLabel(s) + '</span><span class="branch">' + esc(BRANCH_LABEL[s.branch]) + "</span></div>";
+  html += "<h2>" + esc(s.title) + "</h2>";
+  if (s.intro) html += "<p>" + esc(s.intro) + "</p>";
+  if (s.do && s.do.length) html += '<ol class="do">' + s.do.map((d) => "<li>" + esc(d) + "</li>").join("") + "</ol>";
+  if (s.screws && s.screws.length) {
+    const total = screwCount(s);
+    html += "<h3>Screws this step: " + total + "</h3><div class=\"tray\">";
+    s.screws.forEach((g) => {
+      html += '<div class="tray-row" style="color:' + color + '"><span class="dot"></span><span class="qty">×' + g.n + '</span><span class="spec"><span class="len" style="color:var(--ink)">' + g.len + ' mm</span>' + screwSvg(g.len, color) + '<span class="head">' + esc(g.head) + "</span></span></div>";
+    });
+    html += "</div>";
+    if (s.screws.length > 1) html += '<p class="note">The model marks each hole in this colour. It doesn\'t yet show which length goes in which hole, so lay them out in order as they come out.</p>';
+  }
+  if (s.tools && s.tools.length) html += "<h3>Tools</h3><div class=\"chips\">" + s.tools.map((t) => '<span class="chip">' + esc(t) + "</span>").join("") + "</div>";
+  if (s.caution) html += '<div class="caution"><b>Careful:</b> ' + esc(s.caution) + "</div>";
+  if (s.after) html += '<p class="note" style="color:var(--ink)">' + esc(s.after) + "</p>";
+  const nextLabel = current === 0 ? "Start at step 1" : "Next step";
+  html += '<div class="nav"><button type="button" id="prevBtn"' + (current === 0 ? " disabled" : "") + '>Previous</button>' +
+    '<button type="button" class="primary" id="nextBtn"' + (nextIndex(current) === null ? " disabled" : "") + ">" + nextLabel + "</button></div>";
+  if (s.id === "usbCable") {
+    html += '<div class="nav" style="margin-top:8px"><button type="button" id="goA">Repair A: main board</button><button type="button" id="goB">Repair B: power supply</button></div>';
+  }
+  stepCard.innerHTML = html;
+  $("#prevBtn").addEventListener("click", () => goTo(prevIndex(current), true));
+  $("#nextBtn").addEventListener("click", () => { const n = nextIndex(current); if (n !== null) goTo(n, true); });
+  if (s.id === "usbCable") {
+    $("#goA").addEventListener("click", () => goTo(stepIndex.boardScrews, true));
+    $("#goB").addEventListener("click", () => goTo(stepIndex.faceL, true));
+  }
+  stepList.querySelectorAll("button").forEach((b) => {
+    if (Number(b.dataset.i) === current) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
+  });
+}
+function nextIndex(i) {
+  const s = STEPS[i];
+  if (s.id === "lm" || s.id === "psu") return null;
+  if (s.id === "usbCable") return stepIndex.boardScrews;
+  return i + 1 < STEPS.length ? i + 1 : null;
+}
+function prevIndex(i) {
+  const s = STEPS[i];
+  if (s.id === "faceL") return stepIndex.usbCable;
+  return Math.max(0, i - 1);
+}
+
+function renderPartCard() {
+  if (!selectedPart) { partCard.hidden = true; return; }
+  const info = PART_INFO[selectedPart];
+  const st = info.step ? STEPS[stepIndex[info.step]] : null;
+  let html = '<button type="button" class="part-close" id="partClose">Close</button>';
+  html += '<div class="step-no">Part</div><h2>' + esc(info.name) + "</h2><p>" + esc(info.say) + "</p>";
+  if (st) {
+    const sc = screwCount(st);
+    html += "<p>Comes out in <button type=\"button\" class=\"link-btn\" id=\"partGo\">" + stepNumberLabel(st) + ": " + esc(st.title) + "</button>" + (sc ? " (" + sc + (sc === 1 ? " screw" : " screws") + ")" : "") + ".</p>";
+  } else {
+    html += "<p class=\"note\">This part stays in the console for both repairs in this guide.</p>";
+  }
+  partCard.innerHTML = html;
+  partCard.hidden = false;
+  $("#partClose").addEventListener("click", () => selectPart(null));
+  if (st) $("#partGo").addEventListener("click", () => goTo(stepIndex[info.step], true));
+}
+
+/* =========================================================================
+   3D
+   ========================================================================= */
+if (!window.THREE || !THREE.OrbitControls || !THREE.RoundedBoxGeometry) {
+  buildStepList(); renderStepCard();
+  return;
+}
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(30, 1, 5, 8000);
+camera.position.set(380, 330, 430);
+const controls = new THREE.OrbitControls(camera, canvas);
+controls.target.set(0, 175, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 120;
+controls.maxDistance = 2600;
+controls.maxPolarAngle = Math.PI * 0.94;
+controls.update();
+const EMBED = document.documentElement.classList.contains("embed");
+if (EMBED) {
+  hintEl.textContent = "Drag to turn · Ctrl + scroll or pinch to zoom · Tap a part";
+  // Runs before the orbit controls' own wheel handler: without Ctrl/Cmd, zoom is off for this
+  // event, so the controls leave it alone and the Services page scrolls.
+  stageEl.addEventListener("wheel", (e) => { controls.enableZoom = e.ctrlKey || e.metaKey; }, { capture: true, passive: true });
+  // The orbit controls set touch-action: none on the canvas; let vertical swipes scroll the page instead
+  // (sideways drags still turn the model).
+  canvas.style.touchAction = "pan-y";
+}
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new THREE.RoomEnvironment(), 0.04).texture;
+
+const hemi = new THREE.HemisphereLight(0xffffff, 0x8a8f86, 0.35);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffffff, 1.25);
+sun.position.set(420, 760, 520);
+sun.castShadow = true;
+sun.shadow.mapSize.set(window.innerWidth < 900 ? 1024 : 2048, window.innerWidth < 900 ? 1024 : 2048);
+Object.assign(sun.shadow.camera, { left: -520, right: 520, top: 520, bottom: -520, near: 100, far: 2200 });
+sun.shadow.bias = -0.0004;
+sun.shadow.radius = 4;
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0xdfe8ff, 0.35);
+fill.position.set(-500, 300, -300);
+scene.add(fill);
+
+/* ---------- materials ---------- */
+function std(color, rough, metal, extra) {
+  return new THREE.MeshStandardMaterial(Object.assign({ color, roughness: rough, metalness: metal, envMapIntensity: 0.9 }, extra || {}));
+}
+const MAT = {
+  white: new THREE.MeshPhysicalMaterial({ color: 0xf3f4f6, roughness: 0.42, metalness: 0, clearcoat: 0.5, clearcoatRoughness: 0.35, envMapIntensity: 0.8 }),
+  gloss: new THREE.MeshPhysicalMaterial({ color: 0x08090b, roughness: 0.32, metalness: 0, clearcoat: 0.8, clearcoatRoughness: 0.12, envMapIntensity: 0.32 }),
+  matte: std(0x151619, 0.72, 0, { envMapIntensity: 0.5 }),
+  plastic: std(0x222428, 0.55, 0),
+  steel: std(0xb6bbc1, 0.38, 0.85),
+  drive: std(0xc6cacd, 0.5, 0.45),
+  alu: std(0xd5d8db, 0.33, 0.9),
+  copper: std(0xc4783f, 0.28, 1),
+  pcb: std(0x1d6b46, 0.62, 0.05),
+  pcbDark: std(0x174f36, 0.7, 0.05),
+  chip: std(0x18191b, 0.45, 0.1),
+  gold: std(0xd6b154, 0.3, 1),
+  fan: std(0x2a2c30, 0.6, 0),
+  shroud: std(0xcdc6b6, 0.68, 0),
+  rubber: std(0x2b2b2b, 0.9, 0),
+  lm: std(0xe9eaed, 0.12, 1),
+  foam: std(0x3a3d43, 0.95, 0),
+  sticker: std(0xf2f2ef, 0.6, 0),
+  tamper: std(0xcfd3d8, 0.25, 0.8),
+  ribbon: std(0xe9e4d6, 0.6, 0),
+  blueTab: std(0x2d6cd6, 0.5, 0),
+  wireBlack: std(0x141414, 0.5, 0),
+  wireWhite: std(0xe8e8e8, 0.5, 0),
+  wireBlue: std(0x2f6fd6, 0.5, 0),
+  connector: std(0xece8de, 0.55, 0),
+  port: std(0x050506, 0.6, 0),
+  battery: std(0xc8ccd2, 0.25, 0.95),
+  psu: std(0x2d3035, 0.6, 0.2),
+  grille: std(0x1a1b1e, 0.8, 0)
+};
+// Perforated look for the grilles.
+(function () {
+  const cv = document.createElement("canvas"); cv.width = cv.height = 128;
+  const g = cv.getContext("2d");
+  g.fillStyle = "#2a2c30"; g.fillRect(0, 0, 128, 128);
+  g.fillStyle = "#050506";
+  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
+    g.beginPath(); g.arc(8 + x * 16 + (y % 2) * 8, 8 + y * 16, 5, 0, Math.PI * 2); g.fill();
+  }
+  const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(9, 9); t.encoding = THREE.sRGBEncoding;
+  MAT.grille.map = t; MAT.grille.color.set(0xffffff);
+})();
+
+/* ---------- geometry helpers ---------- */
+const root = new THREE.Group();
+scene.add(root);
+const parts = {};
+function newPart(id) {
+  const g = new THREE.Group();
+  g.name = id;
+  root.add(g);
+  const info = PART_INFO[id];
+  parts[id] = { id, group: g, info, ex: new THREE.Vector3().fromArray(info.ex), offset: new THREE.Vector3(), target: new THREE.Vector3(), opacity: 1, targetOpacity: 1, mats: [], removed: false };
+  return g;
+}
+function addMesh(g, geo, mat, x, y, z, shadow) {
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(x || 0, y || 0, z || 0);
+  m.castShadow = shadow !== false;
+  m.receiveShadow = true;
+  g.add(m);
+  return m;
+}
+function boxB(g, mat, x0, x1, y0, y1, z0, z1, r) {
+  const w = x1 - x0, h = y1 - y0, d = z1 - z0;
+  let geo;
+  if (r && r > 0) {
+    const rr = Math.min(r, w / 2 - 0.05, h / 2 - 0.05, d / 2 - 0.05);
+    geo = rr > 0.1 ? new THREE.RoundedBoxGeometry(w, h, d, 2, rr) : new THREE.BoxGeometry(w, h, d);
+  } else geo = new THREE.BoxGeometry(w, h, d);
+  return addMesh(g, geo, mat, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+}
+function cylX(g, mat, r, x0, x1, y, z, seg) {
+  const geo = new THREE.CylinderGeometry(r, r, x1 - x0, seg || 32);
+  geo.rotateZ(Math.PI / 2);
+  return addMesh(g, geo, mat, (x0 + x1) / 2, y, z);
+}
+function cylY(g, mat, r, y0, y1, x, z, seg) {
+  const geo = new THREE.CylinderGeometry(r, r, y1 - y0, seg || 32);
+  return addMesh(g, geo, mat, x, (y0 + y1) / 2, z);
+}
+/* A flat plate in the side (Z, Y) plane, extruded along X from x0 by depth in direction dir (+1 right, -1 left). */
+function shapeFrom(pts, dir) {
+  const s = new THREE.Shape();
+  pts.forEach(([z, y], i) => { const u = -dir * z; if (i) s.lineTo(u, y); else s.moveTo(u, y); });
+  return s;
+}
+function pathFrom(pts, dir) {
+  const p = new THREE.Path();
+  pts.forEach(([z, y], i) => { const u = -dir * z; if (i) p.lineTo(u, y); else p.moveTo(u, y); });
+  return p;
+}
+function circlePath(z, y, r, dir) { const p = new THREE.Path(); p.absarc(-dir * z, y, r, 0, Math.PI * 2, false); return p; }
+function plateGeo(outline, holes, x0, depth, dir, bevel) {
+  const s = shapeFrom(outline, dir);
+  (holes || []).forEach((h) => s.holes.push(h.c ? circlePath(h.c[0], h.c[1], h.c[2], dir) : pathFrom(h, dir)));
+  const geo = new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: !!bevel, bevelThickness: bevel || 0, bevelSize: bevel || 0, bevelSegments: 2, curveSegments: 40 });
+  const m = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 0, -dir), new THREE.Vector3(0, 1, 0), new THREE.Vector3(dir, 0, 0));
+  m.setPosition(x0, 0, 0);
+  geo.applyMatrix4(m);
+  return geo;
+}
+function rrect(z0, z1, y0, y1, r, n) {
+  n = n || 6;
+  const pts = [];
+  const corners = [[z1 - r, y0 + r, -90], [z1 - r, y1 - r, 0], [z0 + r, y1 - r, 90], [z0 + r, y0 + r, 180]];
+  corners.forEach(([cz, cy, a0]) => {
+    for (let i = 0; i <= n; i++) { const a = (a0 + (90 * i) / n) * Math.PI / 180; pts.push([cz + r * Math.cos(a), cy + r * Math.sin(a)]); }
+  });
+  return pts;
+}
+/* Outline of a rectangle with a round notch cut from its top edge (for the fan). */
+function notchedOutline(z0, z1, y0, y1, cz, cy, r) {
+  const dz = Math.sqrt(Math.max(0, r * r - (y1 - cy) * (y1 - cy)));
+  const zA = cz + dz, zB = cz - dz;
+  const pts = [[z0, y0], [z1, y0], [z1, y1], [zA, y1]];
+  const a0 = Math.atan2(y1 - cy, zA - cz), a1 = Math.atan2(y1 - cy, zB - cz) - Math.PI * 2;
+  for (let i = 1; i < 40; i++) { const a = a0 + (a1 - a0) * (i / 40); pts.push([cz + r * Math.cos(a), cy + r * Math.sin(a)]); }
+  pts.push([zB, y1], [z0, y1]);
+  return pts;
+}
+function tube(g, mat, points, r, closed) {
+  const curve = new THREE.CatmullRomCurve3(points.map((p) => new THREE.Vector3().fromArray(p)), !!closed, "centripetal");
+  const geo = new THREE.TubeGeometry(curve, Math.max(24, points.length * 16), r, 8, !!closed);
+  return addMesh(g, geo, mat);
+}
+function ribbon(g, points, width, tab) {
+  // A flat cable: a thin box swept along the path in straight segments.
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = new THREE.Vector3().fromArray(points[i]), b = new THREE.Vector3().fromArray(points[i + 1]);
+    const len = a.distanceTo(b);
+    const geo = new THREE.BoxGeometry(0.5, width, len);
+    const m = addMesh(g, geo, MAT.ribbon);
+    m.position.copy(a).add(b).multiplyScalar(0.5);
+    m.lookAt(b);
+    m.castShadow = false;
+  }
+  if (tab) {
+    const p = new THREE.Vector3().fromArray(points[0]);
+    boxB(g, MAT.blueTab, p.x - 0.2, p.x + 1.2, p.y - width / 2, p.y + width / 2, p.z - 4, p.z + 4);
+  }
+}
+
+/* ---------- side profile of a faceplate ---------- */
+function faceOutline() {
+  const pts = [];
+  for (let i = 0; i <= 28; i++) {
+    const y = 8 + (i * 374) / 28;
+    const t = (y - 195) / 187;
+    pts.push([113 + 17 * t * t, y]);
+  }
+  pts.push([126, 388], [118, 390], [-114, 390], [-122, 387], [-126, 380], [-126, 10], [-122, 3], [-114, 0], [120, 0], [127, 3]);
+  return pts;
+}
+function buildFaceplate(id, dir) {
+  const g = newPart(id);
+  const geo = plateGeo(faceOutline(), [], dir * 41.6, 2.6, dir, 1.1);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i), z = pos.getZ(i);
+    const t = (y - 195) / 195;
+    let push = 5.2 * t * t * t * t + 1.2 * (1 - t * t);
+    if (dir > 0) push += 2.6 * Math.exp(-Math.pow((y - 95) / 85, 2)) * Math.min(1, Math.max(0, (z + 60) / 90));
+    pos.setX(i, pos.getX(i) + dir * push);
+  }
+  geo.computeVertexNormals();
+  addMesh(g, geo, MAT.white);
+  return g;
+}
+
+/* =========================================================================
+   BUILD THE CONSOLE
+   ========================================================================= */
+// ---- stand ----
+(function () {
+  const g = newPart("stand");
+  cylY(g, MAT.matte, 70, -14, -7, 0, -20, 64);
+  cylY(g, MAT.gloss, 46, -7, 0, 0, -20, 64);
+})();
+
+// ---- faceplates ----
+buildFaceplate("faceR", 1);
+buildFaceplate("faceL", -1);
+
+// ---- right and left case halves ----
+function buildCase(id, dir) {
+  const g = newPart(id);
+  const xo = dir * 36, wall = 3;
+  const holes = [{ c: [FAN_C.z, FAN_C.y, dir > 0 ? 82 : 52] }];
+  if (dir > 0) {
+    holes.push(rrect(-12, 102, 143, 212, 4));          // SSD and drive-cable opening, under the SSD cover
+    holes.push(rrect(-86, -28, 140, 206, 4));          // drive cable window
+  }
+  addMesh(g, plateGeo(rrect(-124, 124, 6, 384, 10), holes, xo, wall, dir, 0.8), MAT.gloss);
+  // rims: top, bottom, front, rear
+  const xa = dir > 0 ? 0.2 : -36, xb = dir > 0 ? 36 : -0.2;
+  boxB(g, MAT.gloss, xa, xb, 380, 384, -122, 122, 1.5);
+  boxB(g, MAT.gloss, xa, xb, 6, 10, -122, 122, 1.5);
+  boxB(g, MAT.gloss, xa, xb, 10, 380, 120, 124, 1.5);
+  boxB(g, MAT.gloss, xa, xb, 10, 380, -124, -120, 1.5);
+  // rear exhaust slats
+  for (let y = 120; y < 376; y += 9) boxB(g, MAT.port, xa + dir * 3, xb - dir * 3, y, y + 4, -124.4, -123.6);
+  if (dir > 0) {
+    // disc slot and front ports (cosmetic)
+    boxB(g, MAT.port, 9, 33, 91, 93.4, 123.6, 124.5);
+    boxB(g, MAT.port, 8, 20, 30, 37, 123.6, 124.5);
+    boxB(g, MAT.port, 24, 33, 31.5, 35.5, 123.6, 124.5, 1.5);
+    boxB(g, MAT.plastic, 14, 30, 62, 65, 123.8, 124.8, 1);
+    boxB(g, MAT.plastic, 14, 30, 72, 75, 123.8, 124.8, 1);
+    // rear ports
+    boxB(g, MAT.port, 6, 20, 30, 36, -124.5, -123.6);
+    boxB(g, MAT.port, 6, 20, 46, 52, -124.5, -123.6);
+    boxB(g, MAT.port, 8, 24, 62, 75, -124.5, -123.6);
+    boxB(g, MAT.port, 8, 24, 84, 92, -124.5, -123.6);
+  } else {
+    // power port (left case)
+    boxB(g, MAT.port, -26, -10, 26, 44, -124.5, -123.6, 2);
+    // fan intake mesh on the left side
+    addMesh(g, plateGeo(rrect(FAN_C.z - 52, FAN_C.z + 52, FAN_C.y - 52, FAN_C.y + 52, 52, 10), [], -36.6, 1, -1), MAT.grille);
+  }
+  return g;
+}
+buildCase("caseR", 1);
+buildCase("caseL", -1);
+
+// ---- tamper-evident sticker over one right case screw ----
+(function () {
+  const g = newPart("sticker");
+  boxB(g, MAT.tamper, 39.1, 39.6, 224, 240, -70, -50);
+})();
+
+// ---- fan grille ----
+(function () {
+  const g = newPart("grille");
+  addMesh(g, plateGeo(rrect(FAN_C.z - 80, FAN_C.z + 80, FAN_C.y - 80, FAN_C.y + 80, 80, 12), [], 40.2, 1, 1, 0.3), MAT.grille);
+  addMesh(g, plateGeo(rrect(FAN_C.z - 84, FAN_C.z + 84, FAN_C.y - 84, FAN_C.y + 84, 84, 12), [{ c: [FAN_C.z, FAN_C.y, 79] }], 40.2, 1.3, 1, 0.3), MAT.matte);
+})();
+
+// ---- fan shroud: ring, spokes and screw ears ----
+(function () {
+  const g = newPart("shroud");
+  addMesh(g, plateGeo(rrect(FAN_C.z - 87, FAN_C.z + 87, FAN_C.y - 87, FAN_C.y + 87, 87, 12), [{ c: [FAN_C.z, FAN_C.y, 62] }], 37, 3, 1, 0.4), MAT.shroud);
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2 + 0.3;
+    const m = boxB(g, MAT.shroud, 37.5, 39.6, -3, 3, -62, 62);
+    m.position.set(38.55, FAN_C.y, FAN_C.z);
+    m.rotation.x = a;
+  }
+  cylX(g, MAT.shroud, 20, 37.5, 39.8, FAN_C.y, FAN_C.z, 40);
+})();
+
+// ---- fan ----
+(function () {
+  const g = newPart("fan");
+  cylX(g, MAT.fan, 64, -8, -6, FAN_C.y, FAN_C.z, 72);
+  cylX(g, MAT.plastic, 21, -6, 34, FAN_C.y, FAN_C.z, 48);
+  cylX(g, MAT.fan, 22.5, 32.4, 34.6, FAN_C.y, FAN_C.z, 48);
+  const bladeGeo = new THREE.BoxGeometry(37, 1.2, 33);
+  const blades = new THREE.InstancedMesh(bladeGeo, MAT.fan, 30);
+  const d = new THREE.Object3D();
+  for (let i = 0; i < 30; i++) {
+    const a = (i / 30) * Math.PI * 2;
+    d.position.set(13, FAN_C.y + 40 * Math.sin(a), FAN_C.z + 40 * Math.cos(a));
+    d.rotation.set(a + 0.42, 0, 0);
+    d.updateMatrix();
+    blades.setMatrixAt(i, d.matrix);
+  }
+  blades.castShadow = true; blades.receiveShadow = true;
+  g.add(blades);
+  // outer impeller ring and the scroll housing lip
+  const ring = new THREE.TorusGeometry(58, 1.4, 8, 72); ring.rotateY(Math.PI / 2);
+  addMesh(g, ring, MAT.fan, 31.6, FAN_C.y, FAN_C.z);
+})();
+
+// ---- fan wire cover and cable ----
+(function () {
+  const g = newPart("wireCover");
+  boxB(g, MAT.matte, 35.2, 37, 229, 240, 66, 90, 1);
+})();
+(function () {
+  const g = newPart("fanCable");
+  [-1.4, 0, 1.4].forEach((o, i) => tube(g, [MAT.wireBlack, MAT.wireWhite, MAT.wireBlack][i], [[22, 240 + o, 72], [24, 236 + o, 80], [12, 230 + o, 82], [8, 228 + o, 82]], 0.6));
+  boxB(g, MAT.connector, 5.8, 9.5, 224, 232, 78, 86, 0.6);
+})();
+
+// ---- M.2 SSD cover ----
+(function () {
+  const g = newPart("ssdCover");
+  addMesh(g, plateGeo(rrect(-10, 100, 145, 210, 5), [], 39, 1.4, 1, 0.3), MAT.steel);
+})();
+
+// ---- disc drive ----
+const DRIVE_OUT = (function () {
+  // rectangle with a large curve at the top-rear corner (as in our repair video)
+  const pts = [];
+  pts.push([-104, 14], [122, 14], [122, 168]);
+  for (let i = 0; i <= 16; i++) { const a = (90 + 90 * i / 16) * Math.PI / 180; pts.push([-34 + 70 * Math.cos(a), 98 + 70 * Math.sin(a)]); }
+  pts.push([-104, 98]);
+  return pts;
+})();
+(function () {
+  const g = newPart("drive");
+  addMesh(g, plateGeo(DRIVE_OUT, [], 8, 25, 1, 1.2), MAT.drive);
+  // rubber mounts
+  [[100, 140], [45, 116], [100, 42], [45, 42]].forEach(([z, y]) => {
+    cylX(g, MAT.rubber, 9, 33, 35.4, y, z, 32);
+    cylX(g, MAT.steel, 3.2, 35.4, 36, y, z, 20);
+  });
+  // drive's little board with its connectors
+  boxB(g, MAT.pcb, 33.2, 34.8, 150, 168, -80, -36);
+  boxB(g, MAT.connector, 34.8, 38, 156, 163, -56, -46, 0.5);
+  boxB(g, MAT.connector, 34.8, 37, 152, 157, -74, -60, 0.5);
+  // disc slot lip at the front
+  boxB(g, MAT.port, 9, 33, 90.5, 94, 121.5, 122.4);
+})();
+(function () {
+  const g = newPart("driveCable");
+  [-1.8, -0.6, 0.6, 1.8].forEach((o) => tube(g, MAT.wireBlack, [[37, 160, -51 + o], [40, 175, -52 + o], [30, 192, -54 + o], [9, 198, -54 + o]], 0.55));
+  boxB(g, MAT.connector, 5.8, 10, 194, 202, -60, -48, 0.6);
+})();
+(function () {
+  const g = newPart("driveRibbon");
+  ribbon(g, [[36, 154.5, -67], [36.5, 175, -67], [20, 215, -66], [7.4, 232, -66]], 9, true);
+})();
+
+// ---- main board ----
+const BOARD_OUT = notchedOutline(-116, 116, 25, 285, FAN_C.z, FAN_C.y, 70);
+(function () {
+  const g = newPart("board");
+  addMesh(g, plateGeo(BOARD_OUT, [], 4, 1.6, 1, 0), MAT.pcb);
+  const rnd = mulberry(7);
+  // right-hand side: SSD chips, controller, M.2 slot, Wi-Fi, connectors, VRMs
+  for (let i = 0; i < 6; i++) boxB(g, MAT.chip, 5.6, 7, 60 + (i % 3) * 22, 76 + (i % 3) * 22, 20 + Math.floor(i / 3) * 34, 46 + Math.floor(i / 3) * 34, 0.4);
+  boxB(g, MAT.chip, 5.6, 7.2, 70, 88, 92, 108, 0.4);
+  boxB(g, MAT.plastic, 5.6, 9, 176, 204, 92, 98, 0.6);                    // M.2 slot connector
+  cylX(g, MAT.gold, 2.4, 5.6, 8, 190, 2, 16);                            // M.2 standoff
+  boxB(g, MAT.steel, 5.6, 8, 246, 274, -102, -74, 0.4);                   // Wi-Fi module
+  [[-95, 262], [-85, 262], [-105, 230], [-95, 230]].forEach(([z, y]) => cylX(g, MAT.gold, 1.6, 5.6, 7.4, y, z, 12));
+  boxB(g, MAT.connector, 5.6, 9, 228, 236, -71, -61, 0.5);                // drive ribbon connector
+  boxB(g, MAT.connector, 5.6, 8.6, 266, 274, -60, -48, 0.5);              // LED ribbon connector
+  boxB(g, MAT.connector, 5.6, 8.6, 90, 100, 104, 112, 0.5);               // power/eject ribbon
+  boxB(g, MAT.connector, 5.6, 9, 40, 60, 96, 104, 0.5);                   // USB board connector
+  for (let i = 0; i < 8; i++) boxB(g, MAT.chip, 5.6, 7.2, 178 + i * 7.5, 183 + i * 7.5, -38, -30, 0.3);   // VRMs
+  // small parts scattered for texture
+  for (let i = 0; i < 70; i++) {
+    const z = -110 + rnd() * 220, y = 30 + rnd() * 250;
+    if ((z - FAN_C.z) ** 2 + (y - FAN_C.y) ** 2 < 76 * 76) continue;
+    const w = 2 + rnd() * 5, h = 2 + rnd() * 5;
+    boxB(g, rnd() > 0.7 ? MAT.gold : MAT.chip, 5.6, 6.3, y, y + h, z, z + w);
+  }
+  // VRM heatsink: a small fin stack on a heat pipe (iFixit teardown)
+  boxB(g, MAT.copper, 7.2, 10, 176, 240, -40, -32, 1);
+  const finGeo = new THREE.BoxGeometry(18, 52, 0.5);
+  const fins = new THREE.InstancedMesh(finGeo, MAT.alu, 18);
+  const d = new THREE.Object3D();
+  for (let i = 0; i < 18; i++) { d.position.set(19, 206, -44 + i * 1.9); d.updateMatrix(); fins.setMatrixAt(i, d.matrix); }
+  fins.castShadow = true;
+  g.add(fins);
+  // left-hand side: APU with liquid metal inside its foam barrier, GDDR6 memory, CMOS battery
+  boxB(g, MAT.pcbDark, 2.6, 4, 129, 171, -26, 16, 0.6);
+  boxB(g, MAT.lm, 2.2, 2.7, 136, 164, -19, 9, 0.4);
+  addMesh(g, plateGeo(rrect(-24, 14, 131, 169, 3), [rrect(-20, 10, 135, 165, 2)], 2.7, -0.9, -1), MAT.foam);
+  [[194, -5], [106, -5], [150, 40], [150, -50], [190, 30], [190, -40], [110, 30], [110, -40]].forEach(([y, z]) => boxB(g, MAT.chip, 2.8, 4, y - 6, y + 6, z - 7, z + 7, 0.4));
+  cylX(g, MAT.battery, 10, 0.8, 4, 255, 104, 40);
+})();
+
+// ---- top shield plate ----
+const SHIELD_OUT = notchedOutline(-48, 115, 25, 285, FAN_C.z, FAN_C.y, 73);
+const M2_WIN = rrect(-4, 100, 172, 208, 3);
+const VRM_WIN = rrect(-46, -6, 172, 244, 3);
+(function () {
+  const g = newPart("shield");
+  addMesh(g, plateGeo(SHIELD_OUT, [M2_WIN, VRM_WIN], 6.2, 0.8, 1, 0), MAT.steel);
+  // pressed ribs for a stamped-steel look
+  boxB(g, MAT.steel, 7, 7.8, 40, 160, 105, 108, 0.4);
+  boxB(g, MAT.steel, 7, 7.8, 40, 43, -40, 100, 0.4);
+})();
+SCREW_POS.shield.pts = (function () {
+  // 34 screws spaced around the shield edge, 8 around its two windows: 42 in all.
+  const out = SHIELD_OUT;
+  const inset = [];
+  const cz = 33, cy = 155;
+  out.forEach(([z, y]) => { const dz = cz - z, dy = cy - y, l = Math.hypot(dz, dy); inset.push([z + (dz / l) * 5, y + (dy / l) * 5]); });
+  const lens = [0];
+  for (let i = 1; i <= inset.length; i++) { const a = inset[i - 1], b = inset[i % inset.length]; lens.push(lens[i - 1] + Math.hypot(b[0] - a[0], b[1] - a[1])); }
+  const total = lens[lens.length - 1];
+  const pts = [];
+  for (let k = 0; k < 34; k++) {
+    const s = (k + 0.5) * total / 34;
+    let i = 1; while (lens[i] < s) i++;
+    const a = inset[i - 1], b = inset[i % inset.length], t = (s - lens[i - 1]) / (lens[i] - lens[i - 1]);
+    pts.push([7.1, a[1] + (b[1] - a[1]) * t, a[0] + (b[0] - a[0]) * t]);
+  }
+  [[-8, 168], [104, 168], [-8, 212], [104, 212], [-50, 176], [-50, 240], [-2, 240], [-2, 168]].forEach(([z, y]) => pts.push([7.1, y, z]));
+  return pts;
+})();
+
+// ---- ribbons, antenna wires and their stickers ----
+(function () {
+  const g = newPart("cables");
+  // Wi-Fi antenna wires (white, black)
+  tube(g, MAT.wireWhite, [[8.5, 262, -95], [10, 236, -60], [10, 224, -20], [10, 222, 40], [10, 226, 96], [12, 300, 116], [12, 372, 116]], 0.9);
+  tube(g, MAT.wireBlack, [[8.5, 262, -85], [11.5, 238, -58], [11.5, 227, -20], [11.5, 225, 40], [11.5, 229, 96], [13.5, 300, 113], [13.5, 372, 113]], 0.9);
+  // power supply antenna wires (blue, white)
+  tube(g, MAT.wireBlue, [[8.5, 230, -105], [10, 200, -110], [10, 60, -112], [2, 34, -112], [-12, 30, -100]], 0.9);
+  tube(g, MAT.wireWhite, [[8.5, 230, -95], [11.5, 200, -108], [11.5, 62, -110], [3, 36, -110], [-12, 33, -98]], 0.9);
+  // the five stickers on the shield, holding the antenna wires
+  [[-30, 226], [0, 223], [30, 222], [60, 222], [94, 226]].forEach(([z, y]) => boxB(g, MAT.sticker, 7, 13.2, y - 6, y + 6, z - 7, z + 7, 0.3));
+  // LED ribbon up to the top front, with its sticker on the heatsink fin tower
+  ribbon(g, [[7.4, 270, -54], [12, 300, -56], [20, 372, -56]], 7, true);
+  boxB(g, MAT.sticker, 19, 21, 320, 340, -62, -48);
+  // power and eject button ribbon to the front
+  ribbon(g, [[7.4, 95, 108], [14, 92, 116], [20, 70, 119]], 7, true);
+})();
+(function () {
+  const g = newPart("usbCable");
+  ribbon(g, [[7.4, 50, 100], [14, 50, 106], [18, 50, 110.5]], 14, true);
+})();
+(function () {
+  const g = newPart("usbBoard");
+  boxB(g, MAT.pcb, 6, 32, 24, 64, 110.6, 112.2);
+  boxB(g, MAT.steel, 8, 20, 29, 38, 112.2, 123.2, 0.4);
+  boxB(g, MAT.steel, 24, 33, 31, 36, 112.2, 123.2, 1.4);
+})();
+
+// ---- APU brackets ----
+(function () {
+  const g = newPart("brackets");
+  boxB(g, MAT.plastic, 5.8, 8.4, 142, 158, -44, 34, 1);          // plastic bracket, along the board
+  boxB(g, MAT.steel, 8.4, 10.4, 108, 192, -12, 2, 1);            // metal tension bracket, across it
+})();
+
+// ---- heatsink and bottom shield ----
+(function () {
+  const g = newPart("heatsink");
+  const holes = [rrect(-28, 18, 127, 173, 3), { c: [104, 255, 12] }];
+  addMesh(g, plateGeo(notchedOutline(-114, 114, 27, 283, FAN_C.z, FAN_C.y, 72), holes, 3.4, 1, -1, 0), MAT.steel);
+  boxB(g, MAT.copper, -6, 2.2, 130, 170, -40, 20, 1.2);            // base on the APU
+  boxB(g, MAT.lm, 2.0, 2.3, 136, 164, -19, 9);                      // liquid metal contact patch
+  // copper heat pipes from the base to the fin blocks and the fin tower
+  for (let i = 0; i < 4; i++) {
+    const y0 = 136 + i * 9;
+    tube(g, MAT.copper, [[-3, y0, 14], [-3, y0, -36], [-16, y0, -64], [-18, y0, -106], [-18, 300 + i * 16, -110], [28, 300 + i * 16, -110]], 3);
+  }
+  // fin blocks on the left side
+  const finA = new THREE.InstancedMesh(new THREE.BoxGeometry(28, 168, 0.45), MAT.alu, 52);
+  const d = new THREE.Object3D();
+  for (let i = 0; i < 52; i++) { d.position.set(-22, 156, -114 + i * 1.95); d.updateMatrix(); finA.setMatrixAt(i, d.matrix); }
+  finA.castShadow = true; finA.receiveShadow = true;
+  g.add(finA);
+  // fin tower at the top rear, the full width of the console
+  const finB = new THREE.InstancedMesh(new THREE.BoxGeometry(70, 80, 0.45), MAT.alu, 30);
+  for (let i = 0; i < 30; i++) { d.position.set(-1, 332, -118 + i * 1.95); d.updateMatrix(); finB.setMatrixAt(i, d.matrix); }
+  finB.castShadow = true; finB.receiveShadow = true;
+  g.add(finB);
+  boxB(g, MAT.steel, -36, 34, 290, 292, -119, -61);
+  boxB(g, MAT.steel, -36, 34, 372, 374, -119, -61);
+})();
+
+// ---- power supply: boot shaped, with the prongs that plug into the board ----
+(function () {
+  const g = newPart("psu");
+  boxB(g, MAT.psu, -38, -7, 20, 205, 18, 120, 4);
+  boxB(g, MAT.psu, -38, -7, 16, 64, -106, 22, 4);
+  boxB(g, MAT.port, -30, -12, 28, 42, -107, -105.5, 2);        // power inlet
+  boxB(g, MAT.sticker, -38.6, -38, 80, 160, 40, 100);          // label
+  [92, 100].forEach((z) => boxB(g, MAT.gold, -7, 4.2, 36, 44, z - 1.5, z + 1.5));
+})();
+
+function mulberry(a) { return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+/* ---------- merge each part's meshes by material: far fewer draw calls on phones ---------- */
+function mergeGeos(geos) {
+  let n = 0;
+  geos.forEach((g) => { n += g.attributes.position.count; });
+  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), uv = new Float32Array(n * 2);
+  let o = 0;
+  geos.forEach((g) => {
+    const c = g.attributes.position.count;
+    pos.set(g.attributes.position.array, o * 3);
+    nor.set(g.attributes.normal.array, o * 3);
+    if (g.attributes.uv) uv.set(g.attributes.uv.array, o * 2);
+    o += c;
+  });
+  const out = new THREE.BufferGeometry();
+  out.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  out.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
+  out.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+  return out;
+}
+for (const id in parts) {
+  const g = parts[id].group;
+  const byMat = new Map();
+  g.children.slice().forEach((o) => {
+    if (!o.isMesh || o.isInstancedMesh) return;
+    o.updateMatrix();
+    let geo = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+    geo.applyMatrix4(o.matrix);
+    if (!byMat.has(o.material)) byMat.set(o.material, []);
+    byMat.get(o.material).push(geo);
+    g.remove(o);
+  });
+  byMat.forEach((geos, mat) => {
+    const m = new THREE.Mesh(mergeGeos(geos), mat);
+    m.castShadow = true; m.receiveShadow = true;
+    g.add(m);
+    geos.forEach((x) => x.dispose());
+  });
+}
+
+/* ---------- give each part its own materials, so it can glow and fade alone ---------- */
+for (const id in parts) {
+  const p = parts[id];
+  const cache = new Map();
+  p.group.traverse((o) => {
+    if (!o.isMesh) return;
+    o.userData.part = id;
+    if (!cache.has(o.material)) { const m = o.material.clone(); m.userData.baseEmissive = m.emissive ? m.emissive.clone() : null; cache.set(o.material, m); p.mats.push(m); }
+    o.material = cache.get(o.material);
+  });
+  p.box = new THREE.Box3().setFromObject(p.group);
+  p.center = p.box.getCenter(new THREE.Vector3());
+  const size = p.box.getSize(new THREE.Vector3());
+  p.glowK = Math.max(size.y, size.z) > 200 ? 0.45 : 1;
+}
+
+/* ---------- screws ---------- */
+const screwGroup = new THREE.Group();
+scene.add(screwGroup);
+const screws = [];
+const ringTex = (function () {
+  const cv = document.createElement("canvas"); cv.width = cv.height = 64;
+  const g = cv.getContext("2d");
+  g.strokeStyle = "#ffffff"; g.lineWidth = 7; g.beginPath(); g.arc(32, 32, 24, 0, Math.PI * 2); g.stroke();
+  g.fillStyle = "rgba(255,255,255,0.28)"; g.beginPath(); g.arc(32, 32, 20, 0, Math.PI * 2); g.fill();
+  const t = new THREE.CanvasTexture(cv); t.encoding = THREE.sRGBEncoding; return t;
+})();
+const headGeo = new THREE.CylinderGeometry(2.3, 2.3, 1.5, 20);
+let screwTotal = 0;
+for (const k in SCREW_POS) screwTotal += SCREW_POS[k].pts.length;
+const heads = new THREE.InstancedMesh(headGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.85, roughness: 0.38 }), screwTotal);
+heads.castShadow = true;
+heads.frustumCulled = false;
+screwGroup.add(heads);
+const DARK = new THREE.Color(0x2a2c30), SILVER = new THREE.Color(0xb8bcc2);
+const tmpObj = new THREE.Object3D();
+const screwOwner = { stand: "stand", shroud: "shroud", ssd: "ssdCover", caseR: "caseR", shield: "shield", boardScrews: "board", caseL: "caseL" };
+for (const step in SCREW_POS) {
+  const def = SCREW_POS[step];
+  const dir = new THREE.Vector3().fromArray(def.dir);
+  const color = new THREE.Color(SCREW_COLOR[step]);
+  const s = STEPS[stepIndex[step]];
+  def.pts.forEach((p, i) => {
+    const idx = screws.length;
+    heads.setColorAt(idx, step === "ssd" || step === "boardScrews" ? SILVER : DARK);
+    const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    const scale = step === "stand" ? 2.6 : 1;
+    const base = new THREE.Vector3().fromArray(p);
+    const smat = new THREE.SpriteMaterial({ map: ringTex, color, depthTest: false, transparent: true, sizeAttenuation: false, toneMapped: false });
+    const spr = new THREE.Sprite(smat);
+    spr.scale.set(0.034, 0.034, 1);
+    spr.renderOrder = 10;
+    spr.userData.screw = screws.length;
+    screwGroup.add(spr);
+    screws.push({ step, idx, quat, scale, spr, base, dir, owner: screwOwner[step], i, lift: 0, liftTarget: 0, show: 0, showTarget: 0, title: s.title });
+  });
+}
+
+/* ---------- ground: a work mat with a 10 mm grid ---------- */
+const matTex = (function () {
+  const cv = document.createElement("canvas"); cv.width = cv.height = 512;
+  const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(16, 16); t.encoding = THREE.sRGBEncoding;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  t.userData.cv = cv;
+  return t;
+})();
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(1600, 1600), new THREE.MeshStandardMaterial({ map: matTex, roughness: 0.95, metalness: 0 }));
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -14.2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function applyTheme() {
+  scene.background = new THREE.Color(cssVar("--stage") || "#e3e6e2");
+  scene.fog = new THREE.Fog(scene.background, 2200, 4200);
+  const cv = matTex.userData.cv, g = cv.getContext("2d");
+  g.fillStyle = cssVar("--mat") || "#dfe3de"; g.fillRect(0, 0, 512, 512);
+  for (let i = 0; i <= 10; i++) {
+    const p = Math.round(i * 51.2) + 0.5;
+    g.strokeStyle = i % 5 === 0 ? (cssVar("--mat-line-strong") || "#b0b7b0") : (cssVar("--mat-line") || "#c8cdc7");
+    g.lineWidth = i % 5 === 0 ? 2 : 1;
+    g.beginPath(); g.moveTo(p, 0); g.lineTo(p, 512); g.stroke();
+    g.beginPath(); g.moveTo(0, p); g.lineTo(512, p); g.stroke();
+  }
+  matTex.needsUpdate = true;
+  accentColor.set(cssVar("--accent") || "#0b7a72");
+  const bg = new THREE.Color(cssVar("--bg") || "#f2f3f1");
+  glowScale = (bg.r + bg.g + bg.b) / 3 < 0.3 ? 0.5 : 1;
+}
+let glowScale = 1;
+const accentColor = new THREE.Color();
+applyTheme();
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
+new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+/* =========================================================================
+   STATE AND ANIMATION
+   ========================================================================= */
+let explode = 0, explodeTarget = 0;
+let camTween = null;
+const focusSet = new Set();
+
+function stepState() {
+  const s = STEPS[current];
+  const done = doneBefore(s.id);
+  for (const id in parts) {
+    const p = parts[id];
+    p.removed = !!(p.info.step && done.has(p.info.step));
+  }
+  focusSet.clear();
+  (s.focus || Object.keys(parts).filter((id) => parts[id].info.step === s.id)).forEach((id) => focusSet.add(id));
+  screws.forEach((sc) => {
+    const sStep = sc.step;
+    const gone = done.has(sStep);
+    const isNow = sStep === s.id;
+    const ownerGone = parts[sc.owner] && parts[sc.owner].removed;
+    sc.gone = gone || ownerGone;
+    sc.now = isNow;
+    sc.liftTarget = isNow ? 7 : 0;
+  });
+}
+function updateTargets() {
+  for (const id in parts) {
+    const p = parts[id];
+    if (p.removed) {
+      const away = p.ex.clone().normalize().multiplyScalar(p.ex.length() + 260);
+      p.target.copy(away).add(new THREE.Vector3(0, 40, 0));
+      p.targetOpacity = 0;
+    } else {
+      p.target.copy(p.ex).multiplyScalar(explode * 2.4);
+      p.targetOpacity = 1;
+    }
+  }
+}
+
+function goTo(i, user) {
+  if (i === null || i === undefined || i < 0 || i >= STEPS.length) return;
+  current = i;
+  const s = STEPS[i];
+  if (user) { try { history.replaceState(null, "", i === 0 ? location.pathname + location.search : "#step-" + s.id); } catch (e) { /* hash not allowed here */ } }
+  stepState();
+  renderStepCard();
+  if (s.cam) flyTo(s.cam.pos, s.cam.target);
+  else if (s.view) setView(s.view);
+  if (i !== 0) hideHint();
+  if (i !== 0 && explodeTarget > 0.6) { explodeTarget = 0; explodeInput.value = 0; explodeOut.textContent = "0%"; }
+  selectPart(null);
+}
+
+const CAM_SCALE = 1.7;
+function flyTo(pos, target) {
+  const aspect = stageEl.clientWidth / Math.max(1, stageEl.clientHeight);
+  const t = new THREE.Vector3().fromArray(target);
+  let p = t.clone().add(new THREE.Vector3().fromArray(pos).sub(t).multiplyScalar(CAM_SCALE));
+  if (aspect < 1.1) p = t.clone().add(p.clone().sub(t).multiplyScalar(Math.pow(1.1 / Math.max(0.55, aspect), 0.7)));
+  camTween = { fromP: camera.position.clone(), toP: p, fromT: controls.target.clone(), toT: t, t: 0, dur: reduceMotion.matches ? 0.01 : 0.9 };
+}
+const VIEWS = {
+  iso: [[400, 340, 460], [0, 175, 0]],
+  front: [[0, 200, 760], [0, 190, 0]],
+  right: [[780, 210, 30], [0, 190, 0]],
+  left: [[-780, 210, 30], [0, 190, 0]],
+  rear: [[0, 200, -760], [0, 190, 0]],
+  top: [[0, 980, 2], [0, 190, 0]],
+  explode: [[150, 330, 640], [0, 180, 0]]
+};
+function setView(v) {
+  const d = VIEWS[v]; if (!d) return;
+  flyTo(d[0], d[1]);
+  document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === v)));
+}
+document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
+
+let explodeFlown = false;
+explodeInput.addEventListener("input", () => {
+  explodeTarget = Number(explodeInput.value) / 100;
+  if (explodeTarget > 0.05 && !explodeFlown) { explodeFlown = true; setView("explode"); }
+  if (explodeTarget < 0.02) explodeFlown = false;
+  explodeOut.textContent = explodeInput.value + "%";
+});
+
+/* ---------- picking ---------- */
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+function pick(ev) {
+  const r = canvas.getBoundingClientRect();
+  ndc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+  raycaster.setFromCamera(ndc, camera);
+  const sprites = screws.filter((s) => s.spr.visible).map((s) => s.spr);
+  const sh = raycaster.intersectObjects(sprites, false);
+  if (sh.length) return { screw: screws[sh[0].object.userData.screw] };
+  const meshes = [];
+  for (const id in parts) if (parts[id].group.visible && parts[id].opacity > 0.5) meshes.push(parts[id].group);
+  const hits = raycaster.intersectObjects(meshes, true);
+  for (const h of hits) { if (h.object.userData.part) return { part: h.object.userData.part }; }
+  return null;
+}
+let downAt = null, hoverRaf = 0, lastMove = null;
+canvas.addEventListener("pointerdown", (e) => { downAt = { x: e.clientX, y: e.clientY, t: performance.now() }; hideHint(); });
+canvas.addEventListener("pointerup", (e) => {
+  if (!downAt) return;
+  const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y);
+  downAt = null;
+  if (moved > 6) return;
+  const hit = pick(e);
+  if (hit && hit.part) selectPart(hit.part === selectedPart ? null : hit.part);
+  else if (hit && hit.screw) selectPart(hit.screw.owner);
+  else selectPart(null);
+});
+canvas.addEventListener("pointermove", (e) => {
+  if (e.pointerType !== "mouse") return;
+  lastMove = e;
+  if (hoverRaf) return;
+  hoverRaf = requestAnimationFrame(() => {
+    hoverRaf = 0;
+    if (!lastMove || downAt) { tipEl.hidden = true; return; }
+    const hit = pick(lastMove);
+    const r = stageEl.getBoundingClientRect();
+    if (hit) {
+      let html;
+      if (hit.screw) {
+        const st = STEPS[stepIndex[hit.screw.step]];
+        html = "Screw · " + esc(stepNumberLabel(st)) + "<small>" + esc(st.screws.map((g) => g.n + " × " + g.len + " mm").join(", ")) + "</small>";
+      } else {
+        const info = PART_INFO[hit.part];
+        const st = info.step ? STEPS[stepIndex[info.step]] : null;
+        html = esc(info.name) + "<small>" + (st ? "Out in " + esc(stepNumberLabel(st)) : "Stays in") + "</small>";
+      }
+      tipEl.innerHTML = html;
+      tipEl.hidden = false;
+      const x = Math.min(lastMove.clientX - r.left + 14, r.width - 250);
+      tipEl.style.left = x + "px";
+      tipEl.style.top = (lastMove.clientY - r.top + 14) + "px";
+      canvas.style.cursor = "pointer";
+    } else { tipEl.hidden = true; canvas.style.cursor = ""; }
+  });
+});
+canvas.addEventListener("pointerleave", () => { tipEl.hidden = true; lastMove = null; });
+function hideHint() { hintEl.style.opacity = "0"; }
+
+function selectPart(id) {
+  selectedPart = id && parts[id] ? id : null;
+  renderPartCard();
+}
+
+/* keyboard: arrows step through the guide when the 3D view has focus */
+canvas.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowRight" || e.key === "PageDown") { const n = nextIndex(current); if (n !== null) goTo(n, true); e.preventDefault(); }
+  else if (e.key === "ArrowLeft" || e.key === "PageUp") { goTo(prevIndex(current), true); e.preventDefault(); }
+});
+
+/* ---------- labels ---------- */
+const tagEls = [];
+function updateLabels() {
+  const want = [];
+  const s = STEPS[current];
+  if (current > 0) {
+    const main = screwOwner[s.id] && focusSet.has(screwOwner[s.id]) ? screwOwner[s.id] : (s.focus ? s.focus[0] : [...focusSet][0]);
+    const sc = screwCount(s);
+    if (main) want.push({ id: main, sub: sc ? sc + (sc === 1 ? " screw" : " screws") : "" });
+  }
+  if (selectedPart && !focusSet.has(selectedPart)) want.push({ id: selectedPart, sub: "Selected" });
+  while (tagEls.length < want.length) { const d = document.createElement("div"); d.className = "tag"; labelsEl.appendChild(d); tagEls.push(d); }
+  const w = stageEl.clientWidth, h = stageEl.clientHeight;
+  tagEls.forEach((el, i) => {
+    const item = want[i];
+    if (!item) { el.hidden = true; return; }
+    const p = parts[item.id];
+    const v = p.center.clone().add(p.offset);
+    v.y = p.box.max.y + p.offset.y + 6;
+    v.project(camera);
+    if (v.z > 1 || p.opacity < 0.4) { el.hidden = true; return; }
+    el.hidden = false;
+    const label = PART_INFO[item.id].name;
+    const html = esc(label) + (item.sub ? "<small>" + esc(item.sub) + "</small>" : "");
+    if (el.dataset.html !== html) { el.innerHTML = html; el.dataset.html = html; }
+    const x = Math.max(70, Math.min(w - 70, (v.x * 0.5 + 0.5) * w));
+    const y = Math.max(60, Math.min(h - 70, (-v.y * 0.5 + 0.5) * h - 18));
+    el.style.left = x + "px"; el.style.top = y + "px";
+  });
+}
+
+/* ---------- frame loop ---------- */
+function resize() {
+  const w = stageEl.clientWidth, h = stageEl.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / Math.max(1, h);
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stageEl);
+resize();
+
+let last = performance.now();
+const camDir = new THREE.Vector3();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  const k = reduceMotion.matches ? 1 : 1 - Math.exp(-dt * 7);
+  explode += (explodeTarget - explode) * k;
+  updateTargets();
+  const t = now / 1000;
+  const pulse = reduceMotion.matches ? 0.09 : 0.075 + 0.05 * Math.sin(t * 3.4);
+  for (const id in parts) {
+    const p = parts[id];
+    p.offset.lerp(p.target, k);
+    p.opacity += (p.targetOpacity - p.opacity) * k;
+    if (Math.abs(p.opacity - p.targetOpacity) < 0.004) p.opacity = p.targetOpacity;
+    p.group.position.copy(p.offset);
+    p.group.visible = p.opacity > 0.01;
+    const fade = p.opacity < 0.999;
+    const glow = ((focusSet.has(id) && current > 0) ? pulse : (selectedPart === id ? 0.1 : 0)) * glowScale * p.glowK;
+    p.mats.forEach((m) => {
+      if (m.transparent !== fade) { m.transparent = fade; m.needsUpdate = true; }
+      m.opacity = p.opacity;
+      m.depthWrite = !fade;
+      if (m.emissive) { if (glow > 0) m.emissive.copy(accentColor).multiplyScalar(glow); else if (m.userData.baseEmissive) m.emissive.copy(m.userData.baseEmissive); }
+    });
+  }
+  // screws follow their part, lift out on their own step, and show a ring marker
+  camera.getWorldDirection(camDir);
+  const showAll = allScrewsInput.checked;
+  screws.forEach((sc) => {
+    const owner = parts[sc.owner];
+    sc.lift += (sc.liftTarget - sc.lift) * k;
+    const pos = sc.base.clone().addScaledVector(sc.dir, sc.lift + 0.75);
+    if (owner) pos.add(owner.offset);
+    const vis = !sc.gone && (!owner || owner.opacity > 0.05);
+    tmpObj.position.copy(pos);
+    tmpObj.quaternion.copy(sc.quat);
+    const sv = vis ? sc.scale : 0.0001;
+    tmpObj.scale.set(sv, sc.scale === 1 ? sv : sv * 0.55, sv);
+    tmpObj.updateMatrix();
+    heads.setMatrixAt(sc.idx, tmpObj.matrix);
+    const facing = camera.position.clone().sub(pos).dot(sc.dir) > 0;
+    const want = vis && facing && (sc.now || (showAll && current < stepIndex[sc.step] + 1));
+    sc.showTarget = want ? 1 : 0;
+    sc.show += (sc.showTarget - sc.show) * k;
+    sc.spr.visible = sc.show > 0.03;
+    sc.spr.position.copy(pos).addScaledVector(sc.dir, 2);
+    sc.spr.material.opacity = sc.show * (sc.now ? 0.75 + 0.25 * Math.sin(t * 4 + sc.i) : 0.7);
+    const dense = sc.step === "shield";
+    const sz = (sc.now ? (dense ? 0.022 : 0.034) : 0.02) * (window.innerWidth < 700 ? 1.2 : 1);
+    sc.spr.scale.set(sz, sz, 1);
+  });
+  heads.instanceMatrix.needsUpdate = true;
+  if (camTween) {
+    camTween.t = Math.min(1, camTween.t + dt / camTween.dur);
+    const e = camTween.t < 0.5 ? 4 * camTween.t ** 3 : 1 - Math.pow(-2 * camTween.t + 2, 3) / 2;
+    camera.position.lerpVectors(camTween.fromP, camTween.toP, e);
+    controls.target.lerpVectors(camTween.fromT, camTween.toT, e);
+    if (camTween.t >= 1) camTween = null;
+  }
+  controls.autoRotate = spinInput.checked && !reduceMotion.matches;
+  controls.autoRotateSpeed = 1.2;
+  controls.update();
+  renderer.render(scene, camera);
+  updateLabels();
+  requestAnimationFrame(frame);
+}
+controls.addEventListener("start", () => { camTween = null; document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", "false")); });
+
+/* ---------- start ---------- */
+buildStepList();
+function startFromHash() {
+  const m = /^#step-([A-Za-z]+)$/.exec(location.hash || "");
+  const i = m && stepIndex[m[1]] !== undefined ? stepIndex[m[1]] : 0;
+  goTo(i, false);
+}
+startFromHash();
+window.addEventListener("hashchange", startFromHash);
+// skip the opening fly-in
+if (camTween) { camera.position.copy(camTween.toP); controls.target.copy(camTween.toT); camTween = null; }
+loadingEl.hidden = true;
+setTimeout(hideHint, 9000);
+requestAnimationFrame(frame);
+window.__ps5 = { goTo, parts, screws, renderer, scene, camera, setView, setExplode: (v) => { if (v > 0.05 && !explodeFlown) { explodeFlown = true; setView("explode"); } explodeTarget = v; explodeInput.value = Math.round(v * 100); explodeOut.textContent = Math.round(v * 100) + "%"; }, stepIndex };
+})();
+</script>
+
+</body></html>

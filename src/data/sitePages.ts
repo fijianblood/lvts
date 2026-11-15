@@ -23,7 +23,7 @@ export const SITE_PAGES: SitePage[] = [
   { id: 'ask', label: 'Loma', icon: IconMessageCircle, color: '#6366f1',
     blurb: 'Loma, the free LvTS AI assistant: ask about repairs, Windows 11 problems, prices and services, or attach a photo, screenshot, PDF, Word, Excel or text file and ask about it.' },
   { id: 'services', label: 'Services', icon: IconTool, color: '#2563eb',
-    blurb: 'An overview of everything LomaVata Tech Services offers across Fiji — PC/laptop repair, gas oven servicing, Linux networking, antivirus, printers, email hosting, and the Vitikart store.' },
+    blurb: 'PS5 service in Raiwai, Suva: full teardown, deep dust clean and fresh liquid metal for overheating, loud or shutting-down consoles. Also PC and laptop repair, website design, networking, antivirus, printers, email hosting, gas ovens and Vitikart store setup.' },
   { id: 'blog', label: 'Blog', icon: IconNews, color: '#0ea5e9',
     blurb: 'The LvTS Blog: practical articles on PC security, Windows fixes, websites, networking and technology news for Fiji and the Pacific.' },
   { id: 'labview', label: 'LabVIEW Help', icon: IconCpu, color: '#f5a524',
