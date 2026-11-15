@@ -36,11 +36,11 @@ PURPLE = (124, 58, 237)
 # Keep these true to the page. Pages not listed here use their route's heading
 # and description.
 PAGES = {
-    'services': dict(color='#2563eb', kicker='Tech services', headline='IT services in Suva, Fiji',
-                     sub='Laptop and PC repair, website design, networking and CCTV, and business email.',
-                     chips=[('PC & laptop repair', 'From FJD $25, quoted upfront'),
-                            ('Website design', 'Business sites that get found'),
-                            ('Networking & CCTV', 'Home and office setups')]),
+    'services': dict(color='#2563eb', kicker='PS5 service · Suva', headline='PS5 overheating or loud?',
+                     sub='Full teardown, deep dust clean and fresh liquid metal, in Raiwai, Suva.',
+                     chips=[('Deep dust clean', 'Fan, heatsink and vents'),
+                            ('Liquid metal', 'Checked and refreshed'),
+                            ('Tested under load', 'Cool and quiet again')]),
     'ask': dict(color='#6366f1', kicker='Loma', headline='Free tech help, any time',
                 sub='Chat with Loma, the LvTS AI assistant, or attach a photo, PDF or document.',
                 chips=[('Instant answers', 'PC, laptop and Windows'),

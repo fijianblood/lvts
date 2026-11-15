@@ -60,7 +60,7 @@ export default function NavBar({ page, onNav }: NavBarProps) {
                 transformOrigin: 'bottom center', transition: 'transform 0.12s cubic-bezier(0.34,1.56,0.64,1), background 0.2s', cursor: 'pointer',
               }}>
               {l.id === 'home'
-                ? <img src={`${import.meta.env.BASE_URL}logo.jpg`} alt="Home" style={{ width: '70%', height: '70%', objectFit: 'contain', borderRadius: 6 }} />
+                ? <img src={`${import.meta.env.BASE_URL}logo-nav.png`} alt="Home" width={128} height={38} style={{ width: '70%', height: '70%', objectFit: 'contain', borderRadius: 6 }} />
                 : Icon && <Icon size={20} color={active ? '#fff' : accent} stroke={2} />}
               <span className="dock-tooltip">{l.label}</span>
               {active && <span style={{ position: 'absolute', bottom: -7, left: '50%', transform: 'translateX(-50%)', width: 4, height: 4, borderRadius: '50%', background: accent }} />}
