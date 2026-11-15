@@ -10,7 +10,7 @@ Last updated: 15 November 2026.
 
 - **This is the official LomaVata Tech Services website, not a portfolio.**
 - **Pages (14 in Google):** Home, Services (with a Website Design section),
-  Ask LvTS, Rewards, Noqublox, Kids (Noqu Vuli + Little Chef), LabVIEW Help,
+  Loma (was Ask LvTS, at /loma/), Rewards, Noqublox, Kids (Noqu Vuli + Little Chef), LabVIEW Help,
   Free Tools (image to PDF, PDF merge, photo sketch), MediTrack, Activation,
   Blog, and one page per blog post.
 - **Old addresses still work:** `/little-chef/` opens its tab on Kids; the
@@ -20,24 +20,28 @@ Last updated: 15 November 2026.
   `python3 tools/og/make_og.py`. Run it after adding a page or blog post.
 - **Blog:** posts are Markdown in `src/blog/posts/`, listed in
   `src/data/blogPosts.ts`. Each gets its own address and sitemap entry.
-- **Loma (chat):** Cloudflare Worker `lvts-loma` calling Claude; key stored as
-  the Worker secret `ANTHROPIC_API_KEY`. Shared answers in Supabase
-  (`loma_conversations`).
+- **Loma (chat):** Cloudflare Worker `lvts-loma` calling Claude, now kept in
+  `workers/loma/` and deployed by `.github/workflows/loma-server.yml`; key stored
+  as the Worker secret `ANTHROPIC_API_KEY`. Visitors can attach photos, PDFs,
+  Word/Excel/PowerPoint and text files (up to 50 MB each, stored in Claude's Files
+  API for 24 hours), and minimize the chat. The privacy note is behind a small
+  "Privacy" link under the message box. Shared answers in
+  Supabase (`loma_conversations`); conversations with files are never saved there.
 
 ## Owner decisions on record
 
 - **Keep the Activation page as it is.** Don't change or remove it.
 - **Keep MediTrack** in the menu and in Google. It will store records in
   accounts once the database exists (below).
-- **Keep Ask LvTS.** It will grow into the accounts platform (below).
+- **Keep Loma (formerly Ask LvTS).** It will grow into the accounts platform (below).
 - LinkedIn certificates were removed from the site on purpose.
 - The SEO tool, the Whiteboard and the client-site portfolio were removed on purpose.
   Don't add client sites to the website.
 - Blog posts are reviewed and approved by the owner before going live.
 
-## Next: accounts, memory and uploads (Ask LvTS, then MediTrack)
+## Next: accounts, memory and uploads (Loma, then MediTrack)
 
-Goal: people sign in on Ask LvTS; Loma remembers each person; they can upload
+Goal: people sign in on the Loma page; Loma remembers each person; they can upload
 photos, PDFs, documents and videos; LvTS can later host accounts for customers.
 
 Proposed stack (services already in use):

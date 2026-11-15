@@ -58,10 +58,17 @@ export const ROUTES: PageRoute[] = [
     heading: 'IT services in Suva, Fiji',
   },
   {
-    id: 'ask', label: 'Ask LvTS', slug: 'ask',
-    title: 'Ask LvTS: Free Tech Help Chat | LomaVata Tech Services',
-    description: "Chat with Loma, LvTS's free assistant, for quick answers about PC and laptop repairs, Windows 11 problems, prices and our services in Fiji.",
-    heading: 'Ask LvTS: free tech help chat',
+    id: 'ask', label: 'Loma', slug: 'loma',
+    title: 'Loma: Free AI Tech Help Chat for Fiji | LvTS',
+    description: "Chat with Loma, LvTS's free AI assistant: ask about PC and laptop problems, Windows, prices and services, or attach a photo, PDF or document.",
+    heading: 'Loma: free AI tech help chat',
+  },
+  {
+    // The page's old address (Ask LvTS): opens Loma.
+    id: 'ask-old', label: 'Ask LvTS', slug: 'ask', aliasOf: 'ask',
+    title: 'Ask LvTS is now Loma | LvTS',
+    description: "Ask LvTS is now Loma, LvTS's free AI assistant for tech help in Fiji. Ask a question or attach a photo, PDF or document.",
+    heading: 'Ask LvTS is now Loma',
   },
   {
     id: 'rewards', label: 'Rewards', slug: 'rewards',

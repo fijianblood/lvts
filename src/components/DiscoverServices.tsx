@@ -70,7 +70,7 @@ export default function DiscoverServices({ onNav }: { onNav: (p: string) => void
           </a>
           <a href={hrefFor('ask')} target="_blank" rel="noopener noreferrer"
             style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#fff', border: '1.5px solid rgba(37,99,235,0.3)', color: '#2563eb', padding: '0.85rem 2rem', borderRadius: 10, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: '0.95rem', textDecoration: 'none' }}>
-            💬 Ask LvTS
+            💬 Chat with Loma
           </a>
         </div>
       </div>

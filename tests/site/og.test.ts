@@ -20,7 +20,7 @@ test('no leftover preview images for pages that no longer exist', () => {
 
 test('old addresses open their page (or a tab of it), point Google at it and stay out of the sitemap', () => {
   const aliases = ROUTES.filter((r) => r.aliasOf);
-  assert.deepEqual(aliases.map((r) => r.id).sort(), ['little-chef', 'seo', 'whiteboard']);
+  assert.deepEqual(aliases.map((r) => r.id).sort(), ['ask-old', 'little-chef', 'seo', 'whiteboard']);
   for (const a of aliases) {
     const target = routeById(a.aliasOf as string);
     assert.ok(target && !target.aliasOf, `${a.id} points at a real page`);

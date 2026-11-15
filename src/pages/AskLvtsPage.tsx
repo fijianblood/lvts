@@ -1,11 +1,16 @@
-import { useEffect, useRef } from 'react';
-import { Send, Sparkles, RotateCcw } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Sparkles, RotateCcw, Upload } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { type ChatMessage, SUGGESTED_PROMPTS, markdownComponents } from '../lib/lvtsChat';
 import { useLvtsChat } from '../lib/useLvtsChat';
+import ChatComposer, { BubbleFiles } from '../components/ChatComposer';
+import { dropProps, useAttachments } from '../lib/useAttachments';
+import LomaRoadmap from '../components/LomaRoadmap';
 
 export default function AskLvtsPage() {
   const { messages, input, setInput, isTyping, busy, handleSend, resetChat } = useLvtsChat(true);
+  const files = useAttachments();
+  const [dragOver, setDragOver] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -25,17 +30,18 @@ export default function AskLvtsPage() {
 
       <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center', marginBottom: '2rem', position: 'relative' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#7c3aed', marginBottom: '0.75rem' }}>
-          <Sparkles size={14} /> Loma
+          <Sparkles size={14} /> LvTS AI assistant
         </div>
         <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(2rem,5vw,3.2rem)', color: '#0f172a', lineHeight: 1.1, marginBottom: '1rem' }}>
-          Ask <span className="grad-text">LvTS</span>
+          <span className="grad-text">Loma</span>
         </h1>
         <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: 1.75 }}>
-          PC & laptop repairs, Windows 11 troubleshooting, websites, or our online store — ask away, or get straight through to a real person on WhatsApp.
+          Ask about PC and laptop problems, Windows, websites or our store, or attach a photo, screenshot, PDF or document and ask about it. A real person is always on WhatsApp too.
         </p>
       </div>
 
       <div
+        {...dropProps(files.addFiles, setDragOver)}
         style={{
           maxWidth: 700, margin: '0 auto', display: 'flex', flexDirection: 'column',
           height: '65vh', minHeight: 480, maxHeight: 720,
@@ -57,7 +63,7 @@ export default function AskLvtsPage() {
           </div>
           {messages.length > 0 && (
             <button
-              onClick={() => { resetChat(); inputRef.current?.focus(); }}
+              onClick={() => { resetChat(); files.clear(); inputRef.current?.focus(); }}
               aria-label="Ask another question"
               style={{
                 display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#f8fafc',
@@ -92,44 +98,25 @@ export default function AskLvtsPage() {
           )}
         </div>
 
+        {dragOver && (
+          <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: 2, background: 'rgba(37,99,235,0.12)', border: '3px dashed #2563eb', borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#fff', padding: '0.8rem 1.2rem', borderRadius: 12, fontWeight: 700, color: '#1d4ed8' }}>
+              <Upload size={18} /> Drop files to ask Loma about them
+            </div>
+          </div>
+        )}
+
         {/* Input bar */}
-        <form
-          onSubmit={e => { e.preventDefault(); handleSend(input); }}
-          style={{ display: 'flex', gap: '0.6rem', padding: '0.9rem 1rem', borderTop: '1px solid #f1f5f9', flexShrink: 0, background: '#fff' }}
-        >
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder="Type a message…"
-            disabled={busy}
-            style={{
-              flex: 1, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12,
-              padding: '0.7rem 1rem', fontSize: '0.9rem', color: '#0f172a', outline: 'none',
-              fontFamily: "'Space Grotesk',sans-serif", transition: 'border-color 0.2s, box-shadow 0.2s',
-            }}
-            onFocus={e => { e.currentTarget.style.borderColor = '#7c3aed'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.15)'; }}
-            onBlur={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.boxShadow = 'none'; }}
-          />
-          <button
-            type="submit"
-            disabled={busy || !input.trim()}
-            aria-label="Send"
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', width: 42, height: 42, borderRadius: 12, flexShrink: 0,
-              background: input.trim() && !busy ? 'linear-gradient(135deg,#2563eb,#7c3aed)' : '#e2e8f0',
-              border: 'none', cursor: input.trim() && !busy ? 'pointer' : 'default', transition: 'opacity 0.2s',
-            }}
-          >
-            <Send size={17} color={input.trim() && !busy ? '#fff' : '#94a3b8'} />
-          </button>
-        </form>
+        <div style={{ borderTop: '1px solid #f1f5f9', flexShrink: 0, background: '#fff', paddingBottom: '0.8rem' }}>
+          <ChatComposer input={input} setInput={setInput} busy={busy} onSend={(t, a) => handleSend(t, a)} files={files} inputRef={inputRef} fontSize="0.9rem" />
+        </div>
       </div>
 
       <p style={{ maxWidth: 700, margin: '0.9rem auto 0', textAlign: 'center', fontSize: '0.72rem', color: '#94a3b8' }}>
-        This assistant answers common questions instantly — for anything else, WhatsApp <a href="https://wa.me/6797466941" target="_blank" rel="noopener noreferrer" style={{ color: '#7c3aed', fontWeight: 600 }}>746 6941</a> or call 833 1088.
+        Loma answers instantly, day and night — for anything else, WhatsApp <a href="https://wa.me/6797466941" target="_blank" rel="noopener noreferrer" style={{ color: '#7c3aed', fontWeight: 600 }}>746 6941</a> or call 833 1088.
       </p>
+
+      <LomaRoadmap />
 
       <style>{`
         @keyframes lvts-typing-bounce {
@@ -164,6 +151,7 @@ function Bubble({ message }: { message: ChatMessage }) {
           whiteSpace: useMarkdown ? 'normal' : 'pre-wrap', wordBreak: 'break-word',
         }}
       >
+        {message.files && <BubbleFiles files={message.files} />}
         {useMarkdown ? (
           <div className="lvts-md">
             <ReactMarkdown components={markdownComponents}>{message.text}</ReactMarkdown>
