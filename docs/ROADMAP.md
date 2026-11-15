@@ -69,6 +69,12 @@ Steps:
 Before opening to the public: privacy policy and terms, malware checks on
 uploads, a way to report content, storage and message limits, and backups.
 
+Decided (15 Nov 2026): accounts for the owner only at first, to test; sign in
+with an email link; a new Supabase project (the owner is creating it). The
+database setup is ready in `supabase/migrations/001_loma_accounts.sql`
+(sign-ups limited to `allowed_emails`, owner-only row level security on every
+table).
+
 Open questions for the owner:
 
 - Who gets accounts first (owner only, customers, everyone)?
