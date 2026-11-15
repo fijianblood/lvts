@@ -27,6 +27,15 @@ export interface BlogPost {
 
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'one-letter-typosquat-attack',
+    title: 'One missing letter: how a fake activation site infected PCs with malware',
+    seoTitle: 'One Missing Letter: How a Fake MAS Site Spread Malware | LvTS',
+    description: 'Step by step: how a lookalike web address turned a popular Windows activation command into a malware loader, cryptominers and a remote-access trojan.',
+    date: '2026-11-15',
+    author: 'Josese Sahib',
+    tags: ['Security', 'Malware', 'Typosquatting'],
+  },
+  {
     slug: 'windows-activators-risks',
     title: 'Windows activation scripts: how they work, and the risks the tutorials don’t mention',
     seoTitle: 'Windows Activators Explained: the Real Risks | LvTS',

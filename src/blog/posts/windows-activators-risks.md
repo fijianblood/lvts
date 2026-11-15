@@ -28,7 +28,7 @@ That's quick, and it's exactly what makes it risky:
 
 In December 2025, attackers registered a web address one letter different from the genuine MAS address (`get[.]activate[.]win`, missing a "d"). People who typed or copied the wrong one ran a malicious PowerShell script instead. Researchers reported it installed a malware loader called **Cosmali Loader**, linked to cryptominers and a remote-access trojan. [BleepingComputer reported it](https://www.bleepingcomputer.com/news/security/fake-mas-windows-activation-domain-used-to-spread-powershell-malware/), and victims discussed it [on MalwareTips](https://malwaretips.com/threads/fake-mas-windows-activation-domain-used-to-spread-powershell-malware.138889/).
 
-One missing letter, and the PC was handed to criminals, with administrator rights the victim gave them.
+One missing letter, and the PC was handed to criminals, with administrator rights the victim gave them. [Read our step-by-step breakdown of this attack](../one-letter-typosquat-attack/).
 
 ## Risk 2: you can't check what ran
 
