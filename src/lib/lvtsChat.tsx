@@ -1,10 +1,18 @@
 import { LVTS_KNOWLEDGE } from '../data/lvtsKnowledge';
 
+/** A file shown on a visitor's chat bubble. */
+export interface ChatFile {
+  name: string;
+  kind: 'image' | 'pdf' | 'office' | 'text' | 'unsupported';
+  previewUrl?: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'bot';
   text: string;
   streaming?: boolean;
+  files?: ChatFile[];
 }
 
 export const WHATSAPP_URL = 'https://wa.me/6797466941';

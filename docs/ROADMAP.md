@@ -20,9 +20,11 @@ Last updated: 15 November 2026.
   `python3 tools/og/make_og.py`. Run it after adding a page or blog post.
 - **Blog:** posts are Markdown in `src/blog/posts/`, listed in
   `src/data/blogPosts.ts`. Each gets its own address and sitemap entry.
-- **Loma (chat):** Cloudflare Worker `lvts-loma` calling Claude; key stored as
-  the Worker secret `ANTHROPIC_API_KEY`. Shared answers in Supabase
-  (`loma_conversations`).
+- **Loma (chat):** Cloudflare Worker `lvts-loma` calling Claude, now kept in
+  `workers/loma/` and deployed by `.github/workflows/loma-server.yml`; key stored
+  as the Worker secret `ANTHROPIC_API_KEY`. Visitors can attach photos, PDFs,
+  Word/Excel/PowerPoint and text files, and minimize the chat. Shared answers in
+  Supabase (`loma_conversations`); conversations with files are never saved there.
 
 ## Owner decisions on record
 

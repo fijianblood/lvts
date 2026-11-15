@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { type ChatMessage, WELCOME, findAnswer, uid, LVTS_KNOWLEDGE_SUMMARY } from './lvtsChat';
+import { type ApiBlock, type ApiMessage, fitHistory, hasFiles, toTextOnly } from './chatPayload';
+import type { Attachment } from './chatFiles';
 
 const WORKER_URL = 'https://lvts-loma.lomavatatechfiji.workers.dev/';
 const LEARNED_KEY = 'lvts_loma_learned_v1';
@@ -122,23 +124,43 @@ async function buildKnowledgeSummary(currentQuestion: string = ''): Promise<stri
 }
 
 // ── Claude via Worker ─────────────────────────────────────────────────────────
-async function askClaude(
-  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>,
-  knowledge: string
-): Promise<string> {
+/** A problem the Worker explained (for example a file Claude couldn't read). Shown to the visitor. */
+class WorkerError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
+async function postToWorker(messages: unknown, knowledge: string): Promise<string> {
   const response = await fetch(WORKER_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages: conversationHistory, knowledge }),
+    body: JSON.stringify({ messages, knowledge }),
   });
-  if (!response.ok) throw new Error(`Worker error: ${response.status}`);
-  const data = await response.json();
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new WorkerError(response.status, data?.error?.message ?? `Worker error: ${response.status}`);
   const content = data?.content;
   if (Array.isArray(content)) {
     const textBlock = content.find((b: { type: string }) => b.type === 'text');
     if (textBlock?.text) return textBlock.text;
   }
   throw new Error('No text in response');
+}
+
+async function askClaude(history: ApiMessage[], knowledge: string): Promise<string> {
+  const fitted = fitHistory(history);
+  try {
+    return await postToWorker(fitted, knowledge);
+  } catch (err) {
+    // The Worker before file support refuses anything but plain text ("No messages provided").
+    // Send the same conversation as text: text files still work, images and PDFs get a note.
+    if (err instanceof WorkerError && err.status === 400 && /No messages provided/.test(err.message) && hasFiles(fitted)) {
+      return postToWorker(toTextOnly(fitted), knowledge);
+    }
+    throw err;
+  }
 }
 
 // ── Main hook ─────────────────────────────────────────────────────────────────
@@ -148,7 +170,9 @@ export function useLvtsChat(autoWelcome: boolean) {
   const [isTyping, setIsTyping] = useState(false);
   const hasWelcomed = useRef(false);
   const busy = isTyping || messages.some(m => m.streaming);
-  const historyRef = useRef<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
+  const historyRef = useRef<ApiMessage[]>([]);
+  // Once a visitor shares a file, nothing from this conversation is saved to Loma's memory.
+  const sharedFilesRef = useRef(false);
 
   function streamMessage(fullText: string, initialDelay = 0) {
     const id = uid();
@@ -183,28 +207,44 @@ export function useLvtsChat(autoWelcome: boolean) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoWelcome]);
 
-  async function handleSend(text: string) {
+  async function handleSend(text: string, attachments: Attachment[] = []) {
     const trimmed = text.trim();
-    if (!trimmed || busy) return;
-    setMessages(prev => [...prev, { id: uid(), role: 'user', text: trimmed }]);
+    const files = attachments.filter(a => a.status === 'ready' && a.block);
+    if ((!trimmed && !files.length) || busy) return;
+    const question = trimmed || (files.length > 1 ? 'Please look at these files.' : 'Please look at this file.');
+    setMessages(prev => [...prev, {
+      id: uid(), role: 'user', text: trimmed,
+      files: files.length ? files.map(f => ({ name: f.name, kind: f.kind, previewUrl: f.previewUrl })) : undefined,
+    }]);
     setInput('');
     setIsTyping(true);
-    historyRef.current.push({ role: 'user', content: trimmed });
+    if (files.length) sharedFilesRef.current = true;
+    const content: string | ApiBlock[] = files.length
+      ? [...files.map(f => f.block as ApiBlock), { type: 'text', text: question }]
+      : question;
+    historyRef.current.push({ role: 'user', content });
     if (historyRef.current.length > 10) {
       historyRef.current = historyRef.current.slice(-10);
     }
     try {
-      const knowledge = await buildKnowledgeSummary(trimmed);
+      const knowledge = await buildKnowledgeSummary(question);
       const answer = await askClaude(historyRef.current, knowledge);
       historyRef.current.push({ role: 'assistant', content: answer });
-      const keywords = saveLearnedEntry(trimmed, answer);
-      await saveToSupabase(trimmed, answer, keywords);
+      // Files can be private: conversations with them are never added to Loma's shared memory.
+      if (!sharedFilesRef.current) {
+        const keywords = saveLearnedEntry(question, answer);
+        await saveToSupabase(question, answer, keywords);
+      }
       streamMessage(answer, 0);
     } catch (err) {
       console.warn('Claude unavailable, falling back:', err);
-      const fallback = findAnswer(trimmed);
-      historyRef.current.push({ role: 'assistant', content: fallback });
-      streamMessage(fallback, 0);
+      const reply = files.length
+        ? (err instanceof WorkerError
+            ? `Sorry, I couldn't read that: ${err.message}. You can also send it to LvTS on [WhatsApp](https://wa.me/6797466941).`
+            : "Sorry, I couldn't read your file just now. Please try again in a moment, or send it to LvTS on [WhatsApp](https://wa.me/6797466941).")
+        : findAnswer(question);
+      historyRef.current.push({ role: 'assistant', content: reply });
+      streamMessage(reply, 0);
     }
   }
 
@@ -213,6 +253,7 @@ export function useLvtsChat(autoWelcome: boolean) {
     setInput('');
     setIsTyping(false);
     historyRef.current = [];
+    sharedFilesRef.current = false;
     streamMessage(WELCOME, 200);
   }
 

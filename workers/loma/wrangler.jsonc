@@ -1,0 +1,25 @@
+// Loma, the LvTS chat assistant (src/index.ts). Deployed by
+// .github/workflows/loma-server.yml when this folder changes on main.
+// A .jsonc file on purpose: Wrangler looks for wrangler.jsonc up the folders,
+// so this one wins over the website's wrangler.jsonc in the repo's top folder.
+{
+  // The same name as the Worker the site already calls, so its address
+  // (lvts-loma.lomavatatechfiji.workers.dev) and its saved secret stay the same.
+  "name": "lvts-loma",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "vars": {
+    // The Claude model Loma answers with.
+    "LOMA_MODEL": "claude-haiku-5-5"
+  },
+
+  // Logs in the Cloudflare dashboard (Workers → lvts-loma → Observability).
+  "observability": {
+    "logs": { "enabled": true, "head_sampling_rate": 1, "invocation_logs": true, "persist": true }
+  }
+
+  // Secret (already saved on the Worker; never committed):
+  //   ANTHROPIC_API_KEY - the Claude API key
+}
