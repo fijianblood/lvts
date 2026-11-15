@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { Thermometer, Wind, Gauge, Power, Wrench, Sparkles, Droplets, Activity, MessageCircle, Phone, AlertTriangle, HelpCircle } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Thermometer, Wind, Gauge, Power, Wrench, Sparkles, Droplets, Activity, MessageCircle, Phone, AlertTriangle, HelpCircle, Box, Maximize2 } from 'lucide-react';
 import { CONTACT, openWhatsApp } from '../data/contact';
 
 // The PS5 service at the top of the Services page, with a clip of a PS5 on the LvTS bench
@@ -50,6 +50,67 @@ function BenchVideo() {
       </video>
       <figcaption style={{ textAlign: 'center', fontSize: '0.78rem', color: '#94a3b8', marginTop: '0.6rem' }}>A PS5 on our bench in Raiwai, Suva</figcaption>
     </figure>
+  );
+}
+
+/**
+ * The owner's interactive 3D PS5 teardown map (public/services/ps5-repair-map.html, a standalone page
+ * using three.js from jsDelivr). It loads only when someone taps the preview, so the Services page
+ * stays light on phones.
+ */
+function RepairMap() {
+  const [live, setLive] = useState(false);
+  const base = import.meta.env.BASE_URL;
+  const src = `${base}services/ps5-repair-map.html`;
+  return (
+    <section id="ps5-3d" style={{ padding: '70px 1.5rem', background: '#0b1020', color: '#fff' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', color: '#93c5fd', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '0.6rem' }}>
+            <Box size={14} /> Interactive 3D
+          </div>
+          <h2 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(1.6rem,4vw,2.2rem)', margin: '0 0 0.6rem' }}>See inside a PS5</h2>
+          <p style={{ color: '#cbd5e1', maxWidth: 640, margin: '0 auto', lineHeight: 1.7 }}>
+            Our PS5 Repair Map shows every part we take out, step by step: faceplates, fan, shield plate, main board and the liquid metal on the processor, with the screws for each step. Turn it, pull it apart and tap any part.
+          </p>
+        </div>
+        <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(148,163,184,0.3)', background: '#e3e6e2', height: live ? 'min(860px, 88vh)' : undefined }}>
+          {live ? (
+            <iframe src={src} title="PS5 Repair Map: interactive 3D model of the PS5" style={{ width: '100%', height: '100%', border: 0, display: 'block' }} />
+          ) : (
+            <button type="button" aria-label="Open the interactive 3D PS5 Repair Map"
+              onClick={() => {
+                // On phones the map's 3D area takes every swipe (to turn the console), so embedded it would
+                // trap the page scroll. Open it as its own page there instead; it links back to this page.
+                if (window.matchMedia('(max-width: 899px)').matches) window.location.href = src;
+                else setLive(true);
+              }}
+              style={{ display: 'block', width: '100%', padding: 0, border: 0, cursor: 'pointer', background: 'none', position: 'relative' }}>
+              <img src={`${base}services/ps5-repair-map.jpg`} alt="The PS5 Repair Map: a 3D PS5 pulled apart into its cases, fan, shield, main board and faceplates" width={749} height={590} loading="lazy"
+                style={{ width: '100%', height: 'auto', maxHeight: 520, objectFit: 'cover', display: 'block' }} />
+              <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: 'linear-gradient(180deg,rgba(11,16,32,0) 40%,rgba(11,16,32,0.55) 100%)' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#2563eb', color: '#fff', padding: '0.9rem 1.4rem', borderRadius: 12, fontWeight: 700, fontSize: '0.97rem', boxShadow: '0 10px 30px rgba(15,23,42,0.4)' }}>
+                  <Box size={18} /> Open the 3D map
+                </span>
+              </span>
+            </button>
+          )}
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '0.75rem', marginTop: '0.9rem', fontSize: '0.85rem', color: '#94a3b8' }}>
+          <span>Original PS5 with disc drive. Steps and screw counts from iFixit’s guides, credited inside.</span>
+          <a href={src} target="_blank" rel="noopener" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#93c5fd', fontWeight: 700, textDecoration: 'none' }}>
+            <Maximize2 size={15} /> Open full screen
+          </a>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '0.75rem 1rem', marginTop: '1.5rem', textAlign: 'center' }}>
+          <span style={{ color: '#cbd5e1' }}>42 screws on the shield alone, and liquid metal that can short the board. Rather we do it?</span>
+          <button type="button" onClick={() => openWhatsApp(BOOK_MESSAGE)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#16a34a', color: '#fff', border: 'none', padding: '0.75rem 1.2rem', borderRadius: 12, fontWeight: 700, fontSize: '0.93rem', cursor: 'pointer' }}>
+            <MessageCircle size={17} /> Book a PS5 service
+          </button>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -144,6 +205,8 @@ export default function Ps5Service() {
           </div>
         </div>
       </section>
+
+      <RepairMap />
     </>
   );
 }
