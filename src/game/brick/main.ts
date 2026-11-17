@@ -10,6 +10,7 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { buildWorld, type Box } from './world.ts';
 import { makeFigure, makeCar, makeTruck, type Vehicle } from './models.ts';
+import { buildGames, type Solid } from './games.ts';
 
 type Quality = 'low' | 'high';
 const QKEY = 'noqublox-brick-quality';
@@ -29,8 +30,15 @@ const CSS = `
 .nb-help b{color:#ffd23f}
 .nb-help small{display:block;font-weight:500;opacity:.85;margin-top:2px}
 .nb-q{position:absolute;right:12px;top:12px;background:rgba(19,37,74,.78);border:0;color:#fff;font:inherit;padding:8px 12px;border-radius:12px}
-.nb-act{position:absolute;right:16px;bottom:24px;background:#ffd23f;color:#13254a;border:0;font:800 16px system-ui,sans-serif;padding:14px 18px;border-radius:16px;box-shadow:0 4px 0 #c9a21a;display:none}
+.nb-act{position:absolute;right:16px;bottom:var(--act-b,24px);background:#ffd23f;color:#13254a;border:0;font:800 16px system-ui,sans-serif;padding:14px 18px;border-radius:16px;box-shadow:0 4px 0 #c9a21a;display:none}
 .nb-speed{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(19,37,74,.78);padding:6px 12px;border-radius:12px;display:none}
+.nb-jump{position:absolute;right:16px;bottom:24px;width:76px;height:76px;border-radius:50%;border:0;background:#2fae4a;color:#fff;font:800 15px system-ui,sans-serif;box-shadow:0 4px 0 #1f7a33}
+.nb-hud{position:absolute;right:12px;top:54px;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.nb-hud span{background:rgba(19,37,74,.78);padding:6px 10px;border-radius:12px;white-space:nowrap}
+.nb-toast{position:absolute;left:50%;top:34%;transform:translateX(-50%);background:#ffd23f;color:#13254a;font:800 16px system-ui,sans-serif;padding:10px 16px;border-radius:14px;text-align:center;max-width:86vw;opacity:0;transition:opacity .3s;pointer-events:none}
+.nb-riddle{position:absolute;left:50%;bottom:110px;transform:translateX(-50%);width:min(440px,90vw);background:rgba(91,42,134,.94);border-radius:16px;padding:12px 14px;display:none;text-align:center}
+.nb-riddle p{margin:0 0 10px;font-size:16px}
+.nb-riddle button{display:block;width:100%;margin:6px 0 0;border:0;border-radius:12px;padding:10px;font:700 15px system-ui,sans-serif;background:#fff;color:#13254a}
 .nb-joy{position:absolute;width:110px;height:110px;margin:-55px 0 0 -55px;border-radius:50%;background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.5);display:none;pointer-events:none}
 .nb-knob{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:rgba(255,210,63,.9)}
 .nb-load{position:absolute;inset:0;display:grid;place-items:center;background:#13254a;font:700 18px system-ui,sans-serif;color:#ffd23f}
@@ -102,6 +110,11 @@ export function startBrickTest(container: HTMLElement): void {
     return v;
   });
   let driving: Vehicle | null = null;
+  const games = buildGames(quality);
+  scene.add(games.group);
+  const solids: Solid[] = games.solids;
+  const phys = { vy: 0, onGround: true, jumpQ: 0, check: games.start.clone(), onStart: false, timer: -1, best: Infinity, solved: 0 };
+  try { phys.best = Number(localStorage.getItem('noqublox-hop-best')) || Infinity; } catch { /* storage blocked */ }
   let steerAngle = 0;
 
   // ── quality ──
@@ -138,7 +151,12 @@ export function startBrickTest(container: HTMLElement): void {
   ui.className = 'nb-ui';
   ui.innerHTML = `
     <div class="nb-help"><b>Noqublox</b> · brick test
-      <small>${touch ? 'Joystick to move · drag to look · tap Drive near a car' : 'WASD or arrows to move · drag to look · E to get in or out'}</small></div>
+      <small>${touch ? 'Joystick to move · drag to look · Jump button' : 'WASD or arrows to move · Space to jump · drag to look · E to get in or out'}</small>
+      <small>Games: Hop &amp; Climb by the water (west) · find the 6 ❓ riddle posts</small></div>
+    <div class="nb-hud"><span class="nb-stars">❓ Riddles 0/6</span><span class="nb-time" style="display:none"></span></div>
+    <div class="nb-toast"></div>
+    <div class="nb-riddle"><p></p><button data-i="0"></button><button data-i="1"></button><button data-i="2"></button></div>
+    ${touch ? '<button class="nb-jump">Jump</button>' : ''}
     <button class="nb-q"></button>
     <button class="nb-act"></button>
     <div class="nb-speed"></div>
@@ -149,6 +167,39 @@ export function startBrickTest(container: HTMLElement): void {
   const speedEl = ui.querySelector<HTMLDivElement>('.nb-speed')!;
   const joy = ui.querySelector<HTMLDivElement>('.nb-joy')!;
   const knob = ui.querySelector<HTMLDivElement>('.nb-knob')!;
+  const starsEl = ui.querySelector<HTMLSpanElement>('.nb-stars')!;
+  const timeEl = ui.querySelector<HTMLSpanElement>('.nb-time')!;
+  const toastEl = ui.querySelector<HTMLDivElement>('.nb-toast')!;
+  const riddleEl = ui.querySelector<HTMLDivElement>('.nb-riddle')!;
+  const jumpBtn = ui.querySelector<HTMLButtonElement>('.nb-jump');
+  if (jumpBtn) {
+    ui.style.setProperty('--act-b', '112px');
+    jumpBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); phys.jumpQ = 0.18; });
+  }
+  let toastT = 0;
+  const toast = (msg: string, secs = 2.5) => {
+    toastEl.textContent = msg;
+    toastEl.style.opacity = '1';
+    toastT = secs;
+  };
+  // riddles
+  let openPost: (typeof games.posts)[number] | null = null;
+  const answer = (i: number) => {
+    const p = openPost;
+    if (!p || p.solved) return;
+    if (i === p.riddle.answer) {
+      p.solved = true;
+      p.sign.material = games.solvedMat;
+      phys.solved++;
+      starsEl.textContent = `⭐ Riddles ${phys.solved}/${games.posts.length}`;
+      riddleEl.style.display = 'none';
+      openPost = null;
+      toast(phys.solved === games.posts.length ? 'Vinaka! You solved every riddle! ⭐' : `Correct! It's ${p.riddle.options[i].toLowerCase()}. ⭐`);
+    } else {
+      toast('Not quite. Try again!', 1.6);
+    }
+  };
+  riddleEl.querySelectorAll('button').forEach((btn) => btn.addEventListener('click', () => answer(Number(btn.dataset.i))));
   const setQLabel = () => (qBtn.textContent = `Quality: ${quality === 'high' ? 'High' : 'Low'}`);
   setQLabel();
   qBtn.onclick = () => {
@@ -163,6 +214,8 @@ export function startBrickTest(container: HTMLElement): void {
   window.addEventListener('keydown', (e) => {
     keys.add(e.code);
     if (e.code === 'KeyE' || e.code === 'Enter') toggleVehicle();
+    if (e.code === 'Space') { phys.jumpQ = 0.18; e.preventDefault(); }
+    if (openPost && ['Digit1', 'Digit2', 'Digit3'].includes(e.code)) answer(Number(e.code.slice(5)) - 1);
   });
   window.addEventListener('keyup', (e) => keys.delete(e.code));
   window.addEventListener('blur', () => keys.clear());
@@ -244,6 +297,25 @@ export function startBrickTest(container: HTMLElement): void {
     }
     return false;
   };
+  // walking: low ledges (up to half a metre) are stepped onto, higher ones need a jump
+  const STEP = 0.5;
+  const walkBlocked = (x: number, z: number, feet: number) =>
+    blocked(x, z, 0.35) || solids.some((s) => hitBox(x, z, 0.35, s) && s.y1 > feet + STEP && s.y0 < feet + 1.7);
+  const carBlocked = (x: number, z: number, r: number, skip: Vehicle) =>
+    blocked(x, z, r, skip) || games.water.some((w) => hitBox(x, z, r, w)) || solids.some((s) => hitBox(x, z, r, s));
+  /** The floor under the feet: the street, or the top of a block that isn't too high to step onto. */
+  const standOn = (x: number, z: number, feet: number): { y: number; s: Solid | null } => {
+    let y = world.heightAt(x, z), on: Solid | null = null;
+    for (const s of solids) {
+      if (x > s.x0 - 0.15 && x < s.x1 + 0.15 && z > s.z0 - 0.15 && z < s.z1 + 0.15 && s.y1 <= feet + STEP && s.y1 > y) { y = s.y1; on = s; }
+    }
+    return { y, s: on };
+  };
+  const respawn = (msg: string) => {
+    player.pos.copy(phys.check);
+    phys.vy = 0;
+    toast(msg);
+  };
 
   // ── getting in and out ──
   const nearest = (): Vehicle | null => {
@@ -261,7 +333,7 @@ export function startBrickTest(container: HTMLElement): void {
       const rx = -Math.cos(v.yaw), rz = Math.sin(v.yaw);
       for (const side of [1, -1]) {
         const x = v.group.position.x + rx * side * (v.halfW + 0.7), z = v.group.position.z + rz * side * (v.halfW + 0.7);
-        if (!blocked(x, z, 0.35, v)) {
+        if (!blocked(x, z, 0.35, v) && !walkBlocked(x, z, world.heightAt(x, z))) {
           v.group.remove(fig.root);
           scene.add(fig.root);
           fig.sit(false);
@@ -294,7 +366,7 @@ export function startBrickTest(container: HTMLElement): void {
   // only buildings and long walls stop the camera, not posts and palms
   const camWalls = world.colliders.filter((b) => b.x1 - b.x0 > 1 || b.z1 - b.z0 > 1);
   if (new URLSearchParams(location.search).has('debug')) {
-    (window as unknown as Record<string, unknown>).__nb = { player, vehicles, toggleVehicle, setCam: (y: number, p: number) => { camYaw = y; camPitch = p; } };
+    (window as unknown as Record<string, unknown>).__nb = { player, phys, games, vehicles, toggleVehicle, setCam: (y: number, p: number) => { camYaw = y; camPitch = p; } };
   }
 
   const step = () => {
@@ -315,7 +387,7 @@ export function startBrickTest(container: HTMLElement): void {
       steerAngle += (target - steerAngle) * Math.min(1, dt * 8);
       const yaw = v.yaw + (v.speed / v.base) * Math.tan(steerAngle) * dt;
       const nx = v.group.position.x + Math.sin(yaw) * v.speed * dt, nz = v.group.position.z + Math.cos(yaw) * v.speed * dt;
-      if (circles(v, nx, nz, yaw).some(([cx, cz]) => blocked(cx, cz, v.halfW, v))) {
+      if (circles(v, nx, nz, yaw).some(([cx, cz]) => carBlocked(cx, cz, v.halfW, v))) {
         v.speed *= -0.25;
       } else {
         v.group.position.x = nx;
@@ -331,6 +403,8 @@ export function startBrickTest(container: HTMLElement): void {
       player.pos.copy(v.group.position);
       if (t - lastDrag > 1.5 && v.speed > -1) camYaw += Math.atan2(Math.sin(v.yaw - camYaw), Math.cos(v.yaw - camYaw)) * Math.min(1, dt * 2.5);
       speedEl.style.display = 'block';
+      riddleEl.style.display = 'none';
+      openPost = null;
       speedEl.textContent = `${v.name} · ${Math.round(Math.abs(v.speed) * 3.6)} km/h`;
       actBtn.style.display = Math.abs(v.speed) < 2 ? 'block' : 'none';
       actBtn.textContent = 'Get out';
@@ -342,12 +416,70 @@ export function startBrickTest(container: HTMLElement): void {
       if (len > 0.05) {
         speed = 4.2 * Math.min(1, len);
         const dx = (mx / len) * speed * dt, dz = (mz / len) * speed * dt;
-        if (!blocked(player.pos.x + dx, player.pos.z, 0.35)) player.pos.x += dx;
-        if (!blocked(player.pos.x, player.pos.z + dz, 0.35)) player.pos.z += dz;
+        if (!walkBlocked(player.pos.x + dx, player.pos.z, player.pos.y)) player.pos.x += dx;
+        if (!walkBlocked(player.pos.x, player.pos.z + dz, player.pos.y)) player.pos.z += dz;
         const want = Math.atan2(mx, mz);
         player.yaw += Math.atan2(Math.sin(want - player.yaw), Math.cos(want - player.yaw)) * Math.min(1, dt * 10);
       }
-      player.pos.y += (world.heightAt(player.pos.x, player.pos.z) - player.pos.y) * Math.min(1, dt * 14);
+      // jumping and falling
+      phys.jumpQ = Math.max(0, phys.jumpQ - dt);
+      if (phys.jumpQ > 0 && phys.onGround) { phys.vy = 8.5; phys.onGround = false; phys.jumpQ = 0; }
+      phys.vy -= 22 * dt;
+      player.pos.y += phys.vy * dt;
+      const floor = standOn(player.pos.x, player.pos.z, player.pos.y);
+      if (player.pos.y <= floor.y) {
+        player.pos.y = floor.y;
+        phys.vy = 0;
+        phys.onGround = true;
+      } else if (player.pos.y - floor.y > 0.05) phys.onGround = false;
+      // Hop & Climb
+      const on = phys.onGround ? floor.s : null;
+      if (phys.onGround && player.pos.y < 0.1 && games.water.some((w) => hitBox(player.pos.x, player.pos.z, 0.01, w))) respawn('Splash! Back to the checkpoint.');
+      if (on?.kind === 'start') {
+        phys.onStart = true;
+        phys.check.copy(games.start);
+      } else if (phys.onStart && phys.onGround) {
+        phys.onStart = false;
+        if (on || player.pos.y > 0.3) phys.timer = 0;
+      }
+      if (on?.kind === 'check' && phys.check.y !== on.y1) {
+        phys.check.set((on.x0 + on.x1) / 2, on.y1, (on.z0 + on.z1) / 2);
+        toast('Checkpoint! ✅', 1.6);
+      }
+      if (on?.kind === 'finish' && phys.timer >= 0) {
+        const t2 = phys.timer;
+        phys.timer = -1;
+        const best = t2 < phys.best;
+        if (best) {
+          phys.best = t2;
+          try { localStorage.setItem('noqublox-hop-best', String(t2)); } catch { /* storage blocked */ }
+        }
+        phys.check.copy(games.start);
+        toast(`You made it! ⭐ ${t2.toFixed(1)} s${best ? ' · new best!' : ` · best ${phys.best.toFixed(1)} s`}`, 4);
+      }
+      const sp = games.spinner;
+      if (phys.onGround && Math.abs(player.pos.y - sp.top) < 0.2) {
+        const a = sp.bar.rotation.y, ex = Math.cos(a) * sp.half, ez = -Math.sin(a) * sp.half;
+        const px = player.pos.x - sp.cx, pz = player.pos.z - sp.cz;
+        const t3 = THREE.MathUtils.clamp((px * ex + pz * ez) / (sp.half * sp.half), -1, 1);
+        if ((px - ex * t3) ** 2 + (pz - ez * t3) ** 2 < 0.5 ** 2) respawn('Bonk! Jump over the spinning bar.');
+      }
+      if (phys.timer >= 0) {
+        phys.timer += dt;
+        timeEl.style.display = '';
+        timeEl.textContent = `⏱ ${phys.timer.toFixed(1)} s`;
+      } else timeEl.style.display = 'none';
+      // riddle posts
+      let post: typeof openPost = null;
+      for (const p of games.posts) if (!p.solved && (p.x - player.pos.x) ** 2 + (p.z - player.pos.z) ** 2 < 2.3 ** 2) post = p;
+      if (post !== openPost) {
+        openPost = post;
+        if (post) {
+          riddleEl.querySelector('p')!.textContent = post.riddle.q;
+          riddleEl.querySelectorAll('button').forEach((btn, i) => (btn.textContent = `${touch ? '' : `${i + 1}. `}${post.riddle.options[i]}`));
+        }
+        riddleEl.style.display = post ? 'block' : 'none';
+      }
       fig.root.position.copy(player.pos);
       fig.root.rotation.y = player.yaw;
       fig.animate(speed, dt);
@@ -356,6 +488,13 @@ export function startBrickTest(container: HTMLElement): void {
       actBtn.style.display = near ? 'block' : 'none';
       if (near) actBtn.textContent = touch ? `Drive the ${near.name}` : `Drive the ${near.name} (E)`;
     }
+
+    // moving parts and messages
+    games.spinner.bar.rotation.y += games.spinner.speed * dt;
+    games.star.rotation.y += dt * 1.5;
+    for (const p of games.posts) p.sign.rotation.y += dt * (p.solved ? 1.5 : 0.5);
+    if (toastT > 0 && (toastT -= dt) <= 0) toastEl.style.opacity = '0';
+    if (jumpBtn) jumpBtn.style.display = driving ? 'none' : 'block';
 
     // camera behind the player or vehicle, pulled in if a wall is in the way
     let dist = driving ? (driving.halfL > 2.5 ? 10 : 9) : 5.8;
