@@ -151,7 +151,9 @@ test('world: how a player is posed (sitting, on the ground, on a swing) goes to 
   // a pose is 1, 2 or 3; anything else is dropped (standing), and more than five numbers isn't a position
   assert.deepEqual(cleanPos([1, 2, 3, 0, 1]), [1, 2, 3, 0, 1]);
   assert.deepEqual(cleanPos([1, 2, 3, 0, 2]), [1, 2, 3, 0, 2]);
-  for (const bad of [0, 4, 1.5, -1]) assert.deepEqual(cleanPos([1, 2, 3, 0, bad]), [1, 2, 3, 0]);
+  // driving: 4, 5 and 6 are the blue car, the red car and the LvTS pickup
+  for (const car of [4, 5, 6]) assert.deepEqual(cleanPos([1, 2, 3, 0, car]), [1, 2, 3, 0, car]);
+  for (const bad of [0, 7, 1.5, -1]) assert.deepEqual(cleanPos([1, 2, 3, 0, bad]), [1, 2, 3, 0]);
   assert.equal(cleanPos([1, 2, 3, 0, 1, 1]), null);
   assert.equal(cleanPos([1, 2, 3, 0, Number.NaN]), null);
 });

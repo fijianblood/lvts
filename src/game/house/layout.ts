@@ -951,8 +951,7 @@ PROPS.push(
   box(2.25, B, -9.78, 11.2, B + 0.1, -9.7, C.pebble),
   box(2.5, B, -11.6, 4.0, B + 0.02, -10.9, '#2563eb'),                       // blue tarp on the lawn
 
-  // carport: the Ranger's footprint, bench and crate on the side wall, bins, fence panels
-  box(12.37, B, -5.25, 14.23, B + 1.9, 0.05, 'transparent', true),
+  // carport: bench and crate on the side wall, bins, fence panels (the LvTS pickup parked here is a vehicle: vehicles.ts)
   box(15.05, B, -1.4, 15.5, B + 0.45, 0.4, '#8a6a4a', true),
   box(15.0, B, 0.6, 15.52, B + 0.55, 1.2, '#7a4a2e', true),
   box(14.95, B, -6.5, 15.5, B + 1.0, -5.95, '#f2f2f0', true), box(14.6, B, -6.4, 14.92, B + 0.4, -6.0, '#1b1b1d'),
