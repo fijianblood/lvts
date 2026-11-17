@@ -1,11 +1,13 @@
-// People (and the cat), built from smooth shapes with joints so they can walk,
-// sit, crawl or lie down: rounded heads with eyes, brows, nose, lips and ears,
-// shaped hair, tapered limbs with elbows and knees, hands with fingers, and
-// shoes. They follow each person's look (colours, hair, build), but they are
-// made up from that description, not likenesses.
+// People (and the cat) as brick figures, with joints so they can walk, sit,
+// crawl or lie down: square heads with a printed face, block hair, a block
+// body, round arms with ball hands, block legs and shoes. They follow each
+// person's look (colours, hair, build), but they are made up from that
+// description, not likenesses.
 // A figure faces -z with its origin on the floor under its hips.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { coatOn } from './bricks.ts';
 import { paint, type Finish } from './models.ts';
 import { canvasTexture } from './textures.ts';
 import type { Look } from './characters.ts';
@@ -47,26 +49,6 @@ function ellipsoid(rx: number, ry: number, rz: number, w = 16, h = 12) {
 }
 
 /** A limb from its joint (y = 0) down to y = -len, round at both ends, narrowing from rTop to rBot. */
-function limb(rTop: number, rBot: number, len: number, seg = 10) {
-  const pts: THREE.Vector2[] = [];
-  const n = 4;
-  for (let i = 0; i <= n; i++) {                          // bottom cap
-    const a = (i / n) * (Math.PI / 2);
-    pts.push(new THREE.Vector2(rBot * Math.sin(a), -len + rBot - rBot * Math.cos(a)));
-  }
-  for (let i = 0; i <= n; i++) {                          // top cap
-    const a = Math.PI / 2 + (i / n) * (Math.PI / 2);
-    pts.push(new THREE.Vector2(Math.max(0, rTop * Math.sin(a)), -rTop - rTop * Math.cos(a)));
-  }
-  return new THREE.LatheGeometry(pts, seg);
-}
-
-/** A body of revolution from (radius, height) pairs, squashed front to back by `depth`. */
-function lathe(profile: [number, number][], depth: number, seg = 18) {
-  const g = new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(r, y)), seg);
-  g.scale(1, 1, depth);
-  return g;
-}
 
 const mix = (a: string, b: string, t: number) => '#' + new THREE.Color(a).lerp(new THREE.Color(b), t).getHexString();
 const shade = (c: string, t: number) => mix(c, '#000000', t);
@@ -93,179 +75,109 @@ function ipadScreen() {
 
 // ── the head ────────────────────────────────────────────────────────────────
 /** The head's surface: an egg shape whose lower half narrows to the jaw and chin. */
-function jaw(x: number, y: number, z: number): [number, number, number] {
-  if (y >= 0) return [x, y, z];
-  const t = Math.pow(-y, 1.4);
-  return [x * (1 - 0.2 * t), y, z * (1 - 0.08 * t)];
+
+// ── the brick figure ───────────────────────────────────────────────────────
+/** A rounded block, centred on its own middle. */
+function blockGeo(w: number, h: number, d: number, r = 0.02) {
+  return new RoundedBoxGeometry(w, h, d, 2, Math.min(r, w / 3, h / 3, d / 3));
 }
 
-function headShape(rx: number, ry: number, rz: number) {
-  const g = new THREE.SphereGeometry(1, 24, 16);
-  const p = g.attributes.position as THREE.BufferAttribute;
-  for (let i = 0; i < p.count; i++) {
-    const [x, y, z] = jaw(p.getX(i), p.getY(i), p.getZ(i));
-    p.setXYZ(i, x * rx, y * ry, z * rz);
-  }
-  g.computeVertexNormals();
+/** A round limb from its joint (y = 0) down to y = -len. */
+function rod(r: number, len: number) {
+  const g = new THREE.CylinderGeometry(r, r, len, 14);
+  g.translate(0, -len / 2, 0);
   return g;
 }
 
-/** Where the face's surface is (z, negative = front) at a point across (u, -1..1) and up (v, -1..1) the head. */
-function faceZ(u: number, v: number, rz: number) {
-  const s = Math.max(0, 1 - u * u - v * v);
-  const t = v < 0 ? Math.pow(-v, 1.4) : 0;
-  return -Math.sqrt(s) * (1 - 0.08 * t) * rz;
+const faces = new Map<string, THREE.Texture>();
+/** The printed face: eyes with a shine, brows and a smile, on a clear background. */
+function faceTexture(kind: Look['kind'], brow: string) {
+  const key = `${kind}|${brow}`;
+  let t = faces.get(key);
+  if (t) return t;
+  const big = kind !== 'adult';
+  t = canvasTexture(256, 256, (g, w) => {
+    g.clearRect(0, 0, w, w);
+    const ey = w * 0.47, ex = w * (big ? 0.16 : 0.14), rx = w * (big ? 0.055 : 0.045), ry = w * (big ? 0.075 : 0.062);
+    for (const s of [-1, 1]) {
+      g.fillStyle = '#17191d';
+      g.beginPath(); g.ellipse(w / 2 + s * ex, ey, rx, ry, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#ffffff';
+      g.beginPath(); g.arc(w / 2 + s * ex + rx * 0.3, ey - ry * 0.35, rx * 0.32, 0, Math.PI * 2); g.fill();
+      if (kind !== 'baby') {
+        g.strokeStyle = brow;
+        g.lineWidth = w * 0.03;
+        g.lineCap = 'round';
+        g.beginPath(); g.moveTo(w / 2 + s * (ex - rx * 1.1), ey - ry * 1.75); g.lineTo(w / 2 + s * (ex + rx * 1.1), ey - ry * 1.95); g.stroke();
+      }
+    }
+    g.strokeStyle = '#17191d';
+    g.lineWidth = w * 0.035;
+    g.lineCap = 'round';
+    g.beginPath(); g.arc(w / 2, w * 0.62, w * (big ? 0.11 : 0.12), 0.18 * Math.PI, 0.82 * Math.PI); g.stroke();
+  });
+  faces.set(key, t);
+  return t;
+}
+
+/** Hair as blocks on the head (`W` × `H` × `D`, bottom at y = 0, face toward -z). */
+function brickHair(head: THREE.Group, look: Look, W: number, H: number, D: number) {
+  const hair = look.hair, cap = H * 0.22;
+  const capOn = (w = W + 0.014, d = D + 0.014, h = cap) => add(head, blockGeo(w, h, d, 0.02), hair, 'hair', 0, H + h / 2 - 0.012, 0);
+  const fringe = () => add(head, blockGeo(W + 0.014, H * 0.12, D * 0.18, 0.012), hair, 'hair', 0, H - H * 0.06, -D / 2 + D * 0.07);
+  switch (look.hairStyle) {
+    case 'afro':
+      add(head, blockGeo(W * 1.32, H * 0.55, D * 1.28, 0.06), hair, 'hair', 0, H * 0.86, D * 0.05);
+      break;
+    case 'bun':
+      capOn(); fringe();
+      add(head, new THREE.SphereGeometry(H * 0.17, 14, 10), hair, 'hair', 0, H + cap + H * 0.08, D * 0.18);
+      break;
+    case 'ponytail':
+      capOn(); fringe();
+      add(head, blockGeo(W * 0.32, H * 0.62, D * 0.2, 0.03), hair, 'hair', 0, H * 0.62, D / 2 + D * 0.08);
+      break;
+    case 'long':
+      capOn(); fringe();
+      add(head, blockGeo(W + 0.03, H * 1.05, D * 0.16, 0.02), hair, 'hair', 0, H * 0.55, D / 2 + D * 0.04);
+      for (const s of [-1, 1]) add(head, blockGeo(W * 0.1, H * 0.85, D * 0.75, 0.015), hair, 'hair', s * (W / 2 + W * 0.04), H * 0.62, D * 0.1);
+      break;
+    case 'baby':
+      add(head, blockGeo(W * 0.4, H * 0.08, D * 0.35, 0.015), hair, 'hair', 0, H + H * 0.03, -D * 0.05);
+      break;
+    default:   // short and grey
+      capOn(); fringe();
+      if (look.streak) add(head, blockGeo(W * 0.16, cap + 0.004, D + 0.02, 0.01), look.streak, 'hair', W * 0.18, H + cap / 2 - 0.01, 0);
+  }
+  if (look.beard) {
+    add(head, blockGeo(W + 0.01, H * 0.34, D * 0.14, 0.015), hair, 'hair', 0, H * 0.17, -D / 2 + D * 0.05);
+    for (const s of [-1, 1]) add(head, blockGeo(W * 0.1, H * 0.6, D * 0.6, 0.012), hair, 'hair', s * (W / 2 + 0.004), H * 0.4, -D * 0.12);
+  }
+  if (look.earrings) for (const s of [-1, 1]) add(head, new THREE.SphereGeometry(W * 0.06, 10, 8), look.earrings, 'gloss', s * (W / 2 + W * 0.03), H * 0.32, 0);
 }
 
 /**
- * Part of a sphere around the head (hair or a beard): `cap` is how far down
- * from the crown it reaches (radians), `tilt` leans it back so it sits higher
- * at the forehead than at the nape. `cut` removes triangles (the mouth).
+ * A brick figure (LvTS's own design, not a LEGO minifigure): a square head with
+ * a printed face, a block body, round arms with ball hands, block legs and shoes.
+ * Same joints as before (hips, shoulders, elbows, knees), so every pose and the
+ * walk still work.
  */
-function shell(rx: number, ry: number, rz: number, opts: { cap?: number; from?: number; tilt?: number; arc?: [number, number]; jawFit?: boolean; cut?: (x: number, y: number, z: number) => boolean; seg?: [number, number] }) {
-  const from = opts.from ?? 0, cap = opts.cap ?? Math.PI / 2;
-  const [phiStart, phiLength] = opts.arc ?? [0, Math.PI * 2];
-  const [sw, sh] = opts.seg ?? [22, 12];
-  let g: THREE.BufferGeometry = new THREE.SphereGeometry(1, sw, sh, phiStart, phiLength, from, cap - from);
-  if (opts.jawFit) {
-    const p = g.attributes.position as THREE.BufferAttribute;
-    for (let i = 0; i < p.count; i++) { const [x, y, z] = jaw(p.getX(i), p.getY(i), p.getZ(i)); p.setXYZ(i, x, y, z); }
-  }
-  g.rotateX(opts.tilt ?? 0);
-  g.scale(rx, ry, rz);
-  if (opts.cut) {
-    g = g.toNonIndexed();
-    const p = g.attributes.position as THREE.BufferAttribute;
-    const keep: number[] = [];
-    for (let i = 0; i < p.count; i += 3) {
-      const cx = (p.getX(i) + p.getX(i + 1) + p.getX(i + 2)) / 3;
-      const cy = (p.getY(i) + p.getY(i + 1) + p.getY(i + 2)) / 3;
-      const cz = (p.getZ(i) + p.getZ(i + 1) + p.getZ(i + 2)) / 3;
-      if (!opts.cut(cx, cy, cz)) for (let k = 0; k < 3; k++) keep.push(p.getX(i + k), p.getY(i + k), p.getZ(i + k));
-    }
-    g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(keep, 3));
-  }
-  g.computeVertexNormals();
-  return g;
-}
-
-function buildHead(head: THREE.Group, look: Look, W: number, H: number, D: number) {
-  const baby = look.kind === 'baby', kid = look.kind === 'kid';
-  const rx = W / 2, ry = H / 2, rz = D / 2, cy = H / 2;
-  const skin = look.skin;
-  add(head, headShape(rx, ry, rz), skin, 'skin', 0, cy, 0);
-
-  // ears
-  for (const s of [-1, 1]) add(head, ellipsoid(W * 0.07, H * 0.13, D * 0.1, 8, 6), shade(skin, 0.04), 'skin', s * rx * 0.97, H * 0.47, D * 0.06);
-
-  // eyes: white, iris, pupil, set into the face, with brows above
-  const eyeU = baby ? 0.36 : 0.4, eyeV = baby ? -0.02 : 0.12;
-  const eR = W * (baby ? 0.085 : kid ? 0.08 : 0.072);
-  for (const s of [-1, 1]) {
-    const x = s * eyeU * rx, y = cy + eyeV * ry;
-    const z = faceZ(eyeU, eyeV, rz) + eR * 0.8;
-    add(head, ellipsoid(eR, eR, eR, 10, 8), '#f3eee6', 'gloss', x, y, z);
-    // iris and pupil: small caps on the front of the eyeball
-    add(head, shell(eR * 1.012, eR * 1.012, eR * 1.012, { cap: 0.64, tilt: -Math.PI / 2, seg: [12, 3] }), '#3a2416', 'gloss', x, y, z);
-    add(head, shell(eR * 1.02, eR * 1.02, eR * 1.02, { cap: 0.3, tilt: -Math.PI / 2, seg: [10, 2] }), '#0b0807', 'gloss', x, y, z);
-    // upper lid: a crescent of skin over the top of the eye
-    add(head, shell(eR * 1.07, eR * 1.0, eR * 1.07, { cap: 0.78, tilt: -0.55, seg: [12, 4] }), skin, 'skin', x, y, z);
-    if (!baby) {
-      const brow = new THREE.CapsuleGeometry(H * 0.013, W * 0.15, 3, 6);
-      brow.rotateZ(Math.PI / 2 + s * 0.12);
-      const bv = eyeV + 0.24;
-      add(head, brow, look.hairStyle === 'grey' ? '#8a8580' : shade(look.hair, 0.15), 'hair', s * eyeU * rx * 1.02, cy + bv * ry, faceZ(eyeU, bv, rz) - H * 0.006);
-    }
-  }
-
-  // nose
-  const nv = baby ? -0.2 : -0.14;
-  const nose = ellipsoid(W * (baby ? 0.07 : 0.075), H * (baby ? 0.06 : 0.1), D * 0.085, 10, 8);
-  add(head, nose, skin, 'skin', 0, cy + nv * ry, faceZ(0, nv, rz) + D * 0.025);
-  if (!baby) for (const s of [-1, 1]) add(head, ellipsoid(W * 0.035, H * 0.03, D * 0.04, 8, 6), shade(skin, 0.06), 'skin', s * W * 0.05, cy + (nv - 0.12) * ry, faceZ(0.1, nv - 0.12, rz) + D * 0.005);
-
-  // lips
-  const lip = mix(skin, '#7d3434', 0.32);
-  const mv = baby ? -0.42 : -0.44;
-  add(head, ellipsoid(W * (baby ? 0.09 : 0.13), H * 0.026, D * 0.045, 10, 6), lip, 'skin', 0, cy + mv * ry, faceZ(0, mv, rz) + D * 0.012);
-  add(head, ellipsoid(W * (baby ? 0.08 : 0.12), H * 0.03, D * 0.045, 10, 6), shade(lip, 0.05), 'skin', 0, cy + (mv - 0.11) * ry, faceZ(0, mv - 0.11, rz) + D * 0.016);
-
-  buildHair(head, look, rx, ry, rz, cy);
-
-  if (look.earrings) for (const s of [-1, 1]) add(head, new THREE.TorusGeometry(W * 0.045, W * 0.012, 6, 14), look.earrings, 'metal', s * rx * 1.0, H * 0.33, D * 0.06).rotation.y = Math.PI / 2;
-}
-
-function buildHair(head: THREE.Group, look: Look, rx: number, ry: number, rz: number, cy: number) {
-  const hair = look.hair;
-  const style = look.hairStyle;
-  const g = (geo: THREE.BufferGeometry, color = hair, x = 0, y = cy, z = 0) => add(head, geo, color, 'hair', x, y, z);
-
-  if (style === 'afro') {
-    const geo = shell(rx * 1.42, ry * 1.34, rz * 1.38, { cap: Math.PI * 0.62, tilt: 0.55 });
-    const p = geo.attributes.position as THREE.BufferAttribute;
-    for (let i = 0; i < p.count; i++) {                    // a soft, uneven surface
-      const k = 1 + 0.035 * Math.sin(p.getX(i) * 90) * Math.sin(p.getY(i) * 80 + p.getZ(i) * 70);
-      p.setXYZ(i, p.getX(i) * k, p.getY(i) * k, p.getZ(i) * k);
-    }
-    geo.computeVertexNormals();
-    g(geo, hair, 0, cy + ry * 0.24, rz * 0.12);
-  } else if (style === 'baby') {
-    g(shell(rx * 1.02, ry * 1.02, rz * 1.02, { cap: Math.PI * 0.4, tilt: 0.45 }));
-  } else {
-    const grey = style === 'grey';
-    const k = grey ? 1.035 : 1.06;
-    g(shell(rx * k * 1.02, ry * k, rz * k * 1.02, { cap: Math.PI * (style === 'long' ? 0.5 : 0.45), tilt: 0.5 }), hair, 0, cy + ry * 0.02, rz * 0.02);
-    if (style === 'bun') g(ellipsoid(rx * 0.5, rx * 0.46, rx * 0.46, 14, 10), hair, 0, cy + ry * 0.78, rz * 0.82);
-    if (style === 'ponytail') {
-      g(new THREE.TorusGeometry(rx * 0.16, rx * 0.05, 6, 12), shade(hair, 0.2), 0, cy + ry * 0.48, rz * 1.04).rotation.x = 0.4;
-      const tail = limb(rx * 0.2, rx * 0.1, ry * 1.25);
-      g(tail, hair, 0, cy + ry * 0.5, rz * 1.12).rotation.x = 0.25;
-    }
-    if (style === 'long') {
-      // worn down over the back to the shoulders, framing the face
-      const back = new THREE.CylinderGeometry(rx * 1.08, rx * 1.18, ry * 1.9, 20, 1, true, -1.95, 3.9);
-      back.scale(1, 1, rz / rx);
-      g(back, hair, 0, cy - ry * 0.45, rz * 0.12);
-      for (const s of [-1, 1]) g(limb(rx * 0.16, rx * 0.12, ry * 1.5), hair, s * rx * 0.94, cy + ry * 0.55, -rz * 0.1);
-    }
-    if (look.streak) for (const x of [-0.24, 0.2]) {
-      const st = new THREE.CapsuleGeometry(rx * 0.05, rz * 1.2, 3, 6);
-      st.rotateX(Math.PI / 2 - 0.25);
-      g(st, look.streak, rx * x, cy + ry * 0.98, rz * 0.12);
-    }
-  }
-
-  if (look.beard) {
-    // around the jaw and chin, leaving the lips clear; a moustache above them
-    const geo = shell(rx * 1.07, ry * 1.04, rz * 1.09, {
-      from: Math.PI * 0.52, cap: Math.PI * 0.97, arc: [Math.PI * 0.75, Math.PI * 1.5], jawFit: true,
-      cut: (x, y, z) => z < 0 && Math.abs(x) < rx * 0.26 && y > -ry * 0.62 && y < -ry * 0.3,
-    });
-    g(geo);
-    const mo = new THREE.CapsuleGeometry(ry * 0.035, rx * 0.34, 3, 6);
-    mo.rotateZ(Math.PI / 2);
-    g(mo, hair, 0, cy - ry * 0.32, faceZ(0, -0.32, rz) - rz * 0.02);
-  }
-}
-
-// ── the body ────────────────────────────────────────────────────────────────
-/** Build a person. Proportions follow the look's kind: adult, kid or baby. */
 export function buildFigure(look: Look, pose: FigurePose = 'stand', seat = 0.45): Rig {
   const H = look.height;
   const kid = look.kind === 'kid', baby = look.kind === 'baby';
-  const shin = baby ? 0.1 : (kid ? 0.23 : 0.245) * H;
-  const thigh = baby ? 0.1 : (kid ? 0.22 : 0.235) * H;
-  const torsoL = baby ? 0.2 : (kid ? 0.27 : 0.3) * H;
-  const neck = baby ? 0.012 : 0.03 * H;
-  const headH = baby ? 0.16 : (kid ? 0.16 : 0.13) * H;
-  const headW = baby ? 0.14 : (kid ? 0.125 : 0.1) * H;
-  const headD = baby ? 0.15 : (kid ? 0.145 : 0.12) * H;
-  const arm = baby ? 0.16 : (kid ? 0.37 : 0.38) * H;
-  const armW = baby ? 0.045 : 0.06 * H;
-  const torsoW = baby ? 0.15 : 0.23 * H * look.build;
-  const torsoD = baby ? 0.11 : 0.125 * H * Math.sqrt(look.build);
-  const legW = baby ? 0.06 : 0.08 * H * Math.min(1.15, look.build);
+  const shin = (baby ? 0.12 : kid ? 0.18 : 0.21) * H;
+  const thigh = (baby ? 0.12 : kid ? 0.17 : 0.2) * H;
+  const torsoL = (baby ? 0.3 : kid ? 0.27 : 0.29) * H;
+  const neck = (baby ? 0.01 : kid ? 0.02 : 0.025) * H;
+  const headH = (baby ? 0.3 : kid ? 0.26 : 0.2) * H;
+  const headW = (baby ? 0.3 : kid ? 0.26 : 0.21) * H;
+  const headD = (baby ? 0.28 : kid ? 0.25 : 0.2) * H;
+  const torsoW = (baby ? 0.32 : kid ? 0.27 : 0.26) * H * Math.sqrt(look.build);
+  const torsoD = (baby ? 0.2 : 0.14) * H * Math.sqrt(look.build);
+  const legW = torsoW * 0.47;
+  const armR = (baby ? 0.055 : 0.042) * H;
+  const upper = (baby ? 0.13 : 0.17) * H, fore = (baby ? 0.11 : 0.15) * H, handR = (baby ? 0.06 : 0.05) * H;
+  const arm = upper + fore + handR * 1.6;
   const hip = thigh + shin;
   const cloth: Finish = 'cloth';
 
@@ -273,64 +185,54 @@ export function buildFigure(look: Look, pose: FigurePose = 'stand', seat = 0.45)
   const body = group(root, 0, hip, 0);
   const torso = group(body);
 
-  // hips in the trouser colour, then the shirt: waist, chest, shoulders
-  const waist = baby ? 0.05 : 0.09 * H;
-  const r = torsoW / 2, depth = torsoD / torsoW;
-  const belly = Math.max(0, look.build - 1) * 0.9;
-  add(torso, lathe([[0, -0.03 * H], [r * 0.78, -0.028 * H], [r * 0.95, 0.01 * H], [r * 0.97, waist * 0.6], [r * 0.95, waist + 0.01]], depth), look.pants, cloth);
-  const shirt: [number, number][] = [
-    [r * 0.97, waist - 0.012], [r * (0.94 + belly), torsoL * 0.38], [r * (0.98 + belly * 0.4), torsoL * 0.6],
-    [r * 1.0, torsoL * 0.78], [r * 0.98, torsoL * 0.87], [r * 0.84, torsoL * 0.94], [r * 0.55, torsoL * 0.985], [r * 0.28, torsoL * 1.0], [0, torsoL * 1.0],
-  ];
-  add(torso, lathe(shirt, depth, 20), look.shirt, cloth);
-  if (!baby) add(torso, new THREE.TorusGeometry(headW * 0.24, headW * 0.045, 6, 16), shade(look.shirt, 0.08), cloth, 0, torsoL * 0.985, 0).rotation.x = Math.PI / 2;
+  // hips in the trouser colour, then the shirt, a little narrower at the shoulders
+  add(torso, blockGeo(torsoW, H * 0.07, torsoD * 0.96, 0.02), look.pants, cloth, 0, H * 0.025, 0);
+  const shirt = blockGeo(torsoW, torsoL - H * 0.06, torsoD, 0.03);
+  const sp = shirt.getAttribute('position') as THREE.BufferAttribute;
+  for (let i = 0; i < sp.count; i++) if (sp.getY(i) > 0) sp.setX(i, sp.getX(i) * (1 - 0.14 * (sp.getY(i) / ((torsoL - H * 0.06) / 2))));
+  add(torso, shirt, look.shirt, cloth, 0, H * 0.06 + (torsoL - H * 0.06) / 2, 0);
   if (look.print) {
-    const print = new THREE.Mesh(new THREE.PlaneGeometry(torsoW * 0.26, torsoL * 0.18), paint(look.print, { finish: cloth }));
-    print.position.set(0, torsoL * 0.64, -r * 0.985 * depth - 0.004);
+    const print = new THREE.Mesh(new THREE.PlaneGeometry(torsoW * 0.32, torsoL * 0.22), paint(look.print, { finish: cloth }));
+    print.position.set(0, torsoL * 0.62, -torsoD / 2 - 0.003);
     print.rotation.y = Math.PI;
     torso.add(print);
   }
-  // neck
-  add(torso, new THREE.CylinderGeometry(headW * 0.21, headW * 0.24, neck + 0.05, 12), look.skin, 'skin', 0, torsoL + neck / 2 - 0.01, headD * 0.04);
+  add(torso, new THREE.CylinderGeometry(headW * 0.22, headW * 0.24, neck + 0.04, 12), look.skin, 'skin', 0, torsoL + neck / 2 - 0.01, 0);
 
+  // the head: a block with the face printed on the front
   const head = group(torso, 0, torsoL + neck, 0);
-  buildHead(head, look, headW, headH, headD);
+  add(head, blockGeo(headW, headH, headD, 0.035), look.skin, 'skin', 0, headH / 2, 0);
+  const face = new THREE.Mesh(new THREE.PlaneGeometry(headW * 0.92, headH * 0.92), new THREE.MeshStandardMaterial({ map: faceTexture(look.kind, shade(look.hair, 0.15)), alphaTest: 0.5, roughness: 0.4 }));
+  face.position.set(0, headH * 0.5, -headD / 2 - 0.004);
+  face.rotation.y = Math.PI;
+  head.add(face);
+  brickHair(head, look, headW, headH, headD);
 
-  // arms: shoulder, short sleeve, upper arm, elbow, forearm, hand
-  const armY = torsoL - (baby ? 0.03 : 0.048 * H);
-  const upper = arm * 0.44, fore = arm * 0.37, hand = arm - upper - fore;
-  const rU = armW * 0.5, rF = armW * 0.42, rW = armW * 0.34;
+  // arms: round sleeves all the way down, then a ball hand
+  const armY = torsoL - armR * 1.3;
   const makeArm = (side: number) => {
-    const g = group(torso, side * (r * 0.96 + rU * 0.45), armY, 0);
-    // the sleeve's rounded top blends into the shoulder line
-    add(g, limb(rU * 1.1, rU * 1.07, upper * (baby ? 0.9 : 0.5)), look.shirt, cloth);
-    add(g, limb(rU, rF, upper + rF * 0.6), look.skin, 'skin');
+    const g = group(torso, side * (torsoW / 2 + armR * 0.8), armY, 0);
+    add(g, new THREE.SphereGeometry(armR * 1.08, 12, 10), look.shirt, cloth);
+    add(g, rod(armR, upper + armR * 0.3), look.shirt, cloth);
     const elbow = group(g, 0, -upper, 0);
-    add(elbow, limb(rF, rW, fore + rW), look.skin, 'skin');
-    const wrist = group(elbow, 0, -fore, 0);
-    buildHand(wrist, look.skin, hand, armW, side);
+    add(elbow, new THREE.SphereGeometry(armR, 12, 10), look.shirt, cloth);
+    add(elbow, rod(armR * 0.95, fore), look.shirt, cloth);
+    add(elbow, new THREE.SphereGeometry(handR, 14, 10), look.skin, 'skin', 0, -fore - handR * 0.6, 0);
     return { g, elbow };
   };
   const aR = makeArm(1), aL = makeArm(-1);
 
-  // legs: thigh, knee, shin (bare below shorts), shoe or bare foot
-  const footH = baby ? 0.03 : 0.045 * H, footL = baby ? 0.07 : (kid ? 0.16 : 0.15) * H;
-  const rT = legW * 0.6, rK = legW * 0.44, rA = legW * 0.3;
+  // legs: block thighs, knees, shins (bare below shorts) and a shoe that sticks out in front
+  const footH = (baby ? 0.03 : 0.055) * H, footL = legW * 1.35;
   const makeLeg = (side: number) => {
-    const g = group(body, side * (r - rT * 0.95), 0, 0);
-    add(g, limb(rT, rK * 1.05, thigh + rK), look.pants, cloth);
+    const g = group(body, side * (torsoW / 2 - legW / 2 - 0.003), 0, 0);
+    add(g, blockGeo(legW, thigh + 0.02, torsoD * 0.9, 0.025), look.pants, cloth, 0, -thigh / 2 + 0.01, 0);
     const knee = group(g, 0, -thigh, 0);
     const longLeg = look.longPants || baby;
-    if (longLeg) add(knee, limb(rK * 1.06, rA * 1.25, shin - footH * 0.4), look.pants, cloth);
-    else {
-      add(knee, new THREE.CylinderGeometry(rK * 1.18, rK * 1.12, thigh * 0.12, 12, 1, true), look.pants, cloth, 0, thigh * 0.02, 0);
-      add(knee, limb(rK, rA, shin - footH * 0.4), look.skin, 'skin');
-    }
+    const shinH = shin - footH;
+    add(knee, blockGeo(legW * 0.94, shinH + 0.02, torsoD * 0.82, 0.025), longLeg ? look.pants : look.skin, longLeg ? cloth : 'skin', 0, -shinH / 2 + 0.01, 0);
     const shoe = look.shoes ?? (baby ? look.pants : look.skin);
-    const bare = !look.shoes && !baby;
-    const foot = ellipsoid(legW * (bare ? 0.36 : 0.42), footH * 0.62, footL / 2, 14, 8);
-    add(knee, foot, shoe, bare ? 'skin' : 'matte', 0, -shin + footH * 0.55, -footL * 0.26);
-    if (!bare && !baby) add(knee, ellipsoid(legW * 0.44, footH * 0.2, footL * 0.52, 14, 6), shade(shoe, 0.35), 'matte', 0, -shin + footH * 0.12, -footL * 0.26);
+    add(knee, blockGeo(legW * 0.98, footH, footL, 0.02), shoe, look.shoes ? 'satin' : 'skin', 0, -shin + footH / 2, -(footL - torsoD * 0.82) / 2);
     return { g, knee };
   };
   const lR = makeLeg(1), lL = makeLeg(-1);
@@ -352,24 +254,6 @@ export function buildFigure(look: Look, pose: FigurePose = 'stand', seat = 0.45)
   }
   applyPose(rig, pose, seat);
   return rig;
-}
-
-/** A hand hanging from the wrist: palm, four fingers and a thumb toward the front. */
-function buildHand(wrist: THREE.Group, skin: string, len: number, armW: number, side: number) {
-  const palmL = len * 0.52, fingL = len * 0.5;
-  const w = armW * 0.78, t = armW * 0.3;
-  add(wrist, ellipsoid(t / 2, palmL / 2, w / 2, 10, 8), skin, 'skin', 0, -palmL / 2, 0);
-  const fr = w * 0.11;
-  for (let i = 0; i < 4; i++) {
-    const z = (-0.36 + i * 0.24) * w;
-    const f = limb(fr, fr * 0.85, fingL * (i === 0 || i === 3 ? 0.84 : 1), 6);
-    const m = add(wrist, f, skin, 'skin', 0, -palmL * 0.9, z);
-    m.rotation.x = 0.06 * (i - 1.5);
-    m.rotation.z = -side * 0.12;                          // fingers curl in toward the leg a little
-  }
-  const thumb = limb(fr * 1.15, fr, fingL * 0.75, 6);
-  const th = add(wrist, thumb, skin, 'skin', side * -t * 0.1, -palmL * 0.35, -w * 0.42);
-  th.rotation.x = 0.55;
 }
 
 export function applyPose(rig: Rig, pose: FigurePose, seat = 0.45) {
@@ -447,7 +331,10 @@ let baked: THREE.MeshStandardMaterial | null = null;
 /** Colour and roughness come from each vertex, so skin, cloth, hair and eyes share one material. */
 function bakedMaterial() {
   if (baked) return baked;
-  const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, side: THREE.DoubleSide });
+  // shiny plastic like the rest of Noqublox (the clear coat is skipped on phones)
+  const m = coatOn()
+    ? new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 1, metalness: 0, clearcoat: 0.45, clearcoatRoughness: 0.2, side: THREE.DoubleSide })
+    : new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, side: THREE.DoubleSide });
   m.onBeforeCompile = (sh) => {
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nattribute float rough;\nvarying float vRough;')

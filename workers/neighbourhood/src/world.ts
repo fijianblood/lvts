@@ -5,7 +5,8 @@
 // The messages (JSON). From a player:
 //   { t: 'join', who: { kind: 'family', id } | { kind: 'mine', look, id?, key? }, p: [x, y, z, yaw] }
 //   { t: 'm', p: [x, y, z, yaw, pose?] }   where I am now (a few times a second while moving); pose, when
-//                                          not standing: 1 sitting on a seat, 2 on the ground, 3 on a swing
+//                                          not standing: 1 sitting on a seat, 2 on the ground, 3 on a swing,
+//                                          4 to 6 driving the blue car, the red car or the LvTS pickup
 //   { t: 'c', text }                       say something
 //   { t: 'report', id, why }               report a player to LvTS
 // From the world:
@@ -45,8 +46,8 @@ export type ReportWhy = (typeof REPORT_WHY)[number];
 /** A player as everyone else sees them. `f` is the family member they play as; `l` their own character's look. */
 /** A position: x, y, z, facing, and how they're posed when they aren't standing (POSES). */
 export type Pos = [number, number, number, number] | [number, number, number, number, number];
-/** The poses a player can be in besides standing: sitting on a seat, sitting on the ground, on a swing. */
-export const POSES = 3;
+/** The poses a player can be in besides standing: sitting on a seat, sitting on the ground, on a swing, and driving the blue car, the red car or the LvTS pickup (4 to 6). */
+export const POSES = 6;
 export interface Pub { id: string; n: string; f?: string; l?: VisitorLook; p: Pos }
 
 /** What's kept with each connection, so the world can be rebuilt after the Durable Object sleeps. */

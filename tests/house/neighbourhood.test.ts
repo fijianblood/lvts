@@ -145,7 +145,8 @@ test('free roam: jumping clears fences and walls, but never the edge of the map,
   // with every door and gate shut, and the chores' places still locked
   const hop = reach('explore', [...visitors, ...PLACES.map(lockOBB)], WORLD_G, [14, 25], true, doorsShut);
   assert.equal(hop.any((x, z) => x < WORLD_EDGE.x0 || x > WORLD_EDGE.x1 || z < WORLD_EDGE.z0 || z > WORLD_EDGE.z1), false, 'jumped off the edge of the map');
-  for (const r of roamSolids().rects) assert.equal(hop.any(inside(r)), false, `jumped into the building at ${((r.x0 + r.x1) / 2).toFixed(0)}, ${((r.z0 + r.z1) / 2).toFixed(0)}`);
+  // (Hop & Climb's blocks and the riddle posts have tops: they're there to be climbed)
+  for (const r of roamSolids().rects.filter((q) => q.top === undefined)) assert.equal(hop.any(inside(r)), false, `jumped into the building at ${((r.x0 + r.x1) / 2).toFixed(0)}, ${((r.z0 + r.z1) / 2).toFixed(0)}`);
   for (const b of USP_BUILDINGS) for (const r of Object.values(uspFootprints(b))) assert.equal(hop.any(inside(r, 0.1)), false, `jumped into the USP block at ${b.x}, ${b.z}`);
   assert.equal(hop.any(templeBase), false, "jumped onto the temple's base");
   assert.equal(hop.any(masjidBuildings), false, 'jumped into the masjid');

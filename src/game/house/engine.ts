@@ -13,7 +13,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import {
   C, ROOMS, WALLS, DOORS, WINDOWS, PROPS, COLLECTIBLES, GOLDEN_SPOTS, SPAWN, EXIT_ZONE, POSTER, PROMO_SPOTS, SEATS, SWINGS,
   BARRIERS, TREES, NEIGHBOURS, RAMPS, NPC_SPOTS, CAT_SPOT, BACK_Y, ROAD_Y, GROUND_BREAKS, PARKED, MCFARLANE,
-  WALL_H, CEIL_H, DOOR_TOP, HOUSE, roomAt, roomAtLevel, groundY, heightAt, floorAt,
+  WALL_H, CEIL_H, DOOR_TOP, HOUSE, WORLD_EDGE, roomAt, roomAtLevel, groundY, heightAt, floorAt,
   type GameMode, type WallRun, type Prim, type Door, type HingedDoor, type WindowSpec, type Room, type XYZ, type Barrier, type NpcSpot,
 } from './layout.ts';
 import { buildStaticWorld, buildCameraWorld, doorOBB, bodyOBB, moveAndSlide, circleHitsOBB, blocked, supportAt, airStep, jumpSpeed, JUMP, JUMP_ROAM, BOUNCE, SLIDE_SPEED, rebound, type OBB, type StaticWorld } from './collision.ts';
@@ -32,7 +32,10 @@ import * as R from './raiwai.ts';
 import { skyAt, hourOf, isDiwali, type Sky } from './daynight.ts';
 import * as D from './diwali.ts';
 import { PLAN, SIGNS, RAIWAI_TREES, POLE_RUNS, FACE_ANGLE, footprint, houseSpec, rng, type PlanItem } from './raiwaiPlan.ts';
-import { partModel, goldenChip, ranger, palm, bushTree, banana, breadfruit, van, paint, type Finish, type Detail } from './models.ts';
+import { tagBricks, setPlasticCoat } from './bricks.ts';
+import { VEHICLES, DIMS, vehicleModel, nextSpeed, steerFor, drive, bumpers, outline, poseForVehicle, vehicleForPose, type VehicleModel, type VehicleSpec } from './vehicles.ts';
+import { COLUMNS, columnTop, columnRect, START, SPINNER, spinnerAngle, spinnerHits, ARCH, inPool, POOL, GROUND, RIDDLES, RIDDLE_POSTS, POST_BRICKS, type Column } from './hopClimb.ts';
+import { partModel, goldenChip, palm, bushTree, banana, breadfruit, van, paint, type Finish, type Detail } from './models.ts';
 
 export type GameState = 'intro' | 'playing' | 'paused' | 'won';
 
@@ -75,6 +78,12 @@ export interface EngineCallbacks extends ChoreCallbacks {
   onPromo?: (id: PromoId) => void;
   /** A perk's live readout for the HUD (warmer/colder, the Golden Chip's room), or null. */
   onPerk?: (pill: PerkPill | null) => void;
+  /** You pressed E at a riddle post: show its riddle (answer with answerRiddle()). */
+  onRiddle?: (r: { index: number; q: string; options: string[] }) => void;
+  /** How many riddle posts you've solved. */
+  onRiddles?: (solved: number, total: number) => void;
+  /** Hop & Climb's clock (null when you're not on the course) and your best time on this device. */
+  onHop?: (h: { time: number | null; best: number | null }) => void;
 }
 
 export interface EngineOptions { touch: boolean; baseUrl: string }
@@ -88,6 +97,7 @@ const PROMO_REACH = 1.5;
  * or on a swing.
  */
 export const Pose = { stand: 0, seat: 1, floor: 2, swing: 3 } as const;
+// 4 and up: driving one of the vehicles (vehicles.ts, poseForVehicle)
 /** Sitting on a swing: the height of the seat below the hips (as on a bench), and how far you can swing (radians). */
 const SWING_SEAT = 0.45;
 const SWING_MAX = 0.95;
@@ -166,12 +176,14 @@ function surfaceFor(color: string): { finish: Finish; detail?: Detail } {
   return { finish: 'matte' };
 }
 
-function push(b: Buckets, key: string, g: THREE.BufferGeometry) {
+function push(b: Buckets, key: string, g: THREE.BufferGeometry, brick = true) {
   // merging needs every piece alike: unindexed (rounded boxes come that way), with position, normal and uv (roof shapes come without some)
   if (g.index) g = g.toNonIndexed();
   if (!g.getAttribute('normal')) g.computeVertexNormals();
   if (!g.getAttribute('uv')) g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(g.getAttribute('position').count * 2), 2));
   for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal' && k !== 'uv') g.deleteAttribute(k);
+  // walls and other big pieces are drawn as bricks (bricks.ts); small things and trees stay smooth
+  tagBricks(g, brick);
   const list = b.get(key);
   if (list) list.push(g); else b.set(key, [g]);
 }
@@ -295,7 +307,7 @@ function onWall(w: WallRun, a0: number, a1: number, y0: number, y1: number, n0: 
  * of one per part). Only plain painted meshes are baked (keeping their finish);
  * anything textured or see-through stays as is.
  */
-function bake(group: THREE.Object3D, buckets: Buckets, scene: THREE.Object3D) {
+function bake(group: THREE.Object3D, buckets: Buckets, scene: THREE.Object3D, brick = true) {
   group.updateMatrixWorld(true);
   const keep: THREE.Object3D[] = [];
   group.traverse((o) => {
@@ -306,7 +318,7 @@ function bake(group: THREE.Object3D, buckets: Buckets, scene: THREE.Object3D) {
     const g = m.geometry.clone().applyMatrix4(m.matrixWorld);
     const finish = (mat.userData.finish as Finish | undefined) ?? 'matte';
     const key = `#${mat.color.getHexString(THREE.SRGBColorSpace)}${mat.emissive.getHex() ? `|e${mat.emissive.getHexString(THREE.SRGBColorSpace)}` : ''}${finish !== 'matte' ? `|f${finish}` : ''}`;
-    push(buckets, key, g);
+    push(buckets, key, g, brick);
   });
   for (const k of keep) { k.updateMatrixWorld(true); const c = k.clone(); c.matrix.copy(k.matrixWorld); c.matrixAutoUpdate = false; scene.add(c); }
 }
@@ -327,6 +339,8 @@ interface Remote {
   speed: number;
   height: number;
   bubbleUntil: number;
+  /** The vehicle they're driving, when they are. */
+  car?: VehicleModel;
 }
 
 /** A flat picture that always faces the camera, `w` metres wide, drawn on a canvas. */
@@ -422,7 +436,12 @@ interface Item {
   golden: boolean; taken: boolean; seen: boolean; phase: number; base: number;
 }
 interface Burst { mesh: THREE.InstancedMesh; vel: THREE.Vector3[]; t: number }
-type FocusKind = 'door' | 'window' | 'poster' | 'npc' | 'cat' | 'shop' | 'promo' | 'seat' | ChoreFocus;
+type FocusKind = 'door' | 'window' | 'poster' | 'npc' | 'cat' | 'shop' | 'promo' | 'seat' | 'vehicle' | 'riddle' | ChoreFocus;
+
+const HOP_BEST = 'noqublox-hop-best';
+
+/** A drivable vehicle (vehicles.ts): where it is now, and its model. */
+interface Car { spec: VehicleSpec; model: VehicleModel; x: number; z: number; y: number; yaw: number; speed: number; steer: number }
 
 export class HouseEngine {
   state: GameState = 'intro';
@@ -447,6 +466,21 @@ export class HouseEngine {
   private air = false;
   private vy = 0;
   private third = false;
+  private cars: Car[] = [];
+  /** The vehicle you're driving (an index into cars), or -1 on foot. */
+  private driving = -1;
+  private thirdBeforeDrive = false;
+  /** Hop & Climb and the riddle posts (hopClimb.ts), shown when exploring. */
+  private games = new THREE.Group();
+  /** Hop & Climb itself (part of games): only drawn when you're within sight of it. */
+  private course = new THREE.Group();
+  private spinBar = new THREE.Group();
+  private hopStar: THREE.Object3D | null = null;
+  private riddleSigns: THREE.Mesh[] = [];
+  private riddleDone: boolean[] = RIDDLE_POSTS.map(() => false);
+  private askMat: THREE.Material[] = [];
+  private solvedMat: THREE.Material[] = [];
+  private hop = { check: [START.x, columnTop(START), START.z] as XYZ, onStart: false, time: -1, best: null as number | null, told: -1 };
   private player?: Rig;
   private npcs: { id: CharacterId; char: Character; rig: Rig; spot: NpcSpot; obb?: OBB; baseQuat: THREE.Quaternion; visitor?: boolean }[] = [];
   private kitty?: THREE.Group;
@@ -540,6 +574,7 @@ export class HouseEngine {
     this.hud = hud;
     this.cb = cb;
     this.opts = opts;
+    setPlasticCoat(!opts.touch);
     // preview overrides (?time=night, ?diwali=1); otherwise the real clock and date decide
     const q = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
     this.timeOverride = parseTimeParam(q.get('time'));
@@ -599,6 +634,8 @@ export class HouseEngine {
     this.buildHouse();
     this.buildCompound();
     this.buildRaiwai();
+    this.buildCars();
+    this.buildGames();
     this.buildItems();
     this.chores = new ChoreSystem(this.scene, {
       onChores: (s) => this.cb.onChores?.(s),
@@ -741,7 +778,7 @@ export class HouseEngine {
       const em = rest.find((r) => r.startsWith('e'))?.slice(1);
       const finish = rest.find((r) => r.startsWith('f'))?.slice(1) as Finish | undefined;
       const surface = finish ? { finish } : em ? { finish: 'matte' as Finish } : surfaceFor(color);
-      parent.add(new THREE.Mesh(mergeGeometries(list), paint(color, { emissive: em ? `#${em}` : undefined, ...surface })));
+      parent.add(new THREE.Mesh(mergeGeometries(list), paint(color, { emissive: em ? `#${em}` : undefined, ...surface, brick: true })));
     }
   }
 
@@ -1102,7 +1139,7 @@ export class HouseEngine {
   }
 
   private buildCompound() {
-    this.scene.add(new THREE.Mesh(terrain(), new THREE.MeshStandardMaterial({ map: this.tex(T.grass()) })));
+    this.scene.add(new THREE.Mesh(terrain(), new THREE.MeshStandardMaterial({ map: this.tex(T.grass()), roughness: 0.5 })));
     const out: Buckets = new Map();
     const deep = (z0: number, z1: number) => Math.min(groundY(z0), groundY(z1)) - 0.35;
 
@@ -1149,16 +1186,14 @@ export class HouseEngine {
     roof.rotation.set(-Math.PI / 2, -0.05, 0);
     roof.position.set(13.35, BACK_Y + 2.62, -2.5);
     this.scene.add(roof);
-    const ute = ranger();
-    ute.position.set(13.3, BACK_Y, -2.6);
-    bake(ute, out, this.scene);
+    // the Ranger's place under the carport is the LvTS pickup now (vehicles.ts): you can drive it
 
     // trees
     for (const t of TREES) {
       const tree = t.kind === 'palm' ? palm(t.s, 0.3) : t.kind === 'banana' ? banana(t.s) : t.kind === 'breadfruit' ? breadfruit(t.s) : bushTree(t.s);
       tree.position.set(t.x, groundY(t.z), t.z);
       tree.rotation.y = t.x * 1.7 + t.z;
-      bake(tree, out, this.scene);
+      bake(tree, out, this.scene, false);
     }
 
     // the neighbours: Raiwai houses on the same plots (made up, not copies of anyone's home)
@@ -1173,7 +1208,7 @@ export class HouseEngine {
     for (let x = -68; x < MCFARLANE.x1 - 1; x += 3) push(out, '#f1f1ec', boxGeo(x, ROAD_Y + 0.006, 25.7, x + 1.5, ROAD_Y + 0.012, 25.8));
     const v = van();
     v.position.set(5.5, ROAD_Y, 27.4);
-    bake(v, out, this.scene);
+    bake(v, out, this.scene, false);
 
     this.flush(out);
   }
@@ -1226,7 +1261,7 @@ export class HouseEngine {
       const tree = t.kind === 'mango' ? R.mangoTree(t.s, Math.round(t.x * 13 + t.z)) : t.kind === 'palm' ? palm(t.s, 0.25) : t.kind === 'breadfruit' ? breadfruit(t.s) : R.bougainvillea(t.s, Math.round(t.x + t.z * 7));
       tree.position.set(t.x, heightAt(t.x, t.z), t.z);
       tree.rotation.y = t.x * 1.3 + t.z;
-      bake(tree, t.far ? far : near, t.far ? this.raiwaiFar : this.raiwaiNear);
+      bake(tree, t.far ? far : near, t.far ? this.raiwaiFar : this.raiwaiNear, false);
     }
 
     // power poles, wired along each run
@@ -1241,7 +1276,7 @@ export class HouseEngine {
         p.group.rotation.y = run[0][0] === run[run.length - 1][0] ? Math.PI / 2 : Math.PI;
         p.group.updateMatrixWorld(true);
         tops.push(p.tops.map((v) => v.clone().applyMatrix4(p.group.matrixWorld)));
-        bake(p.group, near, this.raiwaiNear);
+        bake(p.group, near, this.raiwaiNear, false);
       }
       runs.push([0, 1, 2].map((k) => tops.map((t) => t[k])));
     }
@@ -1253,7 +1288,7 @@ export class HouseEngine {
       v.position.set(c.x, ROAD_Y, c.z);
       // built along +x; nosed into a bay along z in Garden City's car park
       v.rotation.y = c.across ? (c.facing > 0 ? -Math.PI / 2 : Math.PI / 2) : c.facing > 0 ? 0 : Math.PI;
-      bake(v, near, this.raiwaiNear);
+      bake(v, near, this.raiwaiNear, false);
     }
 
     // signs by the road: the Methodist Church, the Lomaiviti Training Ground
@@ -1599,6 +1634,7 @@ export class HouseEngine {
 
   /** How you're posed now (Pose). */
   private poseNow(): number {
+    if (this.driving >= 0) return poseForVehicle(this.driving);
     if (this.seat?.kind === 'swing') return Pose.swing;
     if (this.seat?.kind === 'bench') return Pose.seat;
     if (this.seat?.kind === 'floor' || this.sliding) return Pose.floor;
@@ -1611,7 +1647,8 @@ export class HouseEngine {
     if (p === this.posed) return;
     this.posed = p;
     if (!this.player) return;
-    if (p === Pose.seat) applyPose(this.player, 'sit', SEATS[this.seat!.i].seat);
+    if (this.driving >= 0) applyPose(this.player, 'sit', DIMS[this.cars[this.driving].spec.kind].sit);
+    else if (p === Pose.seat) applyPose(this.player, 'sit', SEATS[this.seat!.i].seat);
     else if (p === Pose.swing) applyPose(this.player, 'sit', SWING_SEAT);
     else if (p === Pose.floor) applyPose(this.player, 'floor');
     else applyPose(this.player, this.char.crawl ? 'crawl' : 'stand');
@@ -1622,6 +1659,7 @@ export class HouseEngine {
     const p = this.poseNow();
     if (p === Pose.stand) return this.char.eye;
     const hip = this.player?.hip ?? this.char.eye * 0.55;
+    if (this.driving >= 0) { const d = DIMS[this.cars[this.driving].spec.kind]; return this.char.eye - hip + d.sit + d.seat[1]; }
     const seat = p === Pose.floor ? 0.1 : p === Pose.seat ? SEATS[this.seat!.i].seat : SWING_SEAT;
     return this.char.eye - hip + seat;
   }
@@ -1769,6 +1807,9 @@ export class HouseEngine {
     this.refreshShadows();
     this.minimap.showExit = mode === 'hunt';
     this.minimap.setMode(mode);
+    this.leaveCar();
+    this.parkCars();
+    this.games.visible = explore;
   }
   get gameMode(): GameMode { return this.mode; }
 
@@ -1799,6 +1840,7 @@ export class HouseEngine {
   // ── other players (the shared world) ─────────────────────────────────────
   /** Where you are, for the shared world: [x, feet height, z, facing]. */
   netPos(): number[] {
+    if (this.driving >= 0) { const c = this.cars[this.driving]; return [c.x, c.y, c.z, c.yaw, poseForVehicle(this.driving)]; }
     const p = this.poseNow();
     return [this.pos[0], this.floorY, this.pos[1], this.seat ? this.seat.yaw : this.yaw, ...(p ? [p] : [])];
   }
@@ -1834,6 +1876,7 @@ export class HouseEngine {
     const r = this.remotes.get(id);
     if (!r) return;
     if (r.swing !== undefined && this.swingRigs[r.swing]?.rider === id) this.swingRigs[r.swing].rider = null;
+    this.remoteCar(r, -1);
     this.scene.remove(r.rig.root);
     r.rig.root.traverse((o) => {
       const m = o as THREE.Mesh;
@@ -1866,7 +1909,9 @@ export class HouseEngine {
       const pose = r.target[4] ?? Pose.stand;
       if (pose !== r.pose) {
         r.pose = pose;
-        applyPose(r.rig, pose === Pose.floor ? 'floor' : pose === Pose.seat || pose === Pose.swing ? 'sit' : r.crawl ? 'crawl' : 'stand', pose === Pose.seat ? 0.46 : SWING_SEAT);
+        this.remoteCar(r, vehicleForPose(pose));
+        if (r.car) { r.pose = pose; }
+        else applyPose(r.rig, pose === Pose.floor ? 'floor' : pose === Pose.seat || pose === Pose.swing ? 'sit' : r.crawl ? 'crawl' : 'stand', pose === Pose.seat ? 0.46 : SWING_SEAT);
         if (r.swing !== undefined && this.swingRigs[r.swing]?.rider === id) this.swingRigs[r.swing].rider = null;
         r.swing = pose === Pose.swing ? SWINGS.findIndex((sw) => Math.abs(sw.x - tx) < 0.8 && Math.abs(sw.z - tz) < 2.6) : undefined;
         if (r.swing === -1) r.swing = undefined;
@@ -1894,7 +1939,7 @@ export class HouseEngine {
       const moved = far > 12 ? 0 : Math.hypot(dx * k, dz * k);
       r.speed += (moved / Math.max(dt, 1e-3) - r.speed) * Math.min(1, dt * 8);
       r.phase += moved * 3.4;
-      animate(r.rig, r.phase, Math.min(1, r.speed / 2.4));
+      if (!r.car) animate(r.rig, r.phase, Math.min(1, r.speed / 2.4));
       if (r.bubble && now > r.bubbleUntil) { root.remove(r.bubble); r.bubble.material.map?.dispose(); r.bubble.material.dispose(); r.bubble = undefined; }
     }
     // the nearest 16 within 90 m are drawn (figures aren't cheap on a phone)
@@ -1903,6 +1948,315 @@ export class HouseEngine {
       const list = [...this.remotes.values()].map((r) => ({ r, d: Math.hypot(r.rig.root.position.x - this.pos[0], r.rig.root.position.z - this.pos[1]) })).sort((a, b) => a.d - b.d);
       list.forEach(({ r, d }, i) => { r.rig.root.visible = i < 16 && d < 90; });
     }
+  }
+
+  // ── Hop & Climb and the Riddle Hunt (hopClimb.ts) ───────────────────────
+  private buildGames() {
+    const g = this.course;
+    const b: Buckets = new Map(), posts: Buckets = new Map();
+    const pw = POOL.x1 - POOL.x0, pd = POOL.z1 - POOL.z0, cx = (POOL.x0 + POOL.x1) / 2, cz = (POOL.z0 + POOL.z1) / 2;
+    const water = new THREE.Mesh(new THREE.BoxGeometry(pw, 0.04, pd), new THREE.MeshStandardMaterial({ color: '#2a86d6', roughness: 0.12, metalness: 0.05 }));
+    water.position.set(cx, GROUND + 0.03, cz);
+    water.receiveShadow = true;
+    const sand = new THREE.Mesh(new THREE.BoxGeometry(pw + 1.6, 0.03, pd + 1.6), paint('#e9d9a6', { finish: 'cloth' }));
+    sand.position.set(cx, GROUND + 0.012, cz);
+    sand.receiveShadow = true;
+    g.add(water, sand);
+    // the blocks: brick seams and studs come from the brick look (bricks.ts)
+    for (const c of COLUMNS) {
+      const r = columnRect(c);
+      push(b, c.color, boxGeo(r.x0, GROUND - 0.05, r.z0, r.x1, columnTop(c), r.z1));
+      if (c.kind === 'check') {
+        // a white pole with a green flag on the checkpoints
+        push(b, '#f4f4f2', boxGeo(r.x0 + 0.05, columnTop(c), r.z0 + 0.05, r.x0 + 0.17, columnTop(c) + 1.9, r.z0 + 0.17), false);
+        push(b, '#22c55e', boxGeo(r.x0 + 0.17, columnTop(c) + 1.35, r.z0 + 0.09, r.x0 + 0.95, columnTop(c) + 1.85, r.z0 + 0.13), false);
+      }
+    }
+    // the arch over the way in
+    const archTop = Math.ceil(GROUND / 0.48) * 0.48 + ARCH.bricks * 0.48;
+    for (const x of ARCH.x) push(b, '#13254a', boxGeo(x - 0.2, GROUND, ARCH.z - 0.2, x + 0.2, archTop, ARCH.z + 0.2), false);
+    const archTex = this.tex(T.canvasTexture(512, 96, (c, w, h) => {
+      c.fillStyle = '#ffd23f'; c.fillRect(0, 0, w, h);
+      c.fillStyle = '#13254a'; c.font = 'bold 60px system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('Hop & Climb', w / 2, h / 2 + 3);
+    }));
+    const navy = paint('#13254a', { finish: 'gloss' }), archFace = new THREE.MeshStandardMaterial({ map: archTex, roughness: 0.35 });
+    const arch = new THREE.Mesh(new THREE.BoxGeometry(ARCH.x[1] - ARCH.x[0] + 0.6, 0.62, 0.14), [navy, navy, navy, navy, archFace, archFace]);
+    arch.position.set((ARCH.x[0] + ARCH.x[1]) / 2, archTop + 0.31, ARCH.z);
+    arch.castShadow = true;
+    g.add(arch);
+    // the spinning bar on its hub
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.62, 16), paint('#5b6068', { finish: 'metal' }));
+    hub.position.set(SPINNER.x, SPINNER.top + 0.31, SPINNER.z);
+    hub.castShadow = true;
+    const bar = new THREE.Mesh(new RoundedBoxGeometry(SPINNER.half * 2, 0.26, 0.26, 2, 0.06), paint('#e8322b', { finish: 'gloss' }));
+    bar.castShadow = true;
+    this.spinBar.add(bar);
+    for (const sx of [-1, 1]) {
+      const cap = new THREE.Mesh(new RoundedBoxGeometry(0.3, 0.3, 0.3, 2, 0.06), paint('#ffffff', { finish: 'gloss' }));
+      cap.position.x = sx * SPINNER.half;
+      this.spinBar.add(cap);
+    }
+    this.spinBar.position.set(SPINNER.x, SPINNER.top + 0.32, SPINNER.z);
+    g.add(hub, this.spinBar);
+    // the gold star over the finish
+    const fin = COLUMNS.find((c) => c.kind === 'finish')!;
+    const shape = new THREE.Shape();
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * Math.PI * 2 + Math.PI / 2, rr = i % 2 ? 0.27 : 0.6;
+      if (i === 0) shape.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); else shape.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    const starGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.18, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 2 });
+    starGeo.center();
+    const star = new THREE.Mesh(starGeo, paint('#ffc61a', { finish: 'metal', emissive: '#6a4700' }));
+    star.position.set(fin.x, columnTop(fin) + 1.3, fin.z);
+    star.castShadow = true;
+    this.hopStar = star;
+    g.add(star);
+    // the riddle posts: a purple brick post with a turning "?" sign on top
+    const sign = (txt: string, bg: string, fg: string) => new THREE.MeshStandardMaterial({ map: this.tex(T.canvasTexture(256, 256, (c, w, h) => {
+      c.fillStyle = bg; c.fillRect(0, 0, w, h);
+      c.fillStyle = fg; c.font = 'bold 190px system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText(txt, w / 2, h / 2 + 10);
+    })), roughness: 0.3 });
+    const purple = paint('#6a35a0', { finish: 'gloss' });
+    const ask = sign('?', '#ffd23f', '#5b2a86'), done = sign('★', '#ffd23f', '#d98a00');
+    this.askMat = [ask, ask, purple, purple, ask, ask];
+    this.solvedMat = [done, done, purple, purple, done, done];
+    for (const p of RIDDLE_POSTS) {
+      const ground = heightAt(p.x, p.z), top = Math.ceil(ground / 0.48) * 0.48 + POST_BRICKS * 0.48;
+      push(posts, '#6a35a0', boxGeo(p.x - 0.4, ground - 0.05, p.z - 0.4, p.x + 0.4, top, p.z + 0.4));
+      const m = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 0.9), this.askMat);
+      m.position.set(p.x, top + 0.55, p.z);
+      m.castShadow = true;
+      this.games.add(m);
+      this.riddleSigns.push(m);
+    }
+    this.flush(b, g);
+    this.flush(posts, this.games);
+    this.games.add(g);
+    this.games.visible = this.mode === 'explore';
+    this.scene.add(this.games);
+  }
+
+  private resetGames() {
+    this.hop.check = [START.x, columnTop(START), START.z];
+    this.hop.onStart = false;
+    this.hop.time = -1;
+    this.hop.told = -1;
+    try { const v = Number(localStorage.getItem(HOP_BEST)); this.hop.best = v > 0 ? v : null; } catch { this.hop.best = null; }
+    this.riddleDone = RIDDLE_POSTS.map(() => false);
+    for (const m of this.riddleSigns) m.material = this.askMat;
+    this.cb.onRiddles?.(0, RIDDLE_POSTS.length);
+    this.cb.onHop?.({ time: null, best: this.hop.best });
+  }
+
+  /** Answer the riddle at post i with option `choice`: true if it's right (the post turns into a star). */
+  answerRiddle(i: number, choice: number): boolean {
+    if (i < 0 || i >= RIDDLES.length || this.riddleDone[i]) return false;
+    if (choice !== RIDDLES[i].answer) return false;
+    this.riddleDone[i] = true;
+    this.riddleSigns[i].material = this.solvedMat;
+    this.sfx.golden();
+    const n = this.riddleDone.filter(Boolean).length;
+    this.cb.onRiddles?.(n, RIDDLE_POSTS.length);
+    return true;
+  }
+
+  /** Back to the last checkpoint (fell in, or the bar got you). */
+  private hopRespawn(msg: string) {
+    const [x, y, z] = this.hop.check;
+    this.pos = [x, z];
+    this.floorY = y;
+    this.air = false;
+    this.vy = 0;
+    this.vel = [0, 0];
+    this.sfx.boing();
+    this.cb.onHint?.(msg);
+  }
+
+  private stepGames(dt: number) {
+    const [x, z] = this.pos, h = this.hop;
+    // the block you're standing on, if any
+    let on: Column | null = null;
+    if (!this.air) for (const c of COLUMNS) {
+      const r = columnRect(c);
+      if (x > r.x0 - 0.05 && x < r.x1 + 0.05 && z > r.z0 - 0.05 && z < r.z1 + 0.05 && Math.abs(this.floorY - columnTop(c)) < 0.08) { on = c; break; }
+    }
+    if (!this.air && !on && inPool(x, z) && this.floorY < GROUND + 0.2) { this.hopRespawn('💦 Splash! Back to the checkpoint.'); return; }
+    if (on?.kind === 'start') {
+      h.onStart = true;
+      h.check = [START.x, columnTop(START), START.z];
+    } else if (h.onStart && !this.air) {
+      h.onStart = false;
+      if (on) h.time = 0;                       // first stone: the clock starts
+    }
+    if (on?.kind === 'check' && (h.check[0] !== on.x || h.check[2] !== on.z)) {
+      h.check = [on.x, columnTop(on), on.z];
+      this.sfx.pickup();
+      this.cb.onHint?.('✅ Checkpoint! Fall in now and you start from here.');
+    }
+    if (on?.kind === 'finish' && h.time >= 0) {
+      const t = Math.round(h.time * 10) / 10;
+      const best = h.best === null || t < h.best;
+      if (best) { h.best = t; try { localStorage.setItem(HOP_BEST, String(t)); } catch { /* storage unavailable */ } }
+      h.time = -1;
+      h.check = [START.x, columnTop(START), START.z];
+      this.sfx.golden();
+      this.cb.onHint?.(`⭐ You made it to the top! ${t.toFixed(1)} s${best ? ' · your best yet!' : ` · best ${h.best!.toFixed(1)} s`}`);
+      this.cb.onHop?.({ time: null, best: h.best });
+    }
+    if (!this.air && Math.abs(this.floorY - SPINNER.top) < 0.08 && spinnerHits(x, z, this.char.radius, spinnerAngle(this.time))) {
+      this.hopRespawn('💥 Bonk! Jump over the spinning bar.');
+      return;
+    }
+    if (h.time >= 0) {
+      h.time += dt;
+      // wandered off the course: the run's over
+      if (x < POOL.x0 - 4 || x > POOL.x1 + 4 || z < POOL.z0 - 4 || z > POOL.z1 + 6) { h.time = -1; this.cb.onHop?.({ time: null, best: h.best }); }
+      else if (Math.floor(h.time * 10) !== h.told) { h.told = Math.floor(h.time * 10); this.cb.onHop?.({ time: h.time, best: h.best }); }
+    }
+  }
+
+  // ── vehicles ────────────────────────────────────────────────────────────
+  private buildCars() {
+    for (const spec of VEHICLES) {
+      const model = vehicleModel(spec);
+      this.scene.add(model.group);
+      this.cars.push({ spec, model, x: spec.x, z: spec.z, y: 0, yaw: spec.yaw, speed: 0, steer: 0 });
+    }
+    this.parkCars();
+  }
+
+  /** Every vehicle back where it starts. */
+  private parkCars() {
+    for (const c of this.cars) {
+      c.x = c.spec.x; c.z = c.spec.z; c.yaw = c.spec.yaw; c.speed = 0; c.steer = 0;
+      c.y = floorAt(c.x, c.z, heightAt(c.x, c.z) + 0.3);
+      this.placeCar(c, 0);
+    }
+  }
+
+  /** The model on the ground: tilted to the slope, wheels turning and steering, leaning a little in corners. */
+  private placeCar(c: Car, dt: number) {
+    const d = DIMS[c.spec.kind];
+    const fx = -Math.sin(c.yaw), fz = -Math.cos(c.yaw), o = d.base / 2;
+    const yf = floorAt(c.x + fx * o, c.z + fz * o, c.y), yb = floorAt(c.x - fx * o, c.z - fz * o, c.y);
+    const g = c.model.group;
+    g.position.set(c.x, Math.max(c.y, (yf + yb) / 2), c.z);
+    g.rotation.set(Math.atan2(yf - yb, d.base), c.yaw, 0);
+    for (const w of c.model.wheels) w.rotation.x += (c.speed * dt) / d.wheelR;
+    for (const s of c.model.steer) s.rotation.y = c.steer;
+    const lean = Math.max(-0.05, Math.min(0.05, c.steer * c.speed * 0.01));
+    c.model.body.rotation.z += (lean - c.model.body.rotation.z) * Math.min(1, dt * 6);
+  }
+
+  /** Would vehicle i bump into something at (x, z) facing yaw? Walls, fences, trees, doors, people and the other vehicles; indoors is off limits. */
+  private carHits(i: number, x: number, z: number, yaw: number): boolean {
+    const c = this.cars[i], d = DIMS[c.spec.kind];
+    const others: OBB[] = this.doorPanels();
+    for (const n of this.npcs) if (n.obb && n.rig.root.visible) others.push(n.obb);
+    others.push(...this.chores.obstacles());
+    this.cars.forEach((o, j) => { if (j !== i) others.push(outline(o.x, o.z, o.yaw, DIMS[o.spec.kind])); });
+    for (const [px, pz] of bumpers(x, z, yaw, d)) {
+      if (px < WORLD_EDGE.x0 + 3 || px > WORLD_EDGE.x1 - 3 || pz < WORLD_EDGE.z0 + 3 || pz > WORLD_EDGE.z1 - 3) return true;
+      if (blocked([px, pz], d.halfW * 0.9, this.solid, others, c.y + 0.25)) return true;
+      const room = roomAtLevel(px, pz, c.y);
+      if (room && !room.outside) return true;
+      // no driving up walls or off a drop
+      if (Math.abs(floorAt(px, pz, c.y) - c.y) > 0.6) return true;
+    }
+    return false;
+  }
+
+  private stepDrive(dt: number, fwd: number, side: number) {
+    const c = this.cars[this.driving], d = DIMS[c.spec.kind];
+    c.speed = nextSpeed(c.speed, Math.max(-1, Math.min(1, fwd)), d, dt);
+    c.steer += (steerFor(Math.max(-1, Math.min(1, side)), c.speed, d) - c.steer) * (1 - Math.exp(-dt * 8));
+    const [nx, nz, ny] = drive(c.x, c.z, c.yaw, c.speed, c.steer, d, dt);
+    if (this.carHits(this.driving, nx, nz, ny)) {
+      if (Math.abs(c.speed) > 3) this.sfx.boing();
+      c.speed *= -0.25;
+    } else {
+      c.x = nx; c.z = nz; c.yaw = ny;
+      c.y = floorAt(c.x, c.z, c.y);
+    }
+    this.placeCar(c, dt);
+    this.pos = [c.x, c.z];
+    this.floorY = c.y;
+    this.vel = [-Math.sin(c.yaw) * c.speed, -Math.cos(c.yaw) * c.speed];
+    this.air = false;
+    this.vy = 0;
+    this.started = true;
+    // the camera swings round behind you as you drive
+    if (Math.abs(c.speed) > 0.5) this.yaw += Math.atan2(Math.sin(c.yaw - this.yaw), Math.cos(c.yaw - this.yaw)) * (1 - Math.exp(-dt * 2.5));
+  }
+
+  private enterCar(i: number) {
+    if (this.seat) this.standUp();
+    const c = this.cars[i];
+    this.driving = i;
+    c.speed = 0;
+    c.steer = 0;
+    this.air = false;
+    this.vy = 0;
+    this.vel = [0, 0];
+    this.thirdBeforeDrive = this.third;
+    if (!this.third) this.toggleView();
+    this.yaw = c.yaw;
+    this.pitch = -0.12;
+    this.applyMyPose();
+    this.sfx.door(true);
+  }
+
+  /** Out on the driver's side, or the other side, the front or the back: wherever there's room. */
+  private exitCar(): boolean {
+    const i = this.driving;
+    const c = this.cars[i], d = DIMS[c.spec.kind];
+    if (Math.abs(c.speed) > 2) return false;
+    const rx = Math.cos(c.yaw), rz = -Math.sin(c.yaw), fx = -Math.sin(c.yaw), fz = -Math.cos(c.yaw);
+    const side = d.halfW + 0.65, end = d.halfL + 0.75;
+    const spots: [number, number][] = [[c.x + rx * side, c.z + rz * side], [c.x - rx * side, c.z - rz * side], [c.x + fx * end, c.z + fz * end], [c.x - fx * end, c.z - fz * end]];
+    this.driving = -1;     // the vehicle is in the way now, like any other
+    for (const [x, z] of spots) {
+      const y = floorAt(x, z, c.y);
+      if (Math.abs(y - c.y) > 0.6 || blocked([x, z], this.char.radius, this.solid, this.obstacles(), y)) continue;
+      c.speed = 0;
+      this.pos = [x, z];
+      this.floorY = y;
+      this.vel = [0, 0];
+      this.applyMyPose();
+      if (!this.thirdBeforeDrive && this.third) this.toggleView();
+      this.sfx.door(false);
+      return true;
+    }
+    this.driving = i;
+    this.cb.onHint?.('🚗 No room to get out here. Drive somewhere with a bit more space.');
+    return false;
+  }
+
+  /** Out of any vehicle at once (a reset or a change of mode). */
+  private leaveCar() {
+    if (this.driving < 0) return;
+    this.driving = -1;
+    this.applyMyPose();
+    if (!this.thirdBeforeDrive && this.third) this.toggleView();
+  }
+
+  /** Show (vehicle index) or take away (-1) the vehicle another player is driving, and seat them in it. */
+  private remoteCar(r: Remote, vi: number) {
+    if (r.car) {
+      r.rig.root.remove(r.car.group);
+      r.car.group.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) m.geometry.dispose(); });
+      r.car = undefined;
+    }
+    if (vi < 0) return;
+    const spec = VEHICLES[vi], d = DIMS[spec.kind];
+    r.car = vehicleModel(spec);
+    r.car.group.rotation.set(0, 0, 0);     // the root already faces their way
+    r.rig.root.add(r.car.group);
+    applyPose(r.rig, 'sit', d.sit);
+    r.rig.body.position.set(d.seat[0], d.seat[1] + d.sit, d.seat[2]);
   }
 
   toggleView(): boolean {
@@ -1925,6 +2279,7 @@ export class HouseEngine {
     const list = this.doorPanels();
     for (const n of this.npcs) if (n.obb && n.rig.root.visible) list.push(n.obb);
     list.push(...this.chores.obstacles());
+    this.cars.forEach((c, i) => { if (i !== this.driving) list.push(outline(c.x, c.z, c.yaw, DIMS[c.spec.kind])); });
     return list;
   }
 
@@ -1955,6 +2310,9 @@ export class HouseEngine {
   // ── run lifecycle ────────────────────────────────────────────────────────
   reset() {
     this.endTalk();
+    this.leaveCar();
+    this.parkCars();
+    this.resetGames();
     this.chores.reset(!!this.char.crawl);
     this.lookedOut = false;
     this.lookedOutTower = false;
@@ -2056,7 +2414,7 @@ export class HouseEngine {
 
   /** Jump (Space, or the jump button). Not in the air already, and not the baby (she crawls). Exploring, you jump higher: over fences and walls. */
   jump() {
-    if (this.state !== 'playing') return;
+    if (this.state !== 'playing' || this.driving >= 0) return;
     if (this.seat) { this.standUp(); return; }
     if (this.air || this.char.crawl) return;
     this.air = true;
@@ -2086,6 +2444,16 @@ export class HouseEngine {
   interact() {
     if (this.state !== 'playing' || !this.focus) return;
     const f = this.focus;
+    if (f.kind === 'vehicle') {
+      if (this.driving >= 0) this.exitCar(); else this.enterCar(f.index);
+      return;
+    }
+    if (f.kind === 'riddle') {
+      const r = RIDDLES[f.index];
+      this.cb.onRiddle?.({ index: f.index, q: r.q, options: [...r.options] });
+      this.sfx.pickup();
+      return;
+    }
     if (f.kind === 'seat') {
       if (this.seat) this.standUp(); else this.sitOn(f.index);
       return;
@@ -2383,6 +2751,8 @@ export class HouseEngine {
       const fwd = (k.has('KeyW') || k.has('ArrowUp') ? 1 : 0) - (k.has('KeyS') || k.has('ArrowDown') ? 1 : 0) + this.touchMove[1];
       const side = (k.has('KeyD') || k.has('ArrowRight') ? 1 : 0) - (k.has('KeyA') || k.has('ArrowLeft') ? 1 : 0) + this.touchMove[0];
       const run = this.running || k.has('ShiftLeft') || k.has('ShiftRight');
+      if (this.driving >= 0) this.stepDrive(dt, fwd, side);
+      else {
       const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
       fx = -sin * fwd + cos * side;
       fz = -cos * fwd - sin * side;
@@ -2413,6 +2783,7 @@ export class HouseEngine {
       }
       const sp = Math.hypot(this.vel[0], this.vel[1]);
       this.bob += sp * dt * 2.4;
+      }
       if (this.started && this.mode === 'hunt') this.elapsed += dt;
 
       const room = roomAtLevel(this.pos[0], this.pos[1], this.floorY);
@@ -2422,6 +2793,7 @@ export class HouseEngine {
       }
 
       this.checkPickups();
+      if (this.mode === 'explore' && this.driving < 0) this.stepGames(dt);
       this.chores.update(dt, this.pos);
       if (room?.id === 'treehouse' && !this.lookedOut) {
         // the treehouse's reward: from up here you can see the whole compound
@@ -2444,6 +2816,7 @@ export class HouseEngine {
     // the floor under you (or what you're standing on): ease toward it so stairs and slopes feel smooth;
     // in the air, gravity until you land; walk off the edge of something and you drop
     // (on a swing, the swing holds you up)
+    if (this.driving < 0) {
     const ground = floorAt(this.pos[0], this.pos[1], this.floorY);
     const lifted = this.air || this.floorY > ground + LIFTED;
     const floor = lifted ? Math.max(ground, supportAt(this.pos, r, this.solid, this.floorY)) : ground;
@@ -2465,7 +2838,16 @@ export class HouseEngine {
       // walking on the bouncy castle bounces you
       if (this.state === 'playing' && !this.seat && Math.hypot(this.vel[0], this.vel[1]) > 0.6 && this.onBouncy()) { this.air = true; this.vy = jumpSpeed(BOUNCE.hop); }
     }
+    }
     this.stepSwings(dt);
+    // Hop & Climb's spinning bar and gold star, and the riddle signs, turn
+    if (this.games.visible) {
+      // the course is only drawn within sight of it
+      this.course.visible = Math.hypot(this.pos[0] - (POOL.x0 + POOL.x1) / 2, this.pos[1] - (POOL.z0 + POOL.z1) / 2) < 120;
+      this.spinBar.rotation.y = spinnerAngle(this.time);
+      if (this.hopStar) this.hopStar.rotation.y += dt * 1.5;
+      this.riddleSigns.forEach((m, i) => { m.rotation.y += dt * (this.riddleDone[i] ? 1.6 : 0.5); });
+    }
 
     // items bob and turn
     for (const it of this.items) {
@@ -2544,6 +2926,13 @@ export class HouseEngine {
 
   private updateFocus() {
     const key = this.opts.touch ? 'Tap ✋' : 'E';
+    if (this.driving >= 0) {
+      const c = this.cars[this.driving];
+      this.focus = { kind: 'vehicle', index: this.driving };
+      const slow = Math.abs(c.speed) < 2;
+      this.setPrompt(`🚗 ${Math.round(Math.abs(c.speed) * 3.6)} km/h${slow ? ` · ${key} to get out` : ''}`);
+      return;
+    }
     if (this.seat) {
       // sitting: the only thing to do is get up (or swing)
       this.focus = this.seat.kind === 'floor' ? null : { kind: 'seat', index: this.seat.i };
@@ -2595,6 +2984,9 @@ export class HouseEngine {
       const here = roomAtLevel(this.pos[0], this.pos[1], this.floorY)?.id;
       PROMO_SPOTS.forEach((p, i) => { if (here === p.room) consider('promo', i, p.x, p.z, PROMO_REACH, 0.5); });
     }
+    // the brick cars and the pickup (not for a crawling baby, and not in the Golden Chip hunt)
+    if (this.mode === 'explore' && !this.char.crawl) this.cars.forEach((c, i) => consider('vehicle', i, c.x, c.z, DIMS[c.spec.kind].halfL + 1.3, 0.4));
+    if (this.mode === 'explore') RIDDLE_POSTS.forEach((p, i) => { if (!this.riddleDone[i]) consider('riddle', i, p.x, p.z, 2.4, 0.5); });
     this.chores.candidates(consider);
     const b = best as { kind: FocusKind; index: number; score: number } | null;
     this.focus = b ? { kind: b.kind, index: b.index } : null;
@@ -2604,6 +2996,8 @@ export class HouseEngine {
     if (b?.kind === 'poster') text = `${key} · Read the poster: how a database index works`;
     if (b?.kind === 'npc') text = this.talkingTo === b.index ? `${key} · Say goodbye` : `${key} · Talk to ${firstName(this.npcs[b.index].char)}`;
     if (b?.kind === 'cat') text = `${key} · Pet the cat`;
+    if (b?.kind === 'vehicle') text = `${key} · Drive the ${this.cars[b.index].spec.name}`;
+    if (b?.kind === 'riddle') text = `${key} · Read the riddle`;
     if (b?.kind === 'promo') text = `${key} · You found a hidden reward card! Pick it up`;
     if (b?.kind === 'seat') { const st = SEATS[b.index]; text = `${key} · Sit on ${st.label}${st.swing !== undefined ? ' (then hold W to swing)' : ''}`; }
     if (b?.kind === 'shop') { const sp = SHOP_SPOTS[b.index]; text = `${key} · ${sp.kind === 'empty' ? `Look at ${sp.name}` : `Visit ${sp.name}`}${sp.offers.length ? ' · offers inside' : ''}`; }
@@ -2653,7 +3047,13 @@ export class HouseEngine {
     this.camera.rotation.set(this.pitch, this.yaw, 0);
     if (this.third) this.placeThirdPerson(headY);
     else this.camera.position.set(this.pos[0], headY, this.pos[1]);
-    if (this.player) {
+    if (this.player && this.driving >= 0) {
+      // in the driver's seat (on the right: Fiji drives on the left)
+      const c = this.cars[this.driving];
+      c.model.group.updateMatrixWorld(true);
+      this.player.root.position.set(...DIMS[c.spec.kind].seat).applyMatrix4(c.model.group.matrixWorld);
+      this.player.root.rotation.y = c.yaw;
+    } else if (this.player) {
       this.player.root.position.set(this.pos[0], this.floorY, this.pos[1]);
       this.player.root.rotation.y = this.seat ? this.seat.yaw : this.yaw;
       animate(this.player, this.bob * (this.char.crawl ? 2.2 : 1.6), this.air ? moving * 0.3 : moving);
@@ -2717,7 +3117,7 @@ export class HouseEngine {
     const cp = Math.cos(this.pitch), sp = Math.sin(this.pitch);
     const fx = -Math.sin(this.yaw) * cp, fy = sp, fz = -Math.cos(this.yaw) * cp;
     const tx = this.pos[0], ty = headY + 0.1, tz = this.pos[1];
-    const full = this.char.thirdDist;
+    const full = this.driving >= 0 ? DIMS[this.cars[this.driving].spec.kind].cam : this.char.thirdDist;
     const panels = this.doorPanels();
     let best = 0.25;
     for (let d = 0.25; d <= full + 1e-6; d += 0.08) {
@@ -2750,6 +3150,8 @@ export class HouseEngine {
       /** `feet`: land on the floor at that height where floors overlap (upstairs at Garden City). */
       teleport: (x: number, z: number, yaw?: number, feet?: number) => { this.pos = [x, z]; this.floorY = feet === undefined ? heightAt(x, z) : floorAt(x, z, feet); this.air = false; this.vy = 0; if (yaw !== undefined) this.yaw = yaw; },
       jump: () => this.jump(),
+      /** Drop in from `feet` (tests: land on whatever is below, like a block in Hop & Climb). */
+      drop: (x: number, z: number, feet: number) => { this.pos = [x, z]; this.floorY = feet; this.air = true; this.vy = 0; },
       /** Run the simulation `n` steps of `dt` seconds (tests: the same every time, however slow the browser is). */
       tick: (dt: number, n = 1) => { for (let i = 0; i < n; i++) this.step(dt); },
       air: () => ({ air: this.air, feet: this.floorY, vy: this.vy }),
@@ -2761,16 +3163,38 @@ export class HouseEngine {
       setLook: (yaw: number, pitch: number) => { this.yaw = yaw; this.pitch = pitch; },
       press: (code: string, down: boolean) => { if (down) this.keys.add(code); else this.keys.delete(code); },
       perf: () => this.perf,
+      /** Meshes in view, by what they belong to (tests: where the draw calls go). */
+      inView: () => {
+        const f = new THREE.Frustum().setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse));
+        const out: Record<string, number> = {};
+        this.scene.traverseVisible((o) => {
+          const m = o as THREE.Mesh;
+          if (!m.isMesh) return;
+          if (!m.geometry.boundingSphere) m.geometry.computeBoundingSphere();
+          if (!f.intersectsSphere(m.geometry.boundingSphere!.clone().applyMatrix4(m.matrixWorld))) return;
+          let top: THREE.Object3D = m;
+          while (top.parent && top.parent !== this.scene) top = top.parent;
+          const k = top === this.games ? 'games' : this.cars.some((c) => c.model.group === top) ? 'cars' : top === this.raiwaiNear ? 'near' : top === this.raiwaiFar ? 'far' : m.castShadow ? 'other+shadow' : 'other';
+          out[k] = (out[k] ?? 0) + 1;
+        });
+        return out;
+      },
       stars: (n: number) => this.chores.debugStars(n),
       finish: (stepId: string) => this.chores.debugFinish(stepId),
       chores: () => this.chores.snapshot(),
       neighbours: (list: VisitorCharacter[]) => this.setNeighbours(list),
-      remotes: () => [...this.remotes.entries()].map(([id, r]) => ({ id, pos: [r.rig.root.position.x, r.rig.root.position.y, r.rig.root.position.z], visible: r.rig.root.visible, bubble: !!r.bubble, pose: r.pose, swing: r.swing })),
+      remotes: () => [...this.remotes.entries()].map(([id, r]) => ({ id, pos: [r.rig.root.position.x, r.rig.root.position.y, r.rig.root.position.z], visible: r.rig.root.visible, bubble: !!r.bubble, pose: r.pose, swing: r.swing, target: r.target, car: !!r.car })),
       /** A pretend friend in the shared world (tests): one of the family, at p ([x, y, z, facing, pose?]). */
       friend: (id: string, who: string, p: number[]) => { const c = characterById(who); if (this.remotes.has(id)) this.remoteMove(id, p); else this.remoteAdd(id, c.look, c.name.split(' ')[0], 'friend', p, !!c.crawl); },
       /** Your position as friends get it: [x, y, z, facing, pose?]. */
       net: () => this.netPos(),
+      /** Move the other players toward where they last were (tests: without waiting for frames). */
+      stepRemotes: (dt: number) => this.stepRemotes(dt, performance.now()),
       sitDown: () => this.toggleSit(),
+      /** Press E: use whatever is in focus (get in or out of a vehicle, open a door…). */
+      use: () => this.interact(),
+      games: () => ({ hop: { ...this.hop }, riddles: [...this.riddleDone], spinner: spinnerAngle(this.time) }),
+      cars: () => ({ driving: this.driving, list: this.cars.map((c) => ({ id: c.spec.id, x: c.x, z: c.z, y: c.y, yaw: c.yaw, speed: c.speed })) }),
       mode: () => this.mode,
       raiwaiLayers: (near: boolean, far: boolean) => { this.raiwaiNear.visible = near; this.raiwaiFar.visible = far; },
       refreshShadows: () => this.refreshShadows(),

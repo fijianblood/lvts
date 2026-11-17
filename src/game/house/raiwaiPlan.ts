@@ -16,6 +16,7 @@ import { GARDEN_CITY } from './gardenCity.ts';
 import { USP, USP_BUILDINGS, USP_NORTH, USP_TREES, USP_SIGN } from './uspCampus.ts';
 import { DAMODAR_CITY, DAMODAR_PALMS } from './damodarCity.ts';
 import { LOOKOUT, LOOKOUT_PATH, climbBox } from './towers.ts';
+import { POOL } from './hopClimb.ts';
 
 export interface HouseSpec {
   w: number;
@@ -266,3 +267,9 @@ export const POLE_RUNS: [number, number][][] = [
   Array.from({ length: 10 }, (_, i) => -58 + i * 28).filter((x) => !(x > 8 && x < 20) && !(x > 31 && x < 43)).map((x): [number, number] => [x, 21.6]),
   Array.from({ length: 4 }, (_, i) => -34 + i * 18).map((z): [number, number] => [SIDE_ROAD.x1 + 0.6, z]),
 ];
+
+// the open lot behind the Methodist Church is cleared for Hop & Climb's pool (hopClimb.ts)
+for (let i = RAIWAI_TREES.length - 1; i >= 0; i--) {
+  const t = RAIWAI_TREES[i];
+  if (t.x > POOL.x0 - 2.5 && t.x < POOL.x1 + 2.5 && t.z > POOL.z0 - 2.5 && t.z < POOL.z1 + 2.5) RAIWAI_TREES.splice(i, 1);
+}

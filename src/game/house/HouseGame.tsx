@@ -259,6 +259,10 @@ export default function HouseGame() {
   const [tab, setTab] = useState<CharacterGroup>(() => characterById(readChar()).group);
   const [third, setThird] = useState(false);
   const [perk, setPerk] = useState<PerkPill | null>(null);
+  // the Riddle Hunt and Hop & Climb (hopClimb.ts), while exploring
+  const [riddle, setRiddle] = useState<{ index: number; q: string; options: string[] } | null>(null);
+  const [riddles, setRiddles] = useState<[number, number]>([0, 6]);
+  const [hop, setHop] = useState<{ time: number | null; best: number | null }>({ time: null, best: null });
   const [confirmQuit, setConfirmQuit] = useState(false);
   const [result, setResult] = useState<RunResult | null>(null);
   const [best, setBest] = useState<number | null>(() => readBest());
@@ -309,6 +313,33 @@ export default function HouseGame() {
     window.clearTimeout(toastTimer.current);
     toastTimer.current = window.setTimeout(() => setToast(null), kind === 'part' ? 1900 : kind === 'star' ? 3600 : kind === 'info' ? 3800 : 4200);
   }, []);
+  const closeRiddle = useCallback(() => {
+    setRiddle(null);
+    engineRef.current?.setUiOpen(false);
+    if (!touch && engineRef.current?.state === 'playing') engineRef.current.requestLock();
+  }, [touch]);
+  const answerRiddle = useCallback((choice: number) => {
+    const e = engineRef.current;
+    if (!e || !riddle) return;
+    if (e.answerRiddle(riddle.index, choice)) {
+      const [n, t] = [riddles[0] + 1, riddles[1]];
+      showToast(n >= t ? `🎉 Vinaka! You solved every riddle! ⭐ ${n}/${t}` : `✅ Correct! It's ${riddle.options[choice].toLowerCase()}. ⭐ ${n}/${t}`, 'star');
+      closeRiddle();
+    } else showToast('🤔 Not quite. Try again!', 'info');
+  }, [riddle, riddles, showToast, closeRiddle]);
+  // 1, 2 or 3 picks an answer; Esc closes the riddle
+  useEffect(() => {
+    if (!riddle) return;
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.code === 'Escape') { ev.preventDefault(); closeRiddle(); }
+      const i = ['Digit1', 'Digit2', 'Digit3'].indexOf(ev.code);
+      if (i >= 0) { ev.preventDefault(); answerRiddle(i); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [riddle, answerRiddle, closeRiddle]);
+  // a riddle closes when you stop playing
+  useEffect(() => { if (riddle && phase !== 'playing') closeRiddle(); }, [riddle, phase, closeRiddle]);
   const showSay = useCallback((lines: Say[]) => {
     setToast({ lines, kind: 'talk' });
     window.clearTimeout(toastTimer.current);
@@ -347,6 +378,9 @@ export default function HouseGame() {
           onShop: (sp) => { setPromo(null); setShop((cur) => (cur?.id === sp.id ? null : sp)); },
           onPromo: (id) => { setShop(null); setPromo(id); },
           onPerk: (p) => setPerk(p),
+          onRiddle: (r) => { setShop(null); setPromo(null); setRiddle(r); engineRef.current?.setUiOpen(true); if (document.pointerLockElement) document.exitPointerLock(); },
+          onRiddles: (n, t) => setRiddles([n, t]),
+          onHop: (h) => setHop(h),
           onChores: (c) => setChores(c),
           onWork: (w) => setWork(w),
           onChoreDone: (d) => showToast(`+${d.stars} ⭐ ${d.chore.name}: done!${d.bonus ? `\n+${d.bonus} ⭐ bonus: every chore done!` : ''}\n${thanks(engineRef.current?.character, thankCount.current++)}`, 'star'),
@@ -610,6 +644,8 @@ export default function HouseGame() {
           <span className="hh-pill hh-timer" title="Time" style={mode === 'explore' ? { display: 'none' } : undefined}><span aria-hidden>⏱</span> <span ref={timerRef}>00:00.0</span></span>
           {mode === 'hunt' ? <span className="hh-pill" title="Tech parts found"><span aria-hidden>🔧</span> {count}/{total}</span> : <span className="hh-pill hh-explore-pill" title="Exploring the neighbourhood">🏘️ Exploring</span>}
           <span className="hh-pill" title="Areas explored, inside and out"><span aria-hidden>🧭</span> {rooms[0]}/{rooms[1]}</span>
+          {mode === 'explore' && <span className="hh-pill" title="Riddle posts solved (the purple ? posts along McFarlane Road)">❓ {riddles[0]}/{riddles[1]}</span>}
+          {mode === 'explore' && hop.time !== null && <span className="hh-pill hh-stars" title={`Hop & Climb${hop.best !== null ? ` · best ${hop.best.toFixed(1)} s` : ''}`}>🧗 {hop.time.toFixed(1)} s</span>}
           {perk && <span className={`hh-pill hh-perk hh-perk-${perk.tone}`} title={perk.title} aria-live="polite">{perk.text}</span>}
           {chores && !chores.baby && (
             <span className="hh-pill hh-stars" title="Stars from chores (kept on this device)">
@@ -648,6 +684,22 @@ export default function HouseGame() {
       {phase === 'playing' && chatOpen && <ChatPanel lines={world.lines} players={world.players} me={world.me} maxLength={CHAT_MAX} onSay={world.say} onReport={world.report} onClose={closeChat} touch={touch} />}
 
       {phase === 'intro' && creating && <Creator start={mine} saving={saving} onSave={(n, l) => void saveMine(n, l)} onDelete={() => void removeMine()} onCancel={() => setCreating(false)} />}
+
+      {/* A riddle post (the Riddle Hunt): pick the answer */}
+      {phase === 'playing' && riddle && !talk && (
+        <div className="hh-shop hh-riddle" role="dialog" aria-label="Riddle">
+          <div className="hh-chores-head">
+            <b>❓ Riddle {riddles[0]}/{riddles[1]} solved</b>
+            <button type="button" className="hh-talk-x" onPointerDown={(e) => { e.stopPropagation(); closeRiddle(); }} aria-label="Close">✕</button>
+          </div>
+          <p className="hh-riddle-q">{riddle.q}</p>
+          {riddle.options.map((o, i) => (
+            <button key={o} type="button" className="hh-riddle-a" onPointerDown={(e) => { e.stopPropagation(); answerRiddle(i); }}>
+              {!touch && <kbd>{i + 1}</kbd>} {o}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* A shop on the street: what it is, and its offers (none yet: the spots are waiting for real businesses) */}
       {phase === 'playing' && shop && !talk && (() => {
@@ -852,6 +904,7 @@ export default function HouseGame() {
                   <li><b>Right thumb</b> look</li>
                   <li><b>✋</b> open doors, talk to the family</li>
                   <li><b>⬆️</b> jump over things · <b>🏃</b> run · <b>🪑</b> sit down</li>
+                  <li><b>✋</b> by a brick car or the LvTS pickup to drive it (exploring) · <b>✋</b> again to get out</li>
                   <li><b>🗺️</b> map · <b>📋</b> chores · <b>🎥</b> view · <b>🔄</b> rotate · <b>✕</b> quit</li>
                   {SHARED && <li><b>💬</b> chat with other players while exploring</li>}
                 </>
@@ -861,6 +914,7 @@ export default function HouseGame() {
                   <li><b>Mouse</b> look · <kbd>X</kbd> quit</li>
                   <li><kbd>E</kbd> open doors, talk to the family</li>
                   <li><kbd>Space</kbd> jump over things · <kbd>Shift</kbd> run · <kbd>Z</kbd> sit down</li>
+                  <li><kbd>E</kbd> by a brick car or the LvTS pickup to drive it (exploring) · <kbd>E</kbd> again to get out</li>
                   <li><kbd>M</kbd> map · <kbd>C</kbd> chores · <kbd>V</kbd> view</li>
                   {SHARED && <li><kbd>T</kbd> chat with other players while exploring</li>}
                 </>
@@ -1092,6 +1146,11 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
 .hh-seg button.on { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; }
 .hh-cr-note { font-size: 0.72rem; color: #64748b; line-height: 1.45; margin: 8px 0 10px; }
 .hh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.hh-riddle-q { font-size: 0.95rem; font-weight: 700; margin: 6px 2px 8px; line-height: 1.35; }
+.hh-riddle-a { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 6px; padding: 10px 12px; border: 2px solid #c4b5fd; border-radius: 12px; background: #f5f3ff; color: #3b0764; font: 700 0.9rem system-ui, sans-serif; text-align: left; cursor: pointer; }
+.hh-riddle-a:hover { background: #ede9fe; }
+.hh-riddle-a kbd { font-size: 0.75rem; }
+.hh-riddle { border-color: #a78bfa; }
 .hh-shop { position: absolute; top: 56px; left: 12px; width: min(380px, 70%); max-height: calc(100% - 130px); overflow-y: auto; background: #fff; color: #0f172a; border-radius: 16px; border: 2px solid #bae6fd; box-shadow: 0 16px 40px rgba(15,23,42,0.3); padding: 10px 12px; z-index: 4; pointer-events: auto; font-size: 0.82rem; }
 .hh-is-touch .hh-shop { top: auto; left: 12px; right: 12px; bottom: 12px; width: auto; }
 .hh-promo { width: min(400px, 76%); border-width: 3px; }
