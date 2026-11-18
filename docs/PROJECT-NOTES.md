@@ -11,7 +11,6 @@ re-explained. Last updated 15 November 2026.
 - Built with React + TypeScript + Vite. Pushing to `main` publishes it automatically.
 
 ## Owner rules (always follow)
-- Don't change or remove the **Activation** page.
 - Keep **MediTrack** and **Loma**.
 - No client sites, LinkedIn certificates, SEO tool or whiteboard on the site (removed on purpose).
 - Loma's privacy note stays hidden behind the small "Privacy" link.
@@ -21,7 +20,7 @@ re-explained. Last updated 15 November 2026.
 
 ## Pages
 Home, Services, Loma (/loma/, was Ask LvTS), Rewards, Noqublox, Kids (Noqu Vuli + Little Chef),
-LabVIEW Help, Free Tools, MediTrack, Activation, Blog + one page per post. 14 pages in the sitemap.
+LabVIEW Help, Free Tools, MediTrack, Blog + one page per post. 13 pages in the sitemap.
 Each page has its own Google title, description and link-preview image.
 
 ## Services page (PS5 first)

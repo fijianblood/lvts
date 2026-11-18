@@ -10,7 +10,6 @@ import ToolsPage from './pages/ToolsPage';
 import AskLvtsPage from './pages/AskLvtsPage';
 import ChatWidget from './components/ChatWidget';
 import MediTrackPage from './pages/MediTrackPage';
-import ActivationHelpPage from './pages/ActivationHelpPage';
 import KidsPage from './pages/KidsPage';
 import LabviewPage from './pages/LabviewPage';
 import BlogPage from './pages/BlogPage';
@@ -105,7 +104,6 @@ function renderPage(page: string, onNav: (p: string) => void) {
     case 'seo':      return <ToolsPage />; // removed page, as above
     case 'ask':      return <AskLvtsPage />;
     case 'ask-old':  return <AskLvtsPage />; // old address: currentPage moves it to /loma/
-    case 'activation': return <ActivationHelpPage />;
     case 'neighbours-admin': return <Suspense fallback={null}><NeighbourhoodAdminPage /></Suspense>;
     case 'blog':     return <BlogPage onNav={onNav} />;
     default: {

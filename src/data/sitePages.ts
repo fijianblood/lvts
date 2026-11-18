@@ -2,7 +2,7 @@ import type { ComponentType } from 'react';
 import {
   IconTool, IconGift,
   IconHammer, IconHeartbeat, IconMessageCircle,
-  IconKey, IconHomeSearch, IconAbc, IconCpu, IconNews,
+  IconHomeSearch, IconAbc, IconCpu, IconNews,
 } from '@tabler/icons-react';
 
 export interface SitePage {
@@ -34,7 +34,4 @@ export const SITE_PAGES: SitePage[] = [
     blurb: 'Free browser tools: an image-to-PDF converter (JPEG, HEIC, DNG), a PDF merger and a photo-to-pencil-sketch maker. Your files are never uploaded.' },
   { id: 'meditrack', label: 'MediTrack', icon: IconHeartbeat, color: '#c1443b',
     blurb: 'A private, device-only health dashboard for blood pressure trends, test results, appointments, and medical history — nothing uploads.' },
-  { id: 'activation', label: 'Activation', icon: IconKey, color: '#8b5cf6',
-    blurb: 'Help with Windows and software activation — keys, troubleshooting, and guides.' },
-
 ];

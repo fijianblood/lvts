@@ -76,8 +76,6 @@ PAGES = {
                       chips=[('Blood pressure', 'See the trend over time'),
                              ('Results & visits', 'Tests and appointments'),
                              ('Private', 'Stays on your device')]),
-    'activation': dict(color='#8b5cf6', kicker='Activation help', headline='Windows and software activation help',
-                       sub='Product keys, fixing activation problems, and step-by-step guides.'),
     'blog': dict(color='#0ea5e9', kicker='LvTS Blog', headline='Tech tips, security and IT news for Fiji',
                  sub='Practical articles from LomaVata Tech Services in Raiwai, Suva.',
                  chips=[('Security', 'Keep your PC and accounts safe'),
