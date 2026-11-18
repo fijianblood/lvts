@@ -4,7 +4,7 @@ The plan for fijianblood.github.io/lvts, kept here so any future work session
 can pick up where the last one stopped. Update it when a step is done or the
 plan changes.
 
-Last updated: 15 November 2026.
+Last updated: 18 November 2026.
 
 ## Where the site is now
 
@@ -16,9 +16,9 @@ Last updated: 15 November 2026.
   scrolls inside and the wheel scrolls the page (Ctrl + scroll zooms); phones and touch tablets
   open it as its own page. Then PC repair, Vitikart, gas ovens, Website Design. No PS5 price on
   purpose ("quoted before we start").
-- **Pages (14 in Google):** Home, Services (with a Website Design section),
+- **Pages (13 in Google):** Home, Services (with a Website Design section),
   Loma (was Ask LvTS, at /loma/), Rewards, Noqublox, Kids (Noqu Vuli + Little Chef), LabVIEW Help,
-  Free Tools (image to PDF, PDF merge, photo sketch), MediTrack, Activation,
+  Free Tools (image to PDF, PDF merge, photo sketch), MediTrack,
   Blog, and one page per blog post.
 - **Old addresses still work:** `/little-chef/` opens its tab on Kids; the
   removed `/whiteboard/` and `/seo-tools/` open Free Tools (`aliasOf` in
@@ -37,7 +37,6 @@ Last updated: 15 November 2026.
 
 ## Owner decisions on record
 
-- **Keep the Activation page as it is.** Don't change or remove it.
 - **Keep MediTrack** in the menu and in Google. It will store records in
   accounts once the database exists (below).
 - **Keep Loma (formerly Ask LvTS).** It will grow into the accounts platform (below).

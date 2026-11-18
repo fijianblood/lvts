@@ -125,12 +125,6 @@ export const ROUTES: PageRoute[] = [
     heading: 'Free SEO and website analysis tools',
   },
   {
-    id: 'activation', label: 'Activation', slug: 'activation',
-    title: 'Windows & Software Activation Help | LvTS',
-    description: 'Help with Windows and software activation: product keys, fixing activation problems, and step-by-step guides from LomaVata Tech Services in Fiji.',
-    heading: 'Windows and software activation help',
-  },
-  {
     id: 'blog', label: 'Blog', slug: 'blog',
     title: 'LvTS Blog: Tech Tips, Security and IT News for Fiji',
     description: 'Practical tech articles from LomaVata Tech Services in Suva: PC security, Windows fixes, websites, networking and technology news for Fiji and the Pacific.',
