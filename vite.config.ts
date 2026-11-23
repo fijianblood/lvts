@@ -148,7 +148,8 @@ export default defineConfig(({ mode }) => {
           // SPA shell for actual app routes. Without this, clicking a
           // target="_blank" link straight to e.g. /lvts/rammap.png gets
           // intercepted as a navigation and incorrectly redirected to index.html.
-          navigateFallbackDenylist: [/\.[a-zA-Z0-9]{2,5}$/],
+          // The Noqublox playable ad at /play/ is its own page (public/play/index.html), not an app route.
+          navigateFallbackDenylist: [/\.[a-zA-Z0-9]{2,5}$/, /\/play\/?$/],
           runtimeCaching: [
             {
               // Any other hashed JS/CSS chunk (dynamic imports like jspdf,
