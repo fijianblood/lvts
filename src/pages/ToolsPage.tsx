@@ -4,6 +4,7 @@ import { UploadCloud, ArrowUp, ArrowDown, X, FileDown, Loader2, CheckCircle2, Al
 import { useScrollFade } from '../hooks/useScrollFade';
 import { formatSize, isSupportedFile, isIOS, resolveImageSource } from '../lib/imageSource';
 import SketchTool from '../components/SketchTool';
+import YoutubeDownloaderTool from '../components/YoutubeDownloaderTool';
 
 interface ImgItem {
   id: number;
@@ -484,8 +485,11 @@ export default function ToolsPage() {
 
           <SketchTool />
 
+          <YoutubeDownloaderTool />
+
           <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.7 }}>
-            🔒 Runs 100% locally in your browser — your files never leave your device.<br />
+            🔒 The image, PDF and sketch tools run 100% locally in your browser — your files never leave your device.<br />
+            The YouTube Downloader runs on Google Colab under your own Google account.<br />
             Brought to you free by <span style={{ fontWeight: 700, color: '#2563eb' }}>LomaVata Tech Services</span>.
           </div>
         </div>
