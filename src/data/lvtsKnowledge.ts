@@ -224,7 +224,8 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
     answer:
       "**Free tools**\n\n" +
       "The **Tools** page has a free Image → PDF converter, a PDF merge tool, and a Photo → Pencil Sketch maker — all run entirely in your browser, nothing gets uploaded anywhere.\n\n" +
-      "It also has the **LvTS YouTube Downloader**: open it in Google Colab with your Google account, run Step 1, paste a YouTube link in Step 2, and get an MP4 (up to 1080p) or an MP3. " +
+      "It also has the **LvTS YouTube Downloader**: paste a YouTube link on the Tools page, choose a quality, and press **Download with Google Colab**. " +
+      "Colab opens with the link copied; paste it, press Run, and the MP4 (up to 1080p) or MP3 comes straight to your phone or computer. " +
       "Please only download videos you own, have permission to download, or that are licensed for reuse (for example Creative Commons).",
   },
   {
