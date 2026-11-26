@@ -1,0 +1,29 @@
+# TEMPORARY: one-off test of whether YouTube allows downloads from a cloud server.
+# Lives only on the test/yt-cloud-check branch, which is deleted after the run.
+name: YouTube cloud check (temporary)
+on:
+  push:
+    branches: [test/yt-cloud-check]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          pip install -q -U "yt-dlp[default]" deno
+      - name: Test 1 - plain yt-dlp (same as the LvTS notebook)
+        run: python -I .github/yt-cloud-check/yt_cloud_test.py default tv web_safari mweb android_vr
+      - name: Test 2 - with a PO token helper (bgutil)
+        run: |
+          pip install -q bgutil-ytdlp-pot-provider
+          docker run -d --name bgutil -p 4416:4416 brainicism/bgutil-ytdlp-pot-provider > /dev/null
+          sleep 8
+          python -I .github/yt-cloud-check/yt_cloud_test.py default mweb web_safari
