@@ -219,10 +219,13 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
     keywords: [
       'pdf tool', 'pdf converter', 'merge pdf', 'image to pdf', 'heic', 'convert pdf',
       'sketch', 'pencil sketch', 'photo to sketch', 'drawing',
+      'youtube', 'youtube downloader', 'download youtube', 'download video', 'mp3', 'colab',
     ],
     answer:
-      "**Free browser tools**\n\n" +
-      "The **Tools** page has a free Image → PDF converter, a PDF merge tool, and a Photo → Pencil Sketch maker — all run entirely in your browser, nothing gets uploaded anywhere.",
+      "**Free tools**\n\n" +
+      "The **Tools** page has a free Image → PDF converter, a PDF merge tool, and a Photo → Pencil Sketch maker — all run entirely in your browser, nothing gets uploaded anywhere.\n\n" +
+      "It also has the **LvTS YouTube Downloader**: open it in Google Colab with your Google account, run Step 1, paste a YouTube link in Step 2, and get an MP4 (up to 1080p) or an MP3. " +
+      "Please only download videos you own, have permission to download, or that are licensed for reuse (for example Creative Commons).",
   },
   {
     id: 'laptop-wont-turn-on',

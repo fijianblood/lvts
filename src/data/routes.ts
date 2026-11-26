@@ -103,8 +103,8 @@ export const ROUTES: PageRoute[] = [
   {
     id: 'tools', label: 'Free Tools', slug: 'tools',
     title: 'Free Image to PDF, PDF Merge & Photo Sketch Tools | LvTS',
-    description: 'Free tools that run in your browser: turn photos (JPEG, HEIC, DNG) into a PDF, merge PDFs, or make a pencil sketch from a photo. Nothing is uploaded.',
-    heading: 'Free image to PDF, PDF merge and photo sketch tools',
+    description: 'Free tools: photos (JPEG, HEIC, DNG) to PDF, PDF merge and pencil sketch, all in your browser, plus a free YouTube downloader that runs on Google Colab.',
+    heading: 'Free image to PDF, PDF merge, photo sketch and YouTube downloader tools',
   },
   {
     id: 'whiteboard', label: 'Whiteboard', slug: 'whiteboard', aliasOf: 'tools',

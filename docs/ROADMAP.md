@@ -18,7 +18,8 @@ Last updated: 18 November 2026.
   purpose ("quoted before we start").
 - **Pages (13 in Google):** Home, Services (with a Website Design section),
   Loma (was Ask LvTS, at /loma/), Rewards, Noqublox, Kids (Noqu Vuli + Little Chef), LabVIEW Help,
-  Free Tools (image to PDF, PDF merge, photo sketch), MediTrack,
+  Free Tools (image to PDF, PDF merge, photo sketch, YouTube downloader via an "Open in Colab"
+  link to `public/colab/LvTS_YouTube_Downloader.ipynb`), MediTrack,
   Blog, and one page per blog post.
 - **Old addresses still work:** `/little-chef/` opens its tab on Kids; the
   removed `/whiteboard/` and `/seo-tools/` open Free Tools (`aliasOf` in
