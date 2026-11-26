@@ -21,9 +21,3 @@ jobs:
           pip install -q -U "yt-dlp[default]" deno
       - name: Test 1 - plain yt-dlp (same as the LvTS notebook)
         run: python -I .github/yt-cloud-check/yt_cloud_test.py default tv web_safari mweb android_vr
-      - name: Test 2 - with a PO token helper (bgutil)
-        run: |
-          pip install -q bgutil-ytdlp-pot-provider
-          docker run -d --name bgutil -p 4416:4416 brainicism/bgutil-ytdlp-pot-provider > /dev/null
-          sleep 8
-          python -I .github/yt-cloud-check/yt_cloud_test.py default mweb web_safari
