@@ -126,3 +126,10 @@ export function floorPlan(bricks: Brick[], at: [number, number]): string {
   const head = '   ' + Array.from({ length: GRID }, (_, x) => String(x % 10)).join('');
   return `Layer 0 (the floor): # = a brick, . = empty, P = where the player stands.\n${head}\n${floor.join('\n')}\n\nEmpty layers above the floor before the first brick (0 = a brick on the floor, + = 10 or more, open sky):\n${head}\n${room.join('\n')}`;
 }
+
+/** The bricks (and name) from a reply that was cut off part way. */
+export function salvage(text: string): { refused: boolean; name: string; bricks: number[][] } {
+  const name = /"name"\s*:\s*"([^"]*)"/.exec(text)?.[1] ?? '';
+  const bricks = [...text.matchAll(/\[\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*\]/g)].map((m) => m.slice(1, 7).map(Number));
+  return { refused: /"refused"\s*:\s*true/.test(text), name, bricks };
+}

@@ -1,7 +1,7 @@
 // The Build Zone: builds from words (buildZone.ts, workers/neighbourhood/src/builds.ts). Run with: node --test tests/house/
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanBricks, cleanPrompt, mergeBricks, floorPlan, GRID, MAX_BRICKS, PLOT_COUNT, type Brick, type BrickReply } from '../../workers/neighbourhood/src/builds.ts';
+import { cleanBricks, cleanPrompt, mergeBricks, floorPlan, salvage, GRID, MAX_BRICKS, PLOT_COUNT, type Brick, type BrickReply } from '../../workers/neighbourhood/src/builds.ts';
 import { handle, memoryStore, LIMITS, type Ctx } from '../../workers/neighbourhood/src/registry.ts';
 import { PLOTS, ZONE, ZONE_Y, PLOT_SIZE, CELL, brickBox, buildObstacles } from '../../src/game/house/buildZone.ts';
 import { buildStaticWorld, blocked } from '../../src/game/house/collision.ts';
@@ -122,4 +122,9 @@ test('builds: adding furniture to a build makes a new version of it, waiting for
   // nothing fits: no new version
   const full = async () => ({ ok: true as const, name: 'x', bricks: [[0, 0, 0, 2, 2, 4]] });
   assert.equal((await handle('POST', '/builds', { prompt: 'a chair', plot: 3, parent: base.id, at: [1, 1] }, ctx(store, { makeBricks: full, visitor: 'v3' }))).status, 503);
+});
+
+test('a reply cut off at the token limit keeps every brick written before the cut', () => {
+  assert.deepEqual(salvage('{"refused":false,"name":"House","bricks":[[1,0,2,4,1,15],[3, 1, 2, 2, 1, 0],[4,2,'), { refused: false, name: 'House', bricks: [[1, 0, 2, 4, 1, 15], [3, 1, 2, 2, 1, 0]] });
+  assert.equal(salvage('{"refused": true, "name": "", "bricks": [').refused, true);
 });
