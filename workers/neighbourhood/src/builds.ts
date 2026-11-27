@@ -37,7 +37,7 @@ export type BrickReply = { ok: true; name: string; bricks: unknown } | { ok: fal
 
 const int = (v: unknown, lo: number, hi: number) => (typeof v === 'number' && Number.isInteger(v) && v >= lo && v <= hi ? v : null);
 
-/** Only bricks that fit the plot, sizes and colours allowed; bricks hanging over the edge are trimmed; repeats dropped. Null if none are left. */
+/** Only bricks that fit the plot, in colours allowed; bricks hanging over the edge are trimmed; a brick longer than MAX_SIZE (a 2 × 5 bed) is split into pieces; repeats dropped. Null if none are left. */
 export function cleanBricks(raw: unknown, max = MAX_BRICKS): Brick[] | null {
   if (!Array.isArray(raw)) return null;
   const out: Brick[] = [];
@@ -46,13 +46,16 @@ export function cleanBricks(raw: unknown, max = MAX_BRICKS): Brick[] | null {
     if (out.length >= max) break;
     if (!Array.isArray(b) || b.length !== 6) continue;
     const x = int(b[0], 0, GRID - 1), y = int(b[1], 0, LAYERS - 1), z = int(b[2], 0, GRID - 1);
-    const w0 = int(b[3], 1, MAX_SIZE), d0 = int(b[4], 1, MAX_SIZE), c = int(b[5], 0, PALETTE.length - 1);
+    const w0 = int(b[3], 1, GRID), d0 = int(b[4], 1, GRID), c = int(b[5], 0, PALETTE.length - 1);
     if (x === null || y === null || z === null || w0 === null || d0 === null || c === null) continue;
     const w = Math.min(w0, GRID - x), d = Math.min(d0, GRID - z);
-    const k = `${x},${y},${z},${w},${d}`;
-    if (seen.has(k)) continue;
-    seen.add(k);
-    out.push([x, y, z, w, d, c]);
+    for (let i = 0; i < w && out.length < max; i += MAX_SIZE) for (let j = 0; j < d && out.length < max; j += MAX_SIZE) {
+      const piece: Brick = [x + i, y, z + j, Math.min(MAX_SIZE, w - i), Math.min(MAX_SIZE, d - j), c];
+      const k = piece.slice(0, 5).join(',');
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push(piece);
+    }
   }
   return out.length ? out : null;
 }
