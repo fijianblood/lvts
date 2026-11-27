@@ -8,8 +8,10 @@ export const PLOT_COUNT = 6;
 /** A plot is GRID × GRID studs, and builds go up to LAYERS bricks high. */
 export const GRID = 20;
 export const LAYERS = 20;
-/** Most bricks in one build, and the widest brick (in studs). */
-export const MAX_BRICKS = 300;
+/** Most bricks in a new build, most added at once (a bed, a table…), most on one plot in all, and the widest brick (in studs). */
+export const MAX_BRICKS = 800;
+export const MAX_ADD = 200;
+export const MAX_TOTAL = 1200;
 export const MAX_SIZE = 4;
 
 /** The brick colours a build can use (names are what Claude sees). */
@@ -24,7 +26,11 @@ export const PALETTE: { name: string; hex: string }[] = [
 /** One brick: x and z are its corner stud on the plot (0 to GRID-1), y its layer (0 sits on the plot), w and d its size in studs along x and z, c its colour (PALETTE index). */
 export type Brick = [x: number, y: number, z: number, w: number, d: number, c: number];
 
-export interface Build { id: string; plot: number; name: string; prompt: string; bricks: Brick[]; createdAt: string }
+/** A build on a plot. An addition (furniture inside a house…) is a new version of the build it was added to: `parent` is that build, `added` how many bricks are new. */
+export interface Build { id: string; plot: number; name: string; prompt: string; bricks: Brick[]; createdAt: string; parent?: string; added?: number }
+
+/** Adding to a build: what's there now, and the stud the player is standing on. */
+export interface AddTo { bricks: Brick[]; at: [number, number] }
 
 /** What Loma's brick builder answers. */
 export type BrickReply = { ok: true; name: string; bricks: unknown } | { ok: false; why: 'refused' | 'busy' | 'failed' };
@@ -32,12 +38,12 @@ export type BrickReply = { ok: true; name: string; bricks: unknown } | { ok: fal
 const int = (v: unknown, lo: number, hi: number) => (typeof v === 'number' && Number.isInteger(v) && v >= lo && v <= hi ? v : null);
 
 /** Only bricks that fit the plot, sizes and colours allowed; bricks hanging over the edge are trimmed; repeats dropped. Null if none are left. */
-export function cleanBricks(raw: unknown): Brick[] | null {
+export function cleanBricks(raw: unknown, max = MAX_BRICKS): Brick[] | null {
   if (!Array.isArray(raw)) return null;
   const out: Brick[] = [];
   const seen = new Set<string>();
   for (const b of raw) {
-    if (out.length >= MAX_BRICKS) break;
+    if (out.length >= max) break;
     if (!Array.isArray(b) || b.length !== 6) continue;
     const x = int(b[0], 0, GRID - 1), y = int(b[1], 0, LAYERS - 1), z = int(b[2], 0, GRID - 1);
     const w0 = int(b[3], 1, MAX_SIZE), d0 = int(b[4], 1, MAX_SIZE), c = int(b[5], 0, PALETTE.length - 1);
@@ -74,4 +80,49 @@ export function cleanPrompt(raw: unknown): PromptVerdict {
   const flat = words.join('');
   if (BLOCKED.some((w) => (w.length <= 4 ? words.includes(w) || words.includes(`${w}s`) : flat.includes(w)))) return { ok: false, why: "Let's build something friendly instead." };
   return { ok: true, prompt };
+}
+
+const key3 = (x: number, y: number, z: number) => (y * GRID + z) * GRID + x;
+function occupied(bricks: Brick[]): Set<number> {
+  const s = new Set<number>();
+  for (const [x, y, z, w, d] of bricks) for (let i = x; i < x + w; i++) for (let j = z; j < z + d; j++) s.add(key3(i, y, j));
+  return s;
+}
+
+/** An addition on top of a build: new bricks that would go through bricks already there are dropped, and the plot never holds more than MAX_TOTAL. */
+export function mergeBricks(base: Brick[], extra: Brick[]): { bricks: Brick[]; added: number } {
+  const taken = occupied(base);
+  const out = base.slice(0, MAX_TOTAL);
+  let added = 0;
+  for (const b of extra) {
+    if (out.length >= MAX_TOTAL) break;
+    const [x, y, z, w, d] = b;
+    let clear = true;
+    for (let i = x; i < x + w && clear; i++) for (let j = z; j < z + d && clear; j++) if (taken.has(key3(i, y, j))) clear = false;
+    if (!clear) continue;
+    for (let i = x; i < x + w; i++) for (let j = z; j < z + d; j++) taken.add(key3(i, y, j));
+    out.push(b);
+    added++;
+  }
+  return { bricks: out, added };
+}
+
+/** The plot seen from above, for adding to a build: what's on the floor, and how many empty layers there are above each stud before a brick (a ceiling). */
+export function floorPlan(bricks: Brick[], at: [number, number]): string {
+  const taken = occupied(bricks);
+  const floor: string[] = [], room: string[] = [];
+  for (let z = 0; z < GRID; z++) {
+    let f = '', r = '';
+    for (let x = 0; x < GRID; x++) {
+      const here = x === at[0] && z === at[1];
+      f += here ? 'P' : taken.has(key3(x, 0, z)) ? '#' : '.';
+      let n = 0;
+      while (n < LAYERS && !taken.has(key3(x, n, z))) n++;
+      r += here ? 'P' : n >= 10 ? '+' : String(n);
+    }
+    floor.push(`${String(z).padStart(2)} ${f}`);
+    room.push(`${String(z).padStart(2)} ${r}`);
+  }
+  const head = '   ' + Array.from({ length: GRID }, (_, x) => String(x % 10)).join('');
+  return `Layer 0 (the floor): # = a brick, . = empty, P = where the player stands.\n${head}\n${floor.join('\n')}\n\nEmpty layers above the floor before the first brick (0 = a brick on the floor, + = 10 or more, open sky):\n${head}\n${room.join('\n')}`;
 }

@@ -269,6 +269,8 @@ export default function HouseGame() {
   const [kiosk, setKiosk] = useState(false);
   // the Build Zone (buildZone.ts): which plot's panel is open, what's typed, and how the build is going
   const [buildPlot, setBuildPlot] = useState<number | null>(null);
+  // adding to a build (furniture inside a house…): the build it goes on, and the stud you're standing on
+  const [buildOn, setBuildOn] = useState<{ parent: Build; at: [number, number] } | null>(null);
   const [buildText, setBuildText] = useState('');
   const [buildBusy, setBuildBusy] = useState(false);
   const [buildMsg, setBuildMsg] = useState('');
@@ -385,9 +387,10 @@ export default function HouseGame() {
     if (prompt.length < 3) { setBuildMsg('Type what you want to build first.'); return; }
     if (!API) { setBuildMsg('Building needs the online server, which is off in this version of the site.'); return; }
     setBuildBusy(true);
-    setBuildMsg('Building… this takes about half a minute.');
+    setBuildMsg(buildOn ? 'Building… this takes about half a minute.' : 'Building… a good build takes about a minute.');
     try {
-      const res = await fetch(`${API}/builds`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, plot: buildPlot }) });
+      const body = buildOn ? { prompt, plot: buildPlot, parent: buildOn.parent.id, at: buildOn.at } : { prompt, plot: buildPlot };
+      const res = await fetch(`${API}/builds`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.build) { setBuildMsg(data.error ?? "The builder couldn't be reached. Try again soon."); setBuildBusy(false); return; }
       const mineNow = [...loadMyBuilds().filter((b) => b.plot !== buildPlot), data.build as Build];
@@ -395,12 +398,12 @@ export default function HouseGame() {
       engineRef.current?.setMyBuilds(mineNow);
       setBuildText('');
       closeBuild();
-      showToast(`🧱 ${data.build.name}! Only you can see it until LvTS checks it.`, 'star');
+      showToast(buildOn ? `🧱 Added "${prompt}"! Only you can see it until LvTS checks it.` : `🧱 ${data.build.name}! Only you can see it until LvTS checks it.`, 'star');
     } catch {
       setBuildMsg("The builder couldn't be reached. Check your internet and try again.");
       setBuildBusy(false);
     }
-  }, [buildPlot, buildBusy, closeBuild, showToast]);
+  }, [buildPlot, buildBusy, buildOn, closeBuild, showToast]);
   // a riddle closes when you stop playing
   useEffect(() => { if (riddle && phase !== 'playing') closeRiddle(); }, [riddle, phase, closeRiddle]);
   const showSay = useCallback((lines: Say[]) => {
@@ -444,7 +447,8 @@ export default function HouseGame() {
           onRiddle: (r) => { setShop(null); setPromo(null); setRiddle(r); engineRef.current?.setUiOpen(true); if (document.pointerLockElement) document.exitPointerLock(); },
           onRiddles: (n, t) => setRiddles([n, t]),
           onHop: (h) => setHop(h),
-          onBuildPlot: (plot) => { setShop(null); setPromo(null); setKiosk(false); setBuildMsg(''); setBuildPlot(plot); engineRef.current?.setUiOpen(true); if (document.pointerLockElement) document.exitPointerLock(); },
+          onBuildHere: (plot, parent, at) => { setShop(null); setPromo(null); setKiosk(false); setBuildMsg(''); setBuildOn({ parent, at }); setBuildPlot(plot); engineRef.current?.setUiOpen(true); if (document.pointerLockElement) document.exitPointerLock(); },
+          onBuildPlot: (plot) => { setShop(null); setPromo(null); setKiosk(false); setBuildMsg(''); setBuildOn(null); setBuildPlot(plot); engineRef.current?.setUiOpen(true); if (document.pointerLockElement) document.exitPointerLock(); },
           onKiosk: () => { setShop(null); setPromo(null); setKiosk(true); engineRef.current?.setUiOpen(true); if (document.pointerLockElement) document.exitPointerLock(); },
           onChores: (c) => setChores(c),
           onWork: (w) => setWork(w),
@@ -754,22 +758,22 @@ export default function HouseGame() {
       {phase === 'playing' && buildPlot !== null && !talk && (
         <div className="hh-shop hh-riddle hh-build" role="dialog" aria-label={`Build plot ${buildPlot + 1}`}>
           <div className="hh-chores-head">
-            <b>🧱 Build plot {buildPlot + 1}</b>
+            <b>🧱 {buildOn ? `Add to ${buildOn.parent.name}` : `Build plot ${buildPlot + 1}`}</b>
             <button type="button" className="hh-talk-x" onPointerDown={(e) => { e.stopPropagation(); closeBuild(); }} aria-label="Close">✕</button>
           </div>
-          <p className="hh-riddle-q">What should we build?</p>
+          <p className="hh-riddle-q">{buildOn ? 'What should go right here?' : 'What should we build?'}</p>
           <form onSubmit={(e) => { e.preventDefault(); void submitBuild(buildText); }}>
-            <input className="hh-build-in" value={buildText} maxLength={120} autoFocus disabled={buildBusy} placeholder="a bure with a coconut tree"
+            <input className="hh-build-in" value={buildText} maxLength={120} autoFocus disabled={buildBusy} placeholder={buildOn ? 'a bed with a pillow' : 'a bure with a coconut tree'}
               onChange={(e) => setBuildText(e.target.value)} onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') closeBuild(); }} aria-label="What to build" />
             <div className="hh-build-ideas">
-              {['a bure with a coconut tree', 'a red fishing boat', 'a big sea turtle', 'a lighthouse'].map((t) => (
+              {(buildOn ? ['a bed with a pillow', 'a table and two chairs', 'a wardrobe', 'a TV on a stand', 'a tanoa kava bowl'] : ['a house with a big door', 'a bure with a coconut tree', 'a red fishing boat', 'a lighthouse']).map((t) => (
                 <button key={t} type="button" disabled={buildBusy} onClick={() => setBuildText(t)}>{t}</button>
               ))}
             </div>
             <button type="submit" className="hh-riddle-a" disabled={buildBusy}>{buildBusy ? 'Building…' : 'Build it! 🧱'}</button>
           </form>
           {buildMsg && <p className="hh-kiosk-note" role="status">{buildMsg}</p>}
-          <p className="hh-kiosk-note">Everyone sees your build after LvTS checks it. 5 builds a day.</p>
+          <p className="hh-kiosk-note">{buildOn ? 'Tip: stand where you want it, inside the house. ' : 'Houses are big enough to walk in: go inside and press E to add furniture. '}Everyone sees it after LvTS checks it. 10 builds a day.</p>
         </div>
       )}
 

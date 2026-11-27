@@ -113,10 +113,11 @@ export default function NeighbourhoodAdminPage() {
               return (
                 <li key={b.id} style={{ display: 'flex', gap: 12, padding: '10px 12px', border: `1px solid ${live ? '#86efac' : '#e2e8f0'}`, borderRadius: 14, background: '#fff', flexWrap: 'wrap' }}>
                   <BuildPreview bricks={b.bricks} size={180} />
+                  {b.parent && b.added ? <div style={{ textAlign: 'center', fontSize: '0.75rem', color: '#64748b' }}><BuildPreview bricks={b.bricks.slice(-b.added)} size={180} /><div>Just the new part</div></div> : null}
                   <div style={{ flex: '1 1 200px', minWidth: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: '1.05rem' }}>{b.name}{live ? ' · on its plot now' : ''}</div>
-                    <div style={{ color: '#334155', margin: '4px 0' }}>Typed: “{b.prompt}”</div>
-                    <div style={{ color: '#64748b', fontSize: '0.8rem', marginBottom: 8 }}>Plot {b.plot + 1} · {b.bricks.length} bricks · {fijiTime(b.createdAt)}</div>
+                    <div style={{ color: '#334155', margin: '4px 0' }}>{b.parent ? 'Added inside: ' : 'Typed: '}“{b.prompt}”</div>
+                    <div style={{ color: '#64748b', fontSize: '0.8rem', marginBottom: 8 }}>Plot {b.plot + 1} · {b.parent ? `${b.added} new bricks, ${b.bricks.length} in all` : `${b.bricks.length} bricks`} · {fijiTime(b.createdAt)}</div>
                     <div style={{ display: 'flex', gap: 6 }}>
                       {!live && btn('Approve', () => void act(`/admin/builds/${b.id}/approve`, 'POST', `Approved ${b.name}: it's on plot ${b.plot + 1} now.`), '#16a34a')}
                       {btn(live ? 'Remove' : 'Reject', () => void act(`/admin/builds/${b.id}/reject`, 'POST', `${live ? 'Removed' : 'Rejected'} ${b.name}.`), '#dc2626')}
