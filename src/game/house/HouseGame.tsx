@@ -13,7 +13,8 @@ import {
   SKIN, HAIR, CLOTHES, SIZES, DEFAULT_LOOK, cleanName, visitorCharacter, loadMine, shareMine, checkMine, deleteMine, fetchNeighbours,
   offerLive, unlocked as offerUnlocked, API, type Mine, type Sharing, type ShopSpot, type VisitorLook,
 } from './neighbourhood.ts';
-import { useSharedWorld, SHARED, SHARED_CSS, CHAT_MAX, type JoinWho } from './useSharedWorld.ts';
+import { useSharedWorld, SHARED, SHARED_CSS, CHAT_MAX, BUILDS_CHANGED, type JoinWho } from './useSharedWorld.ts';
+import { loadMyBuilds, storeMyBuilds, type Build } from './buildZone.ts';
 import { WorldPill, ChatFeed, ChatPanel } from './SharedWorld.tsx';
 import { ROOM_FINDER_URL } from './sunsetDrive.ts';
 
@@ -266,6 +267,11 @@ export default function HouseGame() {
   const [hop, setHop] = useState<{ time: number | null; best: number | null }>({ time: null, best: null });
   // the USP Room Finder kiosk at the campus (sunsetDrive.ts)
   const [kiosk, setKiosk] = useState(false);
+  // the Build Zone (buildZone.ts): which plot's panel is open, what's typed, and how the build is going
+  const [buildPlot, setBuildPlot] = useState<number | null>(null);
+  const [buildText, setBuildText] = useState('');
+  const [buildBusy, setBuildBusy] = useState(false);
+  const [buildMsg, setBuildMsg] = useState('');
   const [confirmQuit, setConfirmQuit] = useState(false);
   const [result, setResult] = useState<RunResult | null>(null);
   const [best, setBest] = useState<number | null>(() => readBest());
@@ -347,6 +353,54 @@ export default function HouseGame() {
     if (!touch && engineRef.current?.state === 'playing') engineRef.current.requestLock();
   }, [touch]);
   useEffect(() => { if (kiosk && phase !== 'playing') closeKiosk(); }, [kiosk, phase, closeKiosk]);
+  // Build Zone: approved builds from the server (on the way in, when LvTS approves one, and every 2 minutes), plus your own waiting ones
+  useEffect(() => {
+    if (mode !== 'explore' || phase !== 'playing') return;
+    engineRef.current?.setMyBuilds(loadMyBuilds());
+    if (!API) return;
+    let alive = true;
+    const get = () => fetch(`${API}/builds`).then((r) => (r.ok ? r.json() : null)).then((d) => {
+      if (!alive || !Array.isArray(d?.builds)) return;
+      engineRef.current?.setBuilds(d.builds as Build[]);
+      // approved ones don't need keeping here any more
+      const ids = new Set((d.builds as Build[]).map((b) => b.id));
+      const mineLeft = loadMyBuilds().filter((b) => !ids.has(b.id));
+      storeMyBuilds(mineLeft);
+    }).catch(() => { /* offline: your own builds still show */ });
+    void get();
+    const t = window.setInterval(get, 120_000);
+    window.addEventListener(BUILDS_CHANGED, get);
+    return () => { alive = false; window.clearInterval(t); window.removeEventListener(BUILDS_CHANGED, get); };
+  }, [mode, phase]);
+  const closeBuild = useCallback(() => {
+    setBuildPlot(null);
+    setBuildBusy(false);
+    engineRef.current?.setUiOpen(false);
+    if (!touch && engineRef.current?.state === 'playing') engineRef.current.requestLock();
+  }, [touch]);
+  useEffect(() => { if (buildPlot !== null && phase !== 'playing') closeBuild(); }, [buildPlot, phase, closeBuild]);
+  const submitBuild = useCallback(async (text: string) => {
+    if (buildPlot === null || buildBusy) return;
+    const prompt = text.trim();
+    if (prompt.length < 3) { setBuildMsg('Type what you want to build first.'); return; }
+    if (!API) { setBuildMsg('Building needs the online server, which is off in this version of the site.'); return; }
+    setBuildBusy(true);
+    setBuildMsg('Building… this takes about half a minute.');
+    try {
+      const res = await fetch(`${API}/builds`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, plot: buildPlot }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.build) { setBuildMsg(data.error ?? "The builder couldn't be reached. Try again soon."); setBuildBusy(false); return; }
+      const mineNow = [...loadMyBuilds().filter((b) => b.plot !== buildPlot), data.build as Build];
+      storeMyBuilds(mineNow);
+      engineRef.current?.setMyBuilds(mineNow);
+      setBuildText('');
+      closeBuild();
+      showToast(`🧱 ${data.build.name}! Only you can see it until LvTS checks it.`, 'star');
+    } catch {
+      setBuildMsg("The builder couldn't be reached. Check your internet and try again.");
+      setBuildBusy(false);
+    }
+  }, [buildPlot, buildBusy, closeBuild, showToast]);
   // a riddle closes when you stop playing
   useEffect(() => { if (riddle && phase !== 'playing') closeRiddle(); }, [riddle, phase, closeRiddle]);
   const showSay = useCallback((lines: Say[]) => {
@@ -390,6 +444,7 @@ export default function HouseGame() {
           onRiddle: (r) => { setShop(null); setPromo(null); setRiddle(r); engineRef.current?.setUiOpen(true); if (document.pointerLockElement) document.exitPointerLock(); },
           onRiddles: (n, t) => setRiddles([n, t]),
           onHop: (h) => setHop(h),
+          onBuildPlot: (plot) => { setShop(null); setPromo(null); setKiosk(false); setBuildMsg(''); setBuildPlot(plot); engineRef.current?.setUiOpen(true); if (document.pointerLockElement) document.exitPointerLock(); },
           onKiosk: () => { setShop(null); setPromo(null); setKiosk(true); engineRef.current?.setUiOpen(true); if (document.pointerLockElement) document.exitPointerLock(); },
           onChores: (c) => setChores(c),
           onWork: (w) => setWork(w),
@@ -694,6 +749,29 @@ export default function HouseGame() {
       {phase === 'playing' && chatOpen && <ChatPanel lines={world.lines} players={world.players} me={world.me} maxLength={CHAT_MAX} onSay={world.say} onReport={world.report} onClose={closeChat} touch={touch} />}
 
       {phase === 'intro' && creating && <Creator start={mine} saving={saving} onSave={(n, l) => void saveMine(n, l)} onDelete={() => void removeMine()} onCancel={() => setCreating(false)} />}
+
+      {/* A Build Zone plot: type what to build, Claude answers with bricks (buildZone.ts) */}
+      {phase === 'playing' && buildPlot !== null && !talk && (
+        <div className="hh-shop hh-riddle hh-build" role="dialog" aria-label={`Build plot ${buildPlot + 1}`}>
+          <div className="hh-chores-head">
+            <b>🧱 Build plot {buildPlot + 1}</b>
+            <button type="button" className="hh-talk-x" onPointerDown={(e) => { e.stopPropagation(); closeBuild(); }} aria-label="Close">✕</button>
+          </div>
+          <p className="hh-riddle-q">What should we build?</p>
+          <form onSubmit={(e) => { e.preventDefault(); void submitBuild(buildText); }}>
+            <input className="hh-build-in" value={buildText} maxLength={120} autoFocus disabled={buildBusy} placeholder="a bure with a coconut tree"
+              onChange={(e) => setBuildText(e.target.value)} onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') closeBuild(); }} aria-label="What to build" />
+            <div className="hh-build-ideas">
+              {['a bure with a coconut tree', 'a red fishing boat', 'a big sea turtle', 'a lighthouse'].map((t) => (
+                <button key={t} type="button" disabled={buildBusy} onClick={() => setBuildText(t)}>{t}</button>
+              ))}
+            </div>
+            <button type="submit" className="hh-riddle-a" disabled={buildBusy}>{buildBusy ? 'Building…' : 'Build it! 🧱'}</button>
+          </form>
+          {buildMsg && <p className="hh-kiosk-note" role="status">{buildMsg}</p>}
+          <p className="hh-kiosk-note">Everyone sees your build after LvTS checks it. 5 builds a day.</p>
+        </div>
+      )}
 
       {/* The USP Room Finder kiosk: Samuel Ganey Tubuna's 3D campus map, on his own site */}
       {phase === 'playing' && kiosk && !talk && (
@@ -1175,6 +1253,10 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
 .hh-riddle-a:hover { background: #ede9fe; }
 .hh-riddle-a kbd { font-size: 0.75rem; }
 .hh-riddle { border-color: #a78bfa; }
+.hh-build-in { width: 100%; box-sizing: border-box; padding: 9px 11px; border-radius: 10px; border: 1.5px solid #c4b5fd; font: inherit; font-size: 16px; margin-bottom: 8px; }
+.hh-build-ideas { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.hh-build-ideas button { font: inherit; font-size: 0.78rem; padding: 4px 9px; border-radius: 999px; border: 1px solid #ddd6fe; background: #f5f3ff; color: #4c1d95; cursor: pointer; }
+.hh-build button[type=submit] { width: 100%; }
 .hh-kiosk-note { font-size: 0.82rem; line-height: 1.4; margin: 0 2px 8px; opacity: 0.9; }
 a.hh-riddle-a { justify-content: center; text-decoration: none; }
 .hh-shop { position: absolute; top: 56px; left: 12px; width: min(380px, 70%); max-height: calc(100% - 130px); overflow-y: auto; background: #fff; color: #0f172a; border-radius: 16px; border: 2px solid #bae6fd; box-shadow: 0 16px 40px rgba(15,23,42,0.3); padding: 10px 12px; z-index: 4; pointer-events: auto; font-size: 0.82rem; }

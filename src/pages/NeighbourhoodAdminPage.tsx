@@ -5,6 +5,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { API, visitorLook, type VisitorCharacter } from '../game/house/neighbourhood.ts';
 import { Portrait } from '../game/house/portrait.tsx';
+import { BuildPreview } from '../game/house/BuildPreview.tsx';
+import type { Build } from '../game/house/buildZone.ts';
 import { characterById } from '../game/house/characters.ts';
 import type { BanRow, ReportRow } from '../../workers/neighbourhood/src/registry.ts';
 
@@ -24,6 +26,7 @@ export default function NeighbourhoodAdminPage() {
   const [online, setOnline] = useState<OnlineRow[] | null>(null);
   const [reports, setReports] = useState<ReportRow[] | null>(null);
   const [bans, setBans] = useState<BanRow[] | null>(null);
+  const [builds, setBuilds] = useState<{ pending: Build[]; approved: Build[] } | null>(null);
 
   const call = useCallback(async (method: string, path: string, body?: unknown) => {
     const res = await fetch(API + path, {
@@ -40,10 +43,11 @@ export default function NeighbourhoodAdminPage() {
     if (!API) { setMsg('The neighbourhood server is switched off in this build.'); return; }
     if (!key) return;
     try {
-      const [p, a, o, r, b] = await Promise.all([call('GET', '/admin/pending'), call('GET', '/admin/approved'), call('GET', '/admin/online'), call('GET', '/admin/reports'), call('GET', '/admin/bans')]);
+      const [p, a, o, r, b, bu] = await Promise.all([call('GET', '/admin/pending'), call('GET', '/admin/approved'), call('GET', '/admin/online'), call('GET', '/admin/reports'), call('GET', '/admin/bans'), call('GET', '/admin/builds').catch(() => null)]);
+      setBuilds(bu ? { pending: bu.pending, approved: bu.approved } : null);
       setPending(p.characters); setApproved(a.characters); setOnline(o.players); setReports(r.reports); setBans(b.bans); if (!keepMessage) setMsg('');
       try { sessionStorage.setItem(KEY, key); } catch { /* fine */ }
-    } catch (e) { setMsg((e as Error).message === 'Failed to fetch' ? "The neighbourhood server can't be reached. Is it deployed?" : (e as Error).message); setPending(null); setApproved(null); setOnline(null); setReports(null); setBans(null); }
+    } catch (e) { setMsg((e as Error).message === 'Failed to fetch' ? "The neighbourhood server can't be reached. Is it deployed?" : (e as Error).message); setPending(null); setApproved(null); setBuilds(null); setOnline(null); setReports(null); setBans(null); }
   }, [call, key]);
 
   // with a key kept from earlier in this tab, load straight away (after the first paint)
@@ -95,6 +99,32 @@ export default function NeighbourhoodAdminPage() {
           {pending.length === 0 && <p style={{ color: '#64748b' }}>Nothing waiting.</p>}
           <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 8 }}>
             {pending.map((c) => card(c, <div style={{ display: 'flex', gap: 6 }}>{btn('Approve', () => void act(`/admin/${c.id}/approve`, 'POST', `Approved ${c.name}.`), '#16a34a')}{btn('Reject', () => void act(`/admin/${c.id}/reject`, 'POST', `Rejected ${c.name}.`), '#dc2626')}</div>))}
+          </ul>
+        </>
+      )}
+      {builds && (
+        <>
+          <h2 style={{ fontWeight: 800, fontSize: '1.2rem', margin: '22px 0 6px' }}>Builds waiting ({builds.pending.length})</h2>
+          <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: 8 }}>What players typed in the Build Zone, and what Claude built. Approving one puts it on its plot for everyone (it replaces what was there). Check there are no rude shapes, words or symbols.</p>
+          {builds.pending.length === 0 && <p style={{ color: '#64748b' }}>Nothing waiting.</p>}
+          <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 8 }}>
+            {[...builds.pending, ...builds.approved].map((b) => {
+              const live = builds.approved.includes(b);
+              return (
+                <li key={b.id} style={{ display: 'flex', gap: 12, padding: '10px 12px', border: `1px solid ${live ? '#86efac' : '#e2e8f0'}`, borderRadius: 14, background: '#fff', flexWrap: 'wrap' }}>
+                  <BuildPreview bricks={b.bricks} size={180} />
+                  <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: '1.05rem' }}>{b.name}{live ? ' · on its plot now' : ''}</div>
+                    <div style={{ color: '#334155', margin: '4px 0' }}>Typed: “{b.prompt}”</div>
+                    <div style={{ color: '#64748b', fontSize: '0.8rem', marginBottom: 8 }}>Plot {b.plot + 1} · {b.bricks.length} bricks · {fijiTime(b.createdAt)}</div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {!live && btn('Approve', () => void act(`/admin/builds/${b.id}/approve`, 'POST', `Approved ${b.name}: it's on plot ${b.plot + 1} now.`), '#16a34a')}
+                      {btn(live ? 'Remove' : 'Reject', () => void act(`/admin/builds/${b.id}/reject`, 'POST', `${live ? 'Removed' : 'Rejected'} ${b.name}.`), '#dc2626')}
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </>
       )}

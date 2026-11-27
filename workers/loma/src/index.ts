@@ -15,9 +15,12 @@
 //   ANTHROPIC_API_KEY
 // Setting (wrangler.jsonc "vars"):
 //   LOMA_MODEL - the Claude model Loma uses
+// Also: BrickBuilder (bricks.ts), which turns what a Noqublox player types into bricks.
 
 import Anthropic, { toFile } from '@anthropic-ai/sdk';
 import { LIMITS, allowedOrigin, checkUpload, cleanKnowledge, cleanMessages } from './validate.ts';
+// The Noqublox brick builder, for the Neighbourhood server only (a service binding, no web address).
+export { BrickBuilder } from './bricks.ts';
 
 interface Env {
   ANTHROPIC_API_KEY: string;

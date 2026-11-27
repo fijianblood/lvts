@@ -12,10 +12,14 @@
 // GET    /admin/pending | /admin/approved          (Authorization: Bearer ADMIN_TOKEN)
 // POST   /admin/:id/approve | /admin/:id/reject    DELETE /admin/:id
 // GET    /admin/reports   DELETE /admin/reports/:id   GET|POST /admin/bans   DELETE /admin/bans/:visitor   GET /admin/online
+// GET    /builds                     the approved builds (one per build plot)
+// POST   /builds                     { prompt, plot } -> Claude makes the bricks (via Loma) -> { build, status: 'pending' }
+// GET    /admin/builds   POST /admin/builds/:id/approve | /reject   DELETE /admin/builds/:id
 // GET    /world   (WebSocket)  the shared world: see world.ts for the messages
 
 import { DurableObject } from 'cloudflare:workers';
-import { approvedName, handle, isBanned, LIMITS, type BanRow, type ReportRow, type Row, type Status, type Store } from './registry.ts';
+import { approvedName, handle, isBanned, LIMITS, type BanRow, type BuildRow, type ReportRow, type Row, type Status, type Store } from './registry.ts';
+import type { BrickReply } from './builds.ts';
 import { World, type Conn, type Saved } from './world.ts';
 
 export interface Env {
@@ -25,6 +29,8 @@ export interface Env {
   ALLOWED_ORIGINS?: string;
   /** Salt for hashing visitors' IP addresses (the IPs themselves are never stored). */
   VISITOR_SALT?: string;
+  /** Loma's brick builder (a service binding to the lvts-loma Worker's BrickBuilder). */
+  BRICKS?: { build(prompt: string): Promise<BrickReply> };
 }
 
 // The site's two homes (GitHub Pages and the "lvts" Worker on Cloudflare), plus local testing.
@@ -71,7 +77,7 @@ export default {
       return stub.fetch(new Request(req.url, { headers: fwd }));
     }
     const res = await stub.call(req.method, url.pathname, body, visitor, req.headers.get('Authorization'));
-    if (req.method === 'GET' && url.pathname === '/characters' && res.status === 200) headers['Cache-Control'] = 'public, max-age=60';
+    if (req.method === 'GET' && (url.pathname === '/characters' || url.pathname === '/builds') && res.status === 200) headers['Cache-Control'] = 'public, max-age=30';
     return new Response(res.json, { status: res.status, headers });
   },
 } satisfies ExportedHandler<Env>;
@@ -101,6 +107,13 @@ export class Registry extends DurableObject<Env> {
       created_at TEXT NOT NULL, key_hash TEXT NOT NULL)`);
     sql.exec('CREATE INDEX IF NOT EXISTS by_status ON characters (status, created_at)');
     sql.exec('CREATE TABLE IF NOT EXISTS visits (visitor TEXT NOT NULL, day TEXT NOT NULL, n INTEGER NOT NULL, PRIMARY KEY (visitor, day))');
+    sql.exec(`CREATE TABLE IF NOT EXISTS builds (
+      id TEXT PRIMARY KEY, plot INTEGER NOT NULL, name TEXT NOT NULL, prompt TEXT NOT NULL, bricks TEXT NOT NULL,
+      status TEXT NOT NULL, visitor TEXT NOT NULL, created_at TEXT NOT NULL)`);
+    const toBuild = (r: Record<string, SqlStorageValue>): BuildRow => ({
+      id: String(r.id), plot: Number(r.plot), name: String(r.name), prompt: String(r.prompt), bricks: JSON.parse(String(r.bricks)),
+      status: String(r.status) as Status, visitor: String(r.visitor), createdAt: String(r.created_at),
+    });
     const toRow = (r: Record<string, SqlStorageValue>): Row => ({
       id: String(r.id), name: String(r.name), look: JSON.parse(String(r.look)), status: String(r.status) as Status, createdAt: String(r.created_at), keyHash: String(r.key_hash),
     });
@@ -124,6 +137,18 @@ export class Registry extends DurableObject<Env> {
       ban: (b) => { sql.exec('INSERT INTO bans (visitor, until, reason, created_at) VALUES (?, ?, ?, ?) ON CONFLICT (visitor) DO UPDATE SET until = excluded.until, reason = excluded.reason, created_at = excluded.created_at', b.visitor, b.until, b.reason, b.createdAt); },
       unban: (v) => sql.exec('DELETE FROM bans WHERE visitor = ?', v).rowsWritten > 0,
       listBans: (now) => { sql.exec('DELETE FROM bans WHERE until <= ?', now); return sql.exec('SELECT * FROM bans ORDER BY created_at DESC').toArray().map(toBan); },
+      addBuild: (b) => { sql.exec('INSERT INTO builds (id, plot, name, prompt, bricks, status, visitor, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', b.id, b.plot, b.name, b.prompt, JSON.stringify(b.bricks), b.status, b.visitor, b.createdAt); },
+      getBuild: (id) => { const rows = sql.exec('SELECT * FROM builds WHERE id = ?', id).toArray(); return rows.length ? toBuild(rows[0]) : undefined; },
+      listBuilds: (s, n) => sql.exec('SELECT * FROM builds WHERE status = ? ORDER BY created_at DESC LIMIT ?', s, n).toArray().map(toBuild),
+      countBuilds: (s) => Number(sql.exec('SELECT COUNT(*) AS n FROM builds WHERE status = ?', s).one().n),
+      approveBuild: (id) => {
+        const rows = sql.exec('SELECT plot FROM builds WHERE id = ?', id).toArray();
+        if (!rows.length) return false;
+        sql.exec("DELETE FROM builds WHERE plot = ? AND status = 'approved'", Number(rows[0].plot));
+        sql.exec("UPDATE builds SET status = 'approved' WHERE id = ?", id);
+        return true;
+      },
+      removeBuild: (id) => sql.exec('DELETE FROM builds WHERE id = ?', id).rowsWritten > 0,
     };
 
     // the shared world; "ping" gets "pong" from the platform, without waking it up
@@ -186,6 +211,8 @@ export class Registry extends DurableObject<Env> {
     const res = await handle(method, path, body, {
       store: this.store, now: new Date(), random, hash: sha256, visitor, adminToken: this.env.ADMIN_TOKEN, authorization,
       online: () => this.world.online(), onBan: (v) => this.world.kick(v),
+      makeBricks: this.env.BRICKS ? (prompt) => this.env.BRICKS!.build(prompt) : undefined,
+      announce: (msg) => this.world.announce(msg),
     });
     return { status: res.status, json: JSON.stringify(res.body) };
   }
