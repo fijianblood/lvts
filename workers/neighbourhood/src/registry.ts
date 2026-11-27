@@ -2,7 +2,7 @@
 // has been approved yet. Plain logic over a tiny storage interface, so it can
 // run inside the Durable Object (SQLite) or in a test (in memory).
 
-import { cleanBricks, cleanBuildName, cleanPrompt, PLOT_COUNT, type Build, type BrickReply } from './builds.ts';
+import { cleanBricks, cleanBuildName, cleanPrompt, mergeBricks, GRID, MAX_ADD, PLOT_COUNT, type AddTo, type Build, type BrickReply } from './builds.ts';
 import { cleanLook, cleanName, type VisitorCharacter, type VisitorLook } from './rules.ts';
 
 export type Status = 'pending' | 'approved';
@@ -54,7 +54,7 @@ export const LIMITS = {
   /** Longest ban, in days. */
   maxBanDays: 365,
   /** Builds one visitor can ask for per day (each one is a call to Claude). */
-  buildsPerDay: 5,
+  buildsPerDay: 10,
   /** Stop taking new builds while this many are waiting for approval. */
   maxPendingBuilds: 200,
 };
@@ -65,7 +65,7 @@ export interface Result { status: number; body: unknown }
 const ok = (body: unknown, status = 200): Result => ({ status, body });
 const err = (status: number, error: string): Result => ({ status, body: { error } });
 
-const pubBuild = (b: BuildRow): Build => ({ id: b.id, plot: b.plot, name: b.name, prompt: b.prompt, bricks: b.bricks, createdAt: b.createdAt });
+const pubBuild = (b: BuildRow): Build => ({ id: b.id, plot: b.plot, name: b.name, prompt: b.prompt, bricks: b.bricks, createdAt: b.createdAt, ...(b.parent ? { parent: b.parent, added: b.added } : {}) });
 const pub = (r: Row): VisitorCharacter => ({ id: r.id, name: r.name, look: r.look, createdAt: r.createdAt });
 
 export interface Ctx {
@@ -82,7 +82,7 @@ export interface Ctx {
   online?: () => unknown[];
   onBan?: (visitor: string) => void;
   /** Ask Loma's brick builder for a build (a service binding to the Loma Worker). */
-  makeBricks?: (prompt: string) => Promise<BrickReply>;
+  makeBricks?: (prompt: string, add?: AddTo) => Promise<BrickReply>;
   /** Tell everyone in the shared world something changed (a build was approved or removed). */
   announce?: (msg: unknown) => void;
 }
@@ -134,16 +134,33 @@ export async function handle(method: string, path: string, body: unknown, c: Ctx
     const v = cleanPrompt(b.prompt);
     if (plot < 0) return err(400, 'Pick a build plot.');
     if (!v.ok) return err(400, v.why);
+    // adding to a build (a bed inside a house…): the build it goes on, and where the player stands
+    let parent: BuildRow | undefined;
+    let at: [number, number] = [0, 0];
+    if (b.parent !== undefined) {
+      parent = typeof b.parent === 'string' ? c.store.getBuild(b.parent) : undefined;
+      if (!parent || parent.plot !== plot) return err(404, 'That build has changed. Close this and try again.');
+      const a = Array.isArray(b.at) ? b.at : [];
+      const sx = Number.isInteger(a[0]) ? Math.min(GRID - 1, Math.max(0, a[0])) : GRID >> 1, sz = Number.isInteger(a[1]) ? Math.min(GRID - 1, Math.max(0, a[1])) : GRID >> 1;
+      at = [sx, sz];
+    }
     if (!c.makeBricks) return err(503, 'Building is not switched on yet.');
     if (isBanned(c.store, c.visitor, c.now)) return err(403, "You can't build right now.");
     if (c.store.countBuilds('pending') >= LIMITS.maxPendingBuilds) return err(503, 'Lots of builds are waiting to be checked. Please try again tomorrow.');
     if (c.store.bump(`b:${c.visitor}`, c.now.toISOString().slice(0, 10)) > LIMITS.buildsPerDay) return err(429, `That's ${LIMITS.buildsPerDay} builds today. Come back tomorrow for more!`);
     let reply: BrickReply;
-    try { reply = await c.makeBricks(v.prompt); } catch { reply = { ok: false, why: 'failed' }; }
+    try { reply = await c.makeBricks(v.prompt, parent ? { bricks: parent.bricks, at } : undefined); } catch { reply = { ok: false, why: 'failed' }; }
     if (!reply.ok) return reply.why === 'refused' ? err(422, "Let's build something friendly instead. Try a house, a boat, an animal or a tree!") : err(503, 'The builder is busy. Try again in a minute.');
-    const bricks = cleanBricks(reply.bricks);
-    if (!bricks) return err(503, "The builder couldn't make that one. Try saying it another way.");
-    const row: BuildRow = { id: c.random(9), plot, name: cleanBuildName(reply.name, v.prompt), prompt: v.prompt, bricks, createdAt: c.now.toISOString(), status: 'pending', visitor: c.visitor };
+    const made = cleanBricks(reply.bricks, parent ? MAX_ADD : undefined);
+    if (!made) return err(503, "The builder couldn't make that one. Try saying it another way.");
+    let row: BuildRow;
+    if (parent) {
+      const m = mergeBricks(parent.bricks, made);
+      if (!m.added) return err(503, "There's no room for that here. Try a smaller thing or another spot.");
+      row = { id: c.random(9), plot, name: parent.name, prompt: v.prompt, bricks: m.bricks, createdAt: c.now.toISOString(), status: 'pending', visitor: c.visitor, parent: parent.id, added: m.added };
+    } else {
+      row = { id: c.random(9), plot, name: cleanBuildName(reply.name, v.prompt), prompt: v.prompt, bricks: made, createdAt: c.now.toISOString(), status: 'pending', visitor: c.visitor };
+    }
     c.store.addBuild(row);
     return ok({ build: pubBuild(row), status: 'pending' }, 201);
   }

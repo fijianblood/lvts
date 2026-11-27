@@ -62,7 +62,11 @@ Fiji) and the game carries on with everyone exploring on their own.
   and the brick builder has no web address anyone else can call.
 - Every build waits for LvTS to approve it on the admin page; until then only the
   player who made it sees it. Approving one puts it on its plot for everyone
-  online (it replaces what was there). At most 5 builds per visitor per day.
+  online (it replaces what was there). At most 10 builds per visitor per day.
+- Houses are built big enough to walk into. Standing on a plot with a build
+  (inside a house), a player can add something where they stand (a bed, a
+  table…): Claude gets a floor plan of the build and answers with just the new
+  bricks; the server makes a new version of the build, which waits for approval too.
 
 ## Setting it up (once)
 
@@ -92,7 +96,7 @@ re-run the Pages deploy.
 |---|---|
 | `GET /characters` | Approved characters (newest 60) |
 | `GET /builds` | Approved builds (one per plot) |
-| `POST /builds` | `{ prompt, plot }` → Claude builds it → `{ build, status: 'pending' }` |
+| `POST /builds` | `{ prompt, plot }` (or `{ prompt, plot, parent, at }` to add to a build) → Claude builds it → `{ build, status: 'pending' }` |
 | `GET /admin/builds`, `POST /admin/builds/:id/approve`, `POST /admin/builds/:id/reject`, `DELETE /admin/builds/:id` | Builds waiting and on the plots; approve, reject, remove |
 | `POST /characters` `{ name, look }` | Make one → `{ id, key, status: 'pending' }` |
 | `POST /characters/:id` `{ key }` | The creator checks its status |

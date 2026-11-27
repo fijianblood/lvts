@@ -34,7 +34,7 @@ import * as D from './diwali.ts';
 import { PLAN, SIGNS, RAIWAI_TREES, POLE_RUNS, FACE_ANGLE, footprint, houseSpec, rng, type PlanItem } from './raiwaiPlan.ts';
 import { tagBricks, setPlasticCoat } from './bricks.ts';
 import { VEHICLES, DIMS, vehicleModel, nextSpeed, steerFor, drive, bumpers, outline, poseForVehicle, vehicleForPose, type VehicleModel, type VehicleSpec } from './vehicles.ts';
-import { PLOTS, ZONE, ZONE_Y, PLATE, PLOT_SIZE, brickBox, brickColor, buildObstacles, type Build } from './buildZone.ts';
+import { PLOTS, ZONE, ZONE_Y, PLATE, PLOT_SIZE, CELL, GRID, brickBox, brickColor, buildObstacles, type Build } from './buildZone.ts';
 import { sunsetWeight, sunsetHour, ARCH_X, RINGS, RING_R, NEON, KIOSK } from './sunsetDrive.ts';
 import { COLUMNS, columnTop, columnRect, START, SPINNER, spinnerAngle, spinnerHits, ARCH, inPool, POOL, GROUND, RIDDLES, RIDDLE_POSTS, POST_BRICKS, type Column } from './hopClimb.ts';
 import { partModel, goldenChip, palm, bushTree, banana, breadfruit, van, paint, type Finish, type Detail } from './models.ts';
@@ -90,6 +90,8 @@ export interface EngineCallbacks extends ChoreCallbacks {
   onKiosk?: () => void;
   /** You pressed E at a Build Zone plot's sign. */
   onBuildPlot?: (plot: number) => void;
+  /** You pressed E standing on a plot with a build (inside a house…): add something where you stand. */
+  onBuildHere?: (plot: number, parent: Build, at: [number, number]) => void;
 }
 
 export interface EngineOptions { touch: boolean; baseUrl: string }
@@ -442,7 +444,7 @@ interface Item {
   golden: boolean; taken: boolean; seen: boolean; phase: number; base: number;
 }
 interface Burst { mesh: THREE.InstancedMesh; vel: THREE.Vector3[]; t: number }
-type FocusKind = 'door' | 'window' | 'poster' | 'npc' | 'cat' | 'shop' | 'promo' | 'seat' | 'vehicle' | 'riddle' | 'kiosk' | 'plot' | ChoreFocus;
+type FocusKind = 'door' | 'window' | 'poster' | 'npc' | 'cat' | 'shop' | 'promo' | 'seat' | 'vehicle' | 'riddle' | 'kiosk' | 'plot' | 'buildhere' | ChoreFocus;
 
 const HOP_BEST = 'noqublox-hop-best';
 
@@ -2243,6 +2245,12 @@ export class HouseEngine {
     this.scene.add(g);
   }
 
+  /** The plot you're standing on, if it has a build on it (−1 if not). */
+  private plotHere(): number {
+    const [x, z] = this.pos;
+    return PLOTS.findIndex((p, i) => !!this.plotBuilds[i] && x > p.x0 && x < p.x0 + PLOT_SIZE && z > p.z0 && z < p.z0 + PLOT_SIZE);
+  }
+
   /** The approved builds (one per plot) from the server. */
   setBuilds(list: Build[]) {
     this.approvedBuilds = list;
@@ -2271,10 +2279,14 @@ export class HouseEngine {
       const gap = 0.004;
       for (const brick of want.bricks) {
         const r = brickBox(p, brick);
-        push(b, `${brickColor(brick[5])}|fgloss`, boxGeo(r.x0 + gap, r.y0, r.z0 + gap, r.x1 - gap, r.y1 - gap, r.z1 - gap));
+        // a faint glow of their own colour keeps bricks readable inside a house and at night
+        const hex = brickColor(brick[5]);
+        const glow = new THREE.Color(hex).multiplyScalar(0.2).getHexString();
+        push(b, `${hex}|e${glow}|fgloss`, boxGeo(r.x0 + gap, r.y0, r.z0 + gap, r.x1 - gap, r.y1 - gap, r.z1 - gap));
       }
       this.flush(b, group);
-      group.traverse((o) => { if (o instanceof THREE.Mesh) { o.castShadow = true; o.receiveShadow = true; } });
+      // builds cast shadows on the ground but don't take them, so the inside of a house stays bright enough to furnish
+      group.traverse((o) => { if (o instanceof THREE.Mesh) { o.castShadow = true; o.receiveShadow = false; } });
       this.zone.add(group);
       this.plotBuilds[i] = { build: want, mine: !!mine, group, obbs: buildObstacles(p, want.bricks) };
     });
@@ -2615,6 +2627,14 @@ export class HouseEngine {
     }
     if (f.kind === 'kiosk') { this.cb.onKiosk?.(); this.sfx.pickup(); return; }
     if (f.kind === 'plot') { this.cb.onBuildPlot?.(f.index); this.sfx.pickup(); return; }
+    if (f.kind === 'buildhere') {
+      const b = this.plotBuilds[f.index], p = PLOTS[f.index];
+      if (!b) return;
+      const at: [number, number] = [Math.min(GRID - 1, Math.max(0, Math.floor((this.pos[0] - p.x0) / CELL))), Math.min(GRID - 1, Math.max(0, Math.floor((this.pos[1] - p.z0) / CELL)))];
+      this.cb.onBuildHere?.(f.index, b.build, at);
+      this.sfx.pickup();
+      return;
+    }
     if (f.kind === 'riddle') {
       const r = RIDDLES[f.index];
       this.cb.onRiddle?.({ index: f.index, q: r.q, options: [...r.options] });
@@ -3014,6 +3034,8 @@ export class HouseEngine {
     if (this.games.visible) {
       // the course is only drawn within sight of it
       this.course.visible = Math.hypot(this.pos[0] - (POOL.x0 + POOL.x1) / 2, this.pos[1] - (POOL.z0 + POOL.z1) / 2) < 120;
+      // builds can be big (up to 1,200 bricks a plot): drawn only when you're near the Build Zone
+      { const near = Math.hypot(this.pos[0] - (ZONE.x0 + ZONE.x1) / 2, this.pos[1] - (ZONE.z0 + ZONE.z1) / 2) < 110; for (const b of this.plotBuilds) if (b) b.group.visible = near; }
       this.spinBar.rotation.y = spinnerAngle(this.time);
       if (this.hopStar) this.hopStar.rotation.y += dt * 1.5;
       this.riddleSigns.forEach((m, i) => { m.rotation.y += dt * (this.riddleDone[i] ? 1.6 : 0.5); });
@@ -3158,6 +3180,9 @@ export class HouseEngine {
     if (this.mode === 'explore' && !this.char.crawl) this.cars.forEach((c, i) => consider('vehicle', i, c.x, c.z, DIMS[c.spec.kind].halfL + 1.3, 0.4));
     if (this.mode === 'explore') consider('kiosk', 0, KIOSK.x, KIOSK.z, 2.4, 0.4);
     if (this.mode === 'explore' && this.driving < 0) PLOTS.forEach((p, i) => consider('plot', i, p.sign.x, p.sign.z, 2.4, 0.4));
+    // standing on a plot with a build (inside a house…): add something right here
+    const onPlot = this.mode === 'explore' && this.driving < 0 ? this.plotHere() : -1;
+    if (onPlot >= 0) consider('buildhere', onPlot, this.pos[0], this.pos[1], 1, 0);
     if (this.mode === 'explore') RIDDLE_POSTS.forEach((p, i) => { if (!this.riddleDone[i]) consider('riddle', i, p.x, p.z, 2.4, 0.5); });
     this.chores.candidates(consider);
     const b = best as { kind: FocusKind; index: number; score: number } | null;
@@ -3172,6 +3197,7 @@ export class HouseEngine {
     if (b?.kind === 'riddle') text = `${key} · Read the riddle`;
     if (b?.kind === 'kiosk') text = `${key} · USP Room Finder (3D campus map)`;
     if (b?.kind === 'plot') text = `${key} · Build on plot ${b.index + 1}`;
+    if (b?.kind === 'buildhere') text = `${key} · Build something here (a bed, a table…)`;
     if (b?.kind === 'promo') text = `${key} · You found a hidden reward card! Pick it up`;
     if (b?.kind === 'seat') { const st = SEATS[b.index]; text = `${key} · Sit on ${st.label}${st.swing !== undefined ? ' (then hold W to swing)' : ''}`; }
     if (b?.kind === 'shop') { const sp = SHOP_SPOTS[b.index]; text = `${key} · ${sp.kind === 'empty' ? `Look at ${sp.name}` : `Visit ${sp.name}`}${sp.offers.length ? ' · offers inside' : ''}`; }

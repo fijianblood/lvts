@@ -19,7 +19,7 @@
 
 import { DurableObject } from 'cloudflare:workers';
 import { approvedName, handle, isBanned, LIMITS, type BanRow, type BuildRow, type ReportRow, type Row, type Status, type Store } from './registry.ts';
-import type { BrickReply } from './builds.ts';
+import type { AddTo, BrickReply } from './builds.ts';
 import { World, type Conn, type Saved } from './world.ts';
 
 export interface Env {
@@ -30,7 +30,7 @@ export interface Env {
   /** Salt for hashing visitors' IP addresses (the IPs themselves are never stored). */
   VISITOR_SALT?: string;
   /** Loma's brick builder (a service binding to the lvts-loma Worker's BrickBuilder). */
-  BRICKS?: { build(prompt: string): Promise<BrickReply> };
+  BRICKS?: { build(prompt: string, add?: AddTo): Promise<BrickReply> };
 }
 
 // The site's two homes (GitHub Pages and the "lvts" Worker on Cloudflare), plus local testing.
@@ -110,9 +110,12 @@ export class Registry extends DurableObject<Env> {
     sql.exec(`CREATE TABLE IF NOT EXISTS builds (
       id TEXT PRIMARY KEY, plot INTEGER NOT NULL, name TEXT NOT NULL, prompt TEXT NOT NULL, bricks TEXT NOT NULL,
       status TEXT NOT NULL, visitor TEXT NOT NULL, created_at TEXT NOT NULL)`);
+    // additions (furniture inside a build…): which build they were added to, and how many bricks are new
+    for (const col of ['parent TEXT', 'added INTEGER']) { try { sql.exec(`ALTER TABLE builds ADD COLUMN ${col}`); } catch { /* already there */ } }
     const toBuild = (r: Record<string, SqlStorageValue>): BuildRow => ({
       id: String(r.id), plot: Number(r.plot), name: String(r.name), prompt: String(r.prompt), bricks: JSON.parse(String(r.bricks)),
       status: String(r.status) as Status, visitor: String(r.visitor), createdAt: String(r.created_at),
+      ...(r.parent ? { parent: String(r.parent), added: Number(r.added ?? 0) } : {}),
     });
     const toRow = (r: Record<string, SqlStorageValue>): Row => ({
       id: String(r.id), name: String(r.name), look: JSON.parse(String(r.look)), status: String(r.status) as Status, createdAt: String(r.created_at), keyHash: String(r.key_hash),
@@ -137,7 +140,7 @@ export class Registry extends DurableObject<Env> {
       ban: (b) => { sql.exec('INSERT INTO bans (visitor, until, reason, created_at) VALUES (?, ?, ?, ?) ON CONFLICT (visitor) DO UPDATE SET until = excluded.until, reason = excluded.reason, created_at = excluded.created_at', b.visitor, b.until, b.reason, b.createdAt); },
       unban: (v) => sql.exec('DELETE FROM bans WHERE visitor = ?', v).rowsWritten > 0,
       listBans: (now) => { sql.exec('DELETE FROM bans WHERE until <= ?', now); return sql.exec('SELECT * FROM bans ORDER BY created_at DESC').toArray().map(toBan); },
-      addBuild: (b) => { sql.exec('INSERT INTO builds (id, plot, name, prompt, bricks, status, visitor, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', b.id, b.plot, b.name, b.prompt, JSON.stringify(b.bricks), b.status, b.visitor, b.createdAt); },
+      addBuild: (b) => { sql.exec('INSERT INTO builds (id, plot, name, prompt, bricks, status, visitor, created_at, parent, added) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', b.id, b.plot, b.name, b.prompt, JSON.stringify(b.bricks), b.status, b.visitor, b.createdAt, b.parent ?? null, b.added ?? null); },
       getBuild: (id) => { const rows = sql.exec('SELECT * FROM builds WHERE id = ?', id).toArray(); return rows.length ? toBuild(rows[0]) : undefined; },
       listBuilds: (s, n) => sql.exec('SELECT * FROM builds WHERE status = ? ORDER BY created_at DESC LIMIT ?', s, n).toArray().map(toBuild),
       countBuilds: (s) => Number(sql.exec('SELECT COUNT(*) AS n FROM builds WHERE status = ?', s).one().n),
@@ -211,7 +214,7 @@ export class Registry extends DurableObject<Env> {
     const res = await handle(method, path, body, {
       store: this.store, now: new Date(), random, hash: sha256, visitor, adminToken: this.env.ADMIN_TOKEN, authorization,
       online: () => this.world.online(), onBan: (v) => this.world.kick(v),
-      makeBricks: this.env.BRICKS ? (prompt) => this.env.BRICKS!.build(prompt) : undefined,
+      makeBricks: this.env.BRICKS ? (prompt, add) => this.env.BRICKS!.build(prompt, add) : undefined,
       announce: (msg) => this.world.announce(msg),
     });
     return { status: res.status, json: JSON.stringify(res.body) };

@@ -1,7 +1,7 @@
 // The Build Zone: builds from words (buildZone.ts, workers/neighbourhood/src/builds.ts). Run with: node --test tests/house/
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanBricks, cleanPrompt, GRID, MAX_BRICKS, PLOT_COUNT, type BrickReply } from '../../workers/neighbourhood/src/builds.ts';
+import { cleanBricks, cleanPrompt, mergeBricks, floorPlan, GRID, MAX_BRICKS, PLOT_COUNT, type Brick, type BrickReply } from '../../workers/neighbourhood/src/builds.ts';
 import { handle, memoryStore, LIMITS, type Ctx } from '../../workers/neighbourhood/src/registry.ts';
 import { PLOTS, ZONE, ZONE_Y, PLOT_SIZE, CELL, brickBox, buildObstacles } from '../../src/game/house/buildZone.ts';
 import { buildStaticWorld, blocked } from '../../src/game/house/collision.ts';
@@ -11,7 +11,7 @@ test('bricks: only ones that fit the plot, trimmed at the edge, no repeats, at m
   assert.deepEqual(cleanBricks([[0, 0, 0, 2, 2, 4], [19, 0, 19, 4, 4, 1], [0, 0, 0, 2, 2, 4], [20, 0, 0, 1, 1, 0], [0, -1, 0, 1, 1, 0], [0, 0, 0, 1, 1, 99], [1.5, 0, 0, 1, 1, 0], 'x', [0, 0, 0, 1, 1]]), [[0, 0, 0, 2, 2, 4], [19, 0, 19, 1, 1, 1]]);
   assert.equal(cleanBricks([]), null);
   assert.equal(cleanBricks('nope'), null);
-  const many = Array.from({ length: 500 }, (_, i) => [i % GRID, Math.floor(i / 400), Math.floor(i / GRID) % GRID, 1, 1, 0]);
+  const many = Array.from({ length: 1000 }, (_, i) => [i % GRID, Math.floor(i / 400), Math.floor(i / GRID) % GRID, 1, 1, 0]);
   assert.equal(cleanBricks(many)!.length, MAX_BRICKS);
 });
 
@@ -91,4 +91,35 @@ test('Build Zone: bricks sit on the plot, and the bottom ones are what you bump 
   const obbs = buildObstacles(p, [[0, 0, 0, 4, 1, 0], [0, 10, 5, 4, 4, 0]]);
   assert.equal(obbs.length, 1);
   assert.ok(Math.abs(obbs[0].hx - 2 * CELL) < 1e-9);
+});
+
+test('adding to a build: new bricks that would go through old ones are dropped; the floor plan shows the floor, the headroom and the player', () => {
+  const walls: Brick[] = [[0, 0, 0, 4, 1, 15], [0, 1, 0, 4, 1, 15], [0, 6, 0, 4, 4, 16]];
+  const m = mergeBricks(walls, [[0, 0, 0, 1, 1, 4], [1, 0, 2, 2, 1, 16], [1, 0, 2, 2, 1, 16]]);
+  assert.equal(m.added, 1, 'one through a wall, one a repeat');
+  assert.deepEqual(m.bricks.at(-1), [1, 0, 2, 2, 1, 16]);
+  const plan = floorPlan(walls, [2, 3]);
+  const rows = plan.split('\n');
+  assert.ok(rows.some((r) => r.startsWith(' 0 ####....')), 'the wall on the floor');
+  assert.ok(rows.some((r) => r.startsWith(' 3 ..P.')), 'where the player is');
+  assert.ok(rows.some((r) => r.startsWith(' 1 6666++')), 'six free layers under the roof, open sky beside it');
+});
+
+test('builds: adding furniture to a build makes a new version of it, waiting for LvTS like any build', async () => {
+  const store = memoryStore();
+  let asked: unknown = null;
+  const base = ((await handle('POST', '/builds', { prompt: 'a house', plot: 3 }, ctx(store))).body as { build: { id: string; bricks: Brick[] } }).build;
+  const addBed = async (_p: string, add?: unknown) => { asked = add; return { ok: true as const, name: 'Bed', bricks: [[10, 0, 10, 2, 4, 16], [0, 0, 0, 2, 2, 4]] }; };
+  const res = await handle('POST', '/builds', { prompt: 'a bed', plot: 3, parent: base.id, at: [11, 9] }, ctx(store, { makeBricks: addBed }));
+  assert.equal(res.status, 201);
+  const v2 = (res.body as { build: { id: string; parent: string; added: number; bricks: Brick[]; name: string } }).build;
+  assert.equal(v2.parent, base.id); assert.equal(v2.added, 1, 'the brick through the old one is dropped'); assert.equal(v2.bricks.length, base.bricks.length + 1);
+  assert.deepEqual((asked as { at: number[] }).at, [11, 9], 'Claude is told where the player stands');
+  assert.equal(v2.name, 'Bure', 'it keeps the build’s name');
+  // the wrong plot, or a build that isn't there, is turned away
+  assert.equal((await handle('POST', '/builds', { prompt: 'a bed', plot: 2, parent: base.id, at: [1, 1] }, ctx(store, { makeBricks: addBed }))).status, 404);
+  assert.equal((await handle('POST', '/builds', { prompt: 'a bed', plot: 3, parent: 'nope', at: [1, 1] }, ctx(store, { makeBricks: addBed }))).status, 404);
+  // nothing fits: no new version
+  const full = async () => ({ ok: true as const, name: 'x', bricks: [[0, 0, 0, 2, 2, 4]] });
+  assert.equal((await handle('POST', '/builds', { prompt: 'a chair', plot: 3, parent: base.id, at: [1, 1] }, ctx(store, { makeBricks: full, visitor: 'v3' }))).status, 503);
 });
