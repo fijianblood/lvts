@@ -34,6 +34,7 @@ import * as D from './diwali.ts';
 import { PLAN, SIGNS, RAIWAI_TREES, POLE_RUNS, FACE_ANGLE, footprint, houseSpec, rng, type PlanItem } from './raiwaiPlan.ts';
 import { tagBricks, setPlasticCoat } from './bricks.ts';
 import { VEHICLES, DIMS, vehicleModel, nextSpeed, steerFor, drive, bumpers, outline, poseForVehicle, vehicleForPose, type VehicleModel, type VehicleSpec } from './vehicles.ts';
+import { sunsetWeight, sunsetHour, ARCH_X, RINGS, RING_R, NEON, KIOSK } from './sunsetDrive.ts';
 import { COLUMNS, columnTop, columnRect, START, SPINNER, spinnerAngle, spinnerHits, ARCH, inPool, POOL, GROUND, RIDDLES, RIDDLE_POSTS, POST_BRICKS, type Column } from './hopClimb.ts';
 import { partModel, goldenChip, palm, bushTree, banana, breadfruit, van, paint, type Finish, type Detail } from './models.ts';
 
@@ -84,6 +85,8 @@ export interface EngineCallbacks extends ChoreCallbacks {
   onRiddles?: (solved: number, total: number) => void;
   /** Hop & Climb's clock (null when you're not on the course) and your best time on this device. */
   onHop?: (h: { time: number | null; best: number | null }) => void;
+  /** You pressed E at the USP Room Finder kiosk. */
+  onKiosk?: () => void;
 }
 
 export interface EngineOptions { touch: boolean; baseUrl: string }
@@ -436,7 +439,7 @@ interface Item {
   golden: boolean; taken: boolean; seen: boolean; phase: number; base: number;
 }
 interface Burst { mesh: THREE.InstancedMesh; vel: THREE.Vector3[]; t: number }
-type FocusKind = 'door' | 'window' | 'poster' | 'npc' | 'cat' | 'shop' | 'promo' | 'seat' | 'vehicle' | 'riddle' | ChoreFocus;
+type FocusKind = 'door' | 'window' | 'poster' | 'npc' | 'cat' | 'shop' | 'promo' | 'seat' | 'vehicle' | 'riddle' | 'kiosk' | ChoreFocus;
 
 const HOP_BEST = 'noqublox-hop-best';
 
@@ -474,6 +477,10 @@ export class HouseEngine {
   private games = new THREE.Group();
   /** Hop & Climb itself (part of games): only drawn when you're within sight of it. */
   private course = new THREE.Group();
+  /** Sunset Drive (sunsetDrive.ts): the arch, neon lights, rings and the USP kiosk. */
+  private sunset = new THREE.Group();
+  private rings: THREE.Mesh[] = [];
+  private run = { next: 0, t: 0, best: null as number | null, resetAt: -1 };
   private spinBar = new THREE.Group();
   private hopStar: THREE.Object3D | null = null;
   private riddleSigns: THREE.Mesh[] = [];
@@ -636,6 +643,7 @@ export class HouseEngine {
     this.buildRaiwai();
     this.buildCars();
     this.buildGames();
+    this.buildSunset();
     this.buildItems();
     this.chores = new ChoreSystem(this.scene, {
       onChores: (s) => this.cb.onChores?.(s),
@@ -1810,6 +1818,7 @@ export class HouseEngine {
     this.leaveCar();
     this.parkCars();
     this.games.visible = explore;
+    this.sunset.visible = explore;
   }
   get gameMode(): GameMode { return this.mode; }
 
@@ -2115,6 +2124,84 @@ export class HouseEngine {
       // wandered off the course: the run's over
       if (x < POOL.x0 - 4 || x > POOL.x1 + 4 || z < POOL.z0 - 4 || z > POOL.z1 + 6) { h.time = -1; this.cb.onHop?.({ time: null, best: h.best }); }
       else if (Math.floor(h.time * 10) !== h.told) { h.told = Math.floor(h.time * 10); this.cb.onHop?.({ time: h.time, best: h.best }); }
+    }
+  }
+
+  // ── Sunset Drive and the USP Room Finder kiosk (sunsetDrive.ts) ────────
+  private buildSunset() {
+    const g = this.sunset;
+    const neon = (c: string) => paint(c, { emissive: c, finish: 'gloss' });
+    const sign = (text: string, w: number, h: number, bg: string, fg: string, font: string) => new THREE.MeshStandardMaterial({
+      map: this.tex(T.canvasTexture(w, h, (c, cw, ch) => { c.fillStyle = bg; c.fillRect(0, 0, cw, ch); c.fillStyle = fg; c.font = font; c.textAlign = 'center'; c.textBaseline = 'middle'; c.shadowColor = fg; c.shadowBlur = 18; c.fillText(text, cw / 2, ch / 2 + 2); })),
+      emissive: '#ffffff', emissiveIntensity: 0.55, roughness: 0.3,
+    });
+    const y0 = heightAt(ARCH_X, 26.9);
+    // the arch over the road
+    const navy = paint('#1a1440', { finish: 'gloss' });
+    for (const z of [MCFARLANE.z0 - 1.1, MCFARLANE.z1 + 1.1]) {
+      const p = new THREE.Mesh(new THREE.BoxGeometry(0.5, 6.6, 0.5), navy);
+      p.position.set(ARCH_X, y0 + 3.3, z);
+      p.castShadow = true;
+      g.add(p);
+    }
+    const face = sign('SUNSET DRIVE', 1024, 160, '#1a1440', '#ff3ea5', '900 104px system-ui, sans-serif');
+    const banner = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.3, MCFARLANE.z1 - MCFARLANE.z0 + 3), [face, face, navy, navy, navy, navy]);
+    banner.position.set(ARCH_X, y0 + 6.4, (MCFARLANE.z0 + MCFARLANE.z1) / 2);
+    g.add(banner);
+    // neon posts along the kerbs
+    const pole = new THREE.InstancedMesh(new THREE.BoxGeometry(0.14, 3.2, 0.14), navy, NEON.length);
+    const byColor = new Map<string, THREE.Matrix4[]>();
+    NEON.forEach((n, i) => {
+      const y = heightAt(n.x, n.z);
+      pole.setMatrixAt(i, new THREE.Matrix4().makeTranslation(n.x, y + 1.6, n.z));
+      (byColor.get(n.color) ?? byColor.set(n.color, []).get(n.color)!).push(new THREE.Matrix4().makeTranslation(n.x, y + 2.6, n.z));
+    });
+    g.add(pole);
+    for (const [c, list] of byColor) {
+      const bars = new THREE.InstancedMesh(new THREE.BoxGeometry(0.22, 1.5, 0.22), neon(c), list.length);
+      list.forEach((m, i) => bars.setMatrixAt(i, m));
+      g.add(bars);
+    }
+    // gold rings to drive through, facing the way you drive (east)
+    const ringGeo = new THREE.TorusGeometry(RING_R, 0.13, 10, 40);
+    for (const r of RINGS) {
+      const m = new THREE.Mesh(ringGeo, neon('#ffc61a'));
+      m.position.set(r.x, heightAt(r.x, r.z) + RING_R + 0.15, r.z);
+      m.rotation.y = Math.PI / 2;
+      g.add(m);
+      this.rings.push(m);
+    }
+    // the USP Room Finder kiosk (it opens Samuel Ganey Tubuna's 3D map)
+    const ky = heightAt(KIOSK.x, KIOSK.z);
+    const teal = paint('#0b6e69', { finish: 'gloss' });
+    const screen = sign('USP Room Finder', 512, 256, '#0b2a28', '#5ff0e0', 'bold 64px system-ui, sans-serif');
+    const kiosk = new THREE.Mesh(new THREE.BoxGeometry(0.9, 2.2, 0.6), [teal, teal, teal, teal, teal, screen]);
+    kiosk.position.set(KIOSK.x, ky + 1.1, KIOSK.z);
+    kiosk.castShadow = true;
+    g.add(kiosk);
+    g.visible = this.mode === 'explore';
+    this.scene.add(g);
+  }
+
+  /** The ring run: drive through every ring in order to the USP entrance. */
+  private stepSunset() {
+    const r = this.run;
+    if (r.resetAt >= 0 && this.time > r.resetAt) { r.next = 0; r.resetAt = -1; for (const m of this.rings) m.visible = true; }
+    if (r.next > 0 && r.resetAt < 0 && this.time - r.t > 40) { r.next = 0; for (const m of this.rings) m.visible = true; }
+    if (this.driving < 0 || r.resetAt >= 0) return;
+    const ring = RINGS[r.next], [x, z] = this.pos;
+    if (Math.abs(x - ring.x) > 1.4 || Math.abs(z - ring.z) > RING_R) return;
+    this.rings[r.next].visible = false;
+    this.sfx.pickup();
+    if (r.next === 0) { r.t = this.time; this.cb.onHint?.('🌅 Sunset run! Drive through every ring to USP.'); }
+    r.next++;
+    if (r.next === RINGS.length) {
+      const t = Math.round((this.time - r.t) * 10) / 10;
+      const best = r.best === null || t < r.best;
+      if (best) r.best = t;
+      this.sfx.golden();
+      this.cb.onHint?.(`🌅 Made it to USP in ${t.toFixed(1)} s${best ? ' · your best yet!' : ` · best ${r.best!.toFixed(1)} s`}`);
+      r.resetAt = this.time + 4;
     }
   }
 
@@ -2448,6 +2535,7 @@ export class HouseEngine {
       if (this.driving >= 0) this.exitCar(); else this.enterCar(f.index);
       return;
     }
+    if (f.kind === 'kiosk') { this.cb.onKiosk?.(); this.sfx.pickup(); return; }
     if (f.kind === 'riddle') {
       const r = RIDDLES[f.index];
       this.cb.onRiddle?.({ index: f.index, q: r.q, options: [...r.options] });
@@ -2658,7 +2746,9 @@ export class HouseEngine {
 
   /** Point the sky, sun, fill light and fog at the current local time (or the ?time= preview). */
   private updateDayNight(force = false) {
-    const hour = this.timeOverride ?? hourOf(new Date());
+    // Sunset Drive keeps its stretch of road at golden hour (sunsetDrive.ts)
+    const raw = this.timeOverride ?? hourOf(new Date());
+    const hour = this.mode === 'explore' ? sunsetHour(raw, sunsetWeight(this.pos[0], this.pos[1])) : raw;
     const sky: Sky = skyAt(hour);
     this.sun.color.copy(sky.sun);
     this.sun.intensity = sky.sunI;
@@ -2794,6 +2884,7 @@ export class HouseEngine {
 
       this.checkPickups();
       if (this.mode === 'explore' && this.driving < 0) this.stepGames(dt);
+      if (this.mode === 'explore') this.stepSunset();
       this.chores.update(dt, this.pos);
       if (room?.id === 'treehouse' && !this.lookedOut) {
         // the treehouse's reward: from up here you can see the whole compound
@@ -2986,6 +3077,7 @@ export class HouseEngine {
     }
     // the brick cars and the pickup (not for a crawling baby, and not in the Golden Chip hunt)
     if (this.mode === 'explore' && !this.char.crawl) this.cars.forEach((c, i) => consider('vehicle', i, c.x, c.z, DIMS[c.spec.kind].halfL + 1.3, 0.4));
+    if (this.mode === 'explore') consider('kiosk', 0, KIOSK.x, KIOSK.z, 2.4, 0.4);
     if (this.mode === 'explore') RIDDLE_POSTS.forEach((p, i) => { if (!this.riddleDone[i]) consider('riddle', i, p.x, p.z, 2.4, 0.5); });
     this.chores.candidates(consider);
     const b = best as { kind: FocusKind; index: number; score: number } | null;
@@ -2998,6 +3090,7 @@ export class HouseEngine {
     if (b?.kind === 'cat') text = `${key} · Pet the cat`;
     if (b?.kind === 'vehicle') text = `${key} · Drive the ${this.cars[b.index].spec.name}`;
     if (b?.kind === 'riddle') text = `${key} · Read the riddle`;
+    if (b?.kind === 'kiosk') text = `${key} · USP Room Finder (3D campus map)`;
     if (b?.kind === 'promo') text = `${key} · You found a hidden reward card! Pick it up`;
     if (b?.kind === 'seat') { const st = SEATS[b.index]; text = `${key} · Sit on ${st.label}${st.swing !== undefined ? ' (then hold W to swing)' : ''}`; }
     if (b?.kind === 'shop') { const sp = SHOP_SPOTS[b.index]; text = `${key} · ${sp.kind === 'empty' ? `Look at ${sp.name}` : `Visit ${sp.name}`}${sp.offers.length ? ' · offers inside' : ''}`; }
@@ -3193,6 +3286,8 @@ export class HouseEngine {
       sitDown: () => this.toggleSit(),
       /** Press E: use whatever is in focus (get in or out of a vehicle, open a door…). */
       use: () => this.interact(),
+      moveCar: (i: number, x: number, z: number, yaw: number) => { const c = this.cars[i]; c.x = x; c.z = z; c.yaw = yaw; c.y = floorAt(x, z, heightAt(x, z) + 0.3); this.placeCar(c, 0); },
+      sunsetRun: () => ({ ...this.run }),
       games: () => ({ hop: { ...this.hop }, riddles: [...this.riddleDone], spinner: spinnerAngle(this.time) }),
       cars: () => ({ driving: this.driving, list: this.cars.map((c) => ({ id: c.spec.id, x: c.x, z: c.z, y: c.y, yaw: c.yaw, speed: c.speed })) }),
       mode: () => this.mode,

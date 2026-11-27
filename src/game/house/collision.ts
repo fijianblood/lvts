@@ -18,6 +18,7 @@ import { WALLS, PROPS, DOORS, TREES, wallSolidRects, barrierRect, barrierBlocksS
 import { PLAN, RAIWAI_TREES, POLE_RUNS, footprint } from './raiwaiPlan.ts';
 import { USP } from './uspCampus.ts';
 import { gameSolids } from './hopClimb.ts';
+import { sunsetSolids } from './sunsetDrive.ts';
 
 export interface Circle { x: number; z: number; r: number; /** Its top (world y), if you can jump onto it. */ top?: number; /** Where it starts (world y), if it's up on an upper floor. */ bottom?: number }
 /**
@@ -89,7 +90,7 @@ export function roamSolids(): StaticWorld {
     rects.push({ x0: f.x0, x1: f.x1, z0: f.z0, z1: f.z1 });
   }
   // Hop & Climb and the riddle posts (hopClimb.ts)
-  rects.push(...gameSolids());
+  rects.push(...gameSolids(), ...sunsetSolids());
   const circles: Circle[] = [];
   for (const t of RAIWAI_TREES) circles.push({ x: t.x, z: t.z, r: (TREE_TRUNK[t.kind] ?? 0.2) * (t.kind === 'palm' ? 1 : t.s) });
   for (const run of POLE_RUNS) for (const [x, z] of run) {

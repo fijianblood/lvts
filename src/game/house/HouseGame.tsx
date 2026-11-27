@@ -15,6 +15,7 @@ import {
 } from './neighbourhood.ts';
 import { useSharedWorld, SHARED, SHARED_CSS, CHAT_MAX, type JoinWho } from './useSharedWorld.ts';
 import { WorldPill, ChatFeed, ChatPanel } from './SharedWorld.tsx';
+import { ROOM_FINDER_URL } from './sunsetDrive.ts';
 
 type Phase = 'intro' | 'playing' | 'paused' | 'won' | 'nogl';
 
@@ -263,6 +264,8 @@ export default function HouseGame() {
   const [riddle, setRiddle] = useState<{ index: number; q: string; options: string[] } | null>(null);
   const [riddles, setRiddles] = useState<[number, number]>([0, 6]);
   const [hop, setHop] = useState<{ time: number | null; best: number | null }>({ time: null, best: null });
+  // the USP Room Finder kiosk at the campus (sunsetDrive.ts)
+  const [kiosk, setKiosk] = useState(false);
   const [confirmQuit, setConfirmQuit] = useState(false);
   const [result, setResult] = useState<RunResult | null>(null);
   const [best, setBest] = useState<number | null>(() => readBest());
@@ -338,6 +341,12 @@ export default function HouseGame() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [riddle, answerRiddle, closeRiddle]);
+  const closeKiosk = useCallback(() => {
+    setKiosk(false);
+    engineRef.current?.setUiOpen(false);
+    if (!touch && engineRef.current?.state === 'playing') engineRef.current.requestLock();
+  }, [touch]);
+  useEffect(() => { if (kiosk && phase !== 'playing') closeKiosk(); }, [kiosk, phase, closeKiosk]);
   // a riddle closes when you stop playing
   useEffect(() => { if (riddle && phase !== 'playing') closeRiddle(); }, [riddle, phase, closeRiddle]);
   const showSay = useCallback((lines: Say[]) => {
@@ -381,6 +390,7 @@ export default function HouseGame() {
           onRiddle: (r) => { setShop(null); setPromo(null); setRiddle(r); engineRef.current?.setUiOpen(true); if (document.pointerLockElement) document.exitPointerLock(); },
           onRiddles: (n, t) => setRiddles([n, t]),
           onHop: (h) => setHop(h),
+          onKiosk: () => { setShop(null); setPromo(null); setKiosk(true); engineRef.current?.setUiOpen(true); if (document.pointerLockElement) document.exitPointerLock(); },
           onChores: (c) => setChores(c),
           onWork: (w) => setWork(w),
           onChoreDone: (d) => showToast(`+${d.stars} ⭐ ${d.chore.name}: done!${d.bonus ? `\n+${d.bonus} ⭐ bonus: every chore done!` : ''}\n${thanks(engineRef.current?.character, thankCount.current++)}`, 'star'),
@@ -684,6 +694,20 @@ export default function HouseGame() {
       {phase === 'playing' && chatOpen && <ChatPanel lines={world.lines} players={world.players} me={world.me} maxLength={CHAT_MAX} onSay={world.say} onReport={world.report} onClose={closeChat} touch={touch} />}
 
       {phase === 'intro' && creating && <Creator start={mine} saving={saving} onSave={(n, l) => void saveMine(n, l)} onDelete={() => void removeMine()} onCancel={() => setCreating(false)} />}
+
+      {/* The USP Room Finder kiosk: Samuel Ganey Tubuna's 3D campus map, on his own site */}
+      {phase === 'playing' && kiosk && !talk && (
+        <div className="hh-shop hh-riddle" role="dialog" aria-label="USP Room Finder">
+          <div className="hh-chores-head">
+            <b>🗺️ USP Room Finder</b>
+            <button type="button" className="hh-talk-x" onPointerDown={(e) => { e.stopPropagation(); closeKiosk(); }} aria-label="Close">✕</button>
+          </div>
+          <p className="hh-riddle-q">A 3D map of the Laucala campus: find any room and get the way there.</p>
+          <p className="hh-kiosk-note">This map is <b>Samuel Ganey Tubuna's work</b> (all rights reserved). It opens on his own website; LvTS doesn't make or run it.</p>
+          <p className="hh-kiosk-note">Bula! If you know Samuel, please tell him the <b>LvTS crew is looking for him</b>, kerekere 🙏 (833 1088)</p>
+          <a className="hh-riddle-a" href={ROOM_FINDER_URL} target="_blank" rel="noopener noreferrer" onClick={() => closeKiosk()}>Open the USP Room Finder ↗</a>
+        </div>
+      )}
 
       {/* A riddle post (the Riddle Hunt): pick the answer */}
       {phase === 'playing' && riddle && !talk && (
@@ -1151,6 +1175,8 @@ body.hh-playing .dock, body.hh-playing .lvts-chat-bubble { opacity: 0 !important
 .hh-riddle-a:hover { background: #ede9fe; }
 .hh-riddle-a kbd { font-size: 0.75rem; }
 .hh-riddle { border-color: #a78bfa; }
+.hh-kiosk-note { font-size: 0.82rem; line-height: 1.4; margin: 0 2px 8px; opacity: 0.9; }
+a.hh-riddle-a { justify-content: center; text-decoration: none; }
 .hh-shop { position: absolute; top: 56px; left: 12px; width: min(380px, 70%); max-height: calc(100% - 130px); overflow-y: auto; background: #fff; color: #0f172a; border-radius: 16px; border: 2px solid #bae6fd; box-shadow: 0 16px 40px rgba(15,23,42,0.3); padding: 10px 12px; z-index: 4; pointer-events: auto; font-size: 0.82rem; }
 .hh-is-touch .hh-shop { top: auto; left: 12px; right: 12px; bottom: 12px; width: auto; }
 .hh-promo { width: min(400px, 76%); border-width: 3px; }
