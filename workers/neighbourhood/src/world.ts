@@ -312,6 +312,9 @@ export class World {
     if (m.length) this.broadcast({ t: 's', m });
   }
 
+  /** Tell everyone in the world (a build was approved or removed). */
+  announce(msg: unknown) { this.broadcast(msg); }
+
   private broadcast(msg: unknown, except?: Conn) {
     const s = JSON.stringify(msg);
     for (const l of this.live.values()) {

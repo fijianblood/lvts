@@ -15,6 +15,10 @@
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Registry"] }],
 
+  // Builds (builds.ts): Claude turns what a player types into bricks, through
+  // Loma's Worker (it already has the Claude key), so this server needs no key of its own.
+  "services": [{ "binding": "BRICKS", "service": "lvts-loma", "entrypoint": "BrickBuilder" }],
+
   // Logs you can read in the Cloudflare dashboard (Workers → lvts-neighbourhood → Observability).
   // Free plan: 200,000 log events a day, kept for 3 days.
   "observability": {

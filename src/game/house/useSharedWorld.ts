@@ -35,6 +35,9 @@ function figureOf(p: Pub): { look: Look; crawl: boolean; sub?: string } | null {
  * Join the shared world while `who` is set (exploring), and keep the engine's
  * figures, the list of who's here and the chat in step with it.
  */
+/** Fired on window when LvTS approves or removes a build (HouseGame fetches the builds again). */
+export const BUILDS_CHANGED = 'noqublox-builds';
+
 export function useSharedWorld(engine: HouseEngine | null, who: JoinWho | null) {
   const [status, setStatus] = useState<LinkStatus>('off');
   const [players, setPlayers] = useState<WorldPlayer[]>([]);
@@ -96,6 +99,7 @@ export function useSharedWorld(engine: HouseEngine | null, who: JoinWho | null) 
         add({ kind: 'them', who: names.get(id)?.label ?? 'Someone', text });
       },
       notice: (text) => add({ kind: 'sys', text }),
+      builds: () => window.dispatchEvent(new Event(BUILDS_CHANGED)),
     });
     linkRef.current = link;
     link.start();

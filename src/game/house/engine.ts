@@ -34,6 +34,7 @@ import * as D from './diwali.ts';
 import { PLAN, SIGNS, RAIWAI_TREES, POLE_RUNS, FACE_ANGLE, footprint, houseSpec, rng, type PlanItem } from './raiwaiPlan.ts';
 import { tagBricks, setPlasticCoat } from './bricks.ts';
 import { VEHICLES, DIMS, vehicleModel, nextSpeed, steerFor, drive, bumpers, outline, poseForVehicle, vehicleForPose, type VehicleModel, type VehicleSpec } from './vehicles.ts';
+import { PLOTS, ZONE, ZONE_Y, PLATE, PLOT_SIZE, brickBox, brickColor, buildObstacles, type Build } from './buildZone.ts';
 import { sunsetWeight, sunsetHour, ARCH_X, RINGS, RING_R, NEON, KIOSK } from './sunsetDrive.ts';
 import { COLUMNS, columnTop, columnRect, START, SPINNER, spinnerAngle, spinnerHits, ARCH, inPool, POOL, GROUND, RIDDLES, RIDDLE_POSTS, POST_BRICKS, type Column } from './hopClimb.ts';
 import { partModel, goldenChip, palm, bushTree, banana, breadfruit, van, paint, type Finish, type Detail } from './models.ts';
@@ -87,6 +88,8 @@ export interface EngineCallbacks extends ChoreCallbacks {
   onHop?: (h: { time: number | null; best: number | null }) => void;
   /** You pressed E at the USP Room Finder kiosk. */
   onKiosk?: () => void;
+  /** You pressed E at a Build Zone plot's sign. */
+  onBuildPlot?: (plot: number) => void;
 }
 
 export interface EngineOptions { touch: boolean; baseUrl: string }
@@ -439,7 +442,7 @@ interface Item {
   golden: boolean; taken: boolean; seen: boolean; phase: number; base: number;
 }
 interface Burst { mesh: THREE.InstancedMesh; vel: THREE.Vector3[]; t: number }
-type FocusKind = 'door' | 'window' | 'poster' | 'npc' | 'cat' | 'shop' | 'promo' | 'seat' | 'vehicle' | 'riddle' | 'kiosk' | ChoreFocus;
+type FocusKind = 'door' | 'window' | 'poster' | 'npc' | 'cat' | 'shop' | 'promo' | 'seat' | 'vehicle' | 'riddle' | 'kiosk' | 'plot' | ChoreFocus;
 
 const HOP_BEST = 'noqublox-hop-best';
 
@@ -480,6 +483,11 @@ export class HouseEngine {
   /** Sunset Drive (sunsetDrive.ts): the arch, neon lights, rings and the USP kiosk. */
   private sunset = new THREE.Group();
   private rings: THREE.Mesh[] = [];
+  /** The Build Zone (buildZone.ts): the plots, and what's built on each (approved builds, or the player's own one waiting for LvTS). */
+  private zone = new THREE.Group();
+  private plotBuilds: ({ build: Build; mine: boolean; group: THREE.Group; obbs: OBB[] } | null)[] = PLOTS.map(() => null);
+  private approvedBuilds: Build[] = [];
+  private myBuilds: Build[] = [];
   private run = { next: 0, t: 0, best: null as number | null, resetAt: -1 };
   private spinBar = new THREE.Group();
   private hopStar: THREE.Object3D | null = null;
@@ -644,6 +652,7 @@ export class HouseEngine {
     this.buildCars();
     this.buildGames();
     this.buildSunset();
+    this.buildZone();
     this.buildItems();
     this.chores = new ChoreSystem(this.scene, {
       onChores: (s) => this.cb.onChores?.(s),
@@ -1819,6 +1828,7 @@ export class HouseEngine {
     this.parkCars();
     this.games.visible = explore;
     this.sunset.visible = explore;
+    this.zone.visible = explore;
   }
   get gameMode(): GameMode { return this.mode; }
 
@@ -2205,6 +2215,71 @@ export class HouseEngine {
     }
   }
 
+  // ── the Build Zone (buildZone.ts) ───────────────────────────────────────
+  private buildZone() {
+    const g = this.zone;
+    const b: Buckets = new Map();
+    const post = paint('#13254a', { finish: 'gloss' });
+    PLOTS.forEach((p, i) => {
+      // a grey baseplate (the brick look puts the studs on it)
+      push(b, '#c9ccd0', boxGeo(p.x0, ZONE_Y - 0.05, p.z0, p.x0 + PLOT_SIZE, ZONE_Y + PLATE, p.z0 + PLOT_SIZE));
+      // its sign: what to do, in big friendly letters
+      const tex = this.tex(T.canvasTexture(256, 160, (c, w, h) => {
+        c.fillStyle = '#ffd23f'; c.fillRect(0, 0, w, h);
+        c.fillStyle = '#13254a'; c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.font = 'bold 34px system-ui, sans-serif'; c.fillText(`Build plot ${i + 1}`, w / 2, 48);
+        c.font = '600 24px system-ui, sans-serif'; c.fillText('Type it, we build it!', w / 2, 104);
+      }));
+      const face = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.35 });
+      const board = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.8, 0.08), [post, post, post, post, face, face]);
+      board.position.set(p.sign.x, ZONE_Y + 1.35, p.sign.z);
+      const pole = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.0, 0.1), post);
+      pole.position.set(p.sign.x, ZONE_Y + 0.5, p.sign.z);
+      board.castShadow = pole.castShadow = true;
+      g.add(board, pole);
+    });
+    this.flush(b, g);
+    g.visible = this.mode === 'explore';
+    this.scene.add(g);
+  }
+
+  /** The approved builds (one per plot) from the server. */
+  setBuilds(list: Build[]) {
+    this.approvedBuilds = list;
+    // once LvTS approves one of yours, it's an ordinary build
+    this.myBuilds = this.myBuilds.filter((m) => !list.some((a) => a.id === m.id));
+    this.refreshPlots();
+  }
+
+  /** Your own builds that are waiting for LvTS: you see them on their plots; nobody else does yet. */
+  setMyBuilds(list: Build[]) {
+    this.myBuilds = list.filter((m) => !this.approvedBuilds.some((a) => a.id === m.id));
+    this.refreshPlots();
+  }
+
+  private refreshPlots() {
+    PLOTS.forEach((p, i) => {
+      // your newest waiting build on a plot wins over the approved one (for you)
+      const mine = [...this.myBuilds].reverse().find((m) => m.plot === i);
+      const want = mine ?? this.approvedBuilds.find((a) => a.plot === i) ?? null;
+      const cur = this.plotBuilds[i];
+      if (cur?.build.id === want?.id) return;
+      if (cur) { this.zone.remove(cur.group); cur.group.traverse((o) => { if (o instanceof THREE.Mesh) o.geometry.dispose(); }); }
+      if (!want) { this.plotBuilds[i] = null; return; }
+      const group = new THREE.Group();
+      const b: Buckets = new Map();
+      const gap = 0.004;
+      for (const brick of want.bricks) {
+        const r = brickBox(p, brick);
+        push(b, `${brickColor(brick[5])}|fgloss`, boxGeo(r.x0 + gap, r.y0, r.z0 + gap, r.x1 - gap, r.y1 - gap, r.z1 - gap));
+      }
+      this.flush(b, group);
+      group.traverse((o) => { if (o instanceof THREE.Mesh) { o.castShadow = true; o.receiveShadow = true; } });
+      this.zone.add(group);
+      this.plotBuilds[i] = { build: want, mine: !!mine, group, obbs: buildObstacles(p, want.bricks) };
+    });
+  }
+
   // ── vehicles ────────────────────────────────────────────────────────────
   private buildCars() {
     for (const spec of VEHICLES) {
@@ -2367,6 +2442,9 @@ export class HouseEngine {
     for (const n of this.npcs) if (n.obb && n.rig.root.visible) list.push(n.obb);
     list.push(...this.chores.obstacles());
     this.cars.forEach((c, i) => { if (i !== this.driving) list.push(outline(c.x, c.z, c.yaw, DIMS[c.spec.kind])); });
+    // builds in the Build Zone, only when you're near it
+    const [x, z] = this.pos;
+    if (this.mode === 'explore' && x > ZONE.x0 - 3 && x < ZONE.x1 + 3 && z > ZONE.z0 - 3 && z < ZONE.z1 + 3) for (const b of this.plotBuilds) if (b) list.push(...b.obbs);
     return list;
   }
 
@@ -2536,6 +2614,7 @@ export class HouseEngine {
       return;
     }
     if (f.kind === 'kiosk') { this.cb.onKiosk?.(); this.sfx.pickup(); return; }
+    if (f.kind === 'plot') { this.cb.onBuildPlot?.(f.index); this.sfx.pickup(); return; }
     if (f.kind === 'riddle') {
       const r = RIDDLES[f.index];
       this.cb.onRiddle?.({ index: f.index, q: r.q, options: [...r.options] });
@@ -3078,6 +3157,7 @@ export class HouseEngine {
     // the brick cars and the pickup (not for a crawling baby, and not in the Golden Chip hunt)
     if (this.mode === 'explore' && !this.char.crawl) this.cars.forEach((c, i) => consider('vehicle', i, c.x, c.z, DIMS[c.spec.kind].halfL + 1.3, 0.4));
     if (this.mode === 'explore') consider('kiosk', 0, KIOSK.x, KIOSK.z, 2.4, 0.4);
+    if (this.mode === 'explore' && this.driving < 0) PLOTS.forEach((p, i) => consider('plot', i, p.sign.x, p.sign.z, 2.4, 0.4));
     if (this.mode === 'explore') RIDDLE_POSTS.forEach((p, i) => { if (!this.riddleDone[i]) consider('riddle', i, p.x, p.z, 2.4, 0.5); });
     this.chores.candidates(consider);
     const b = best as { kind: FocusKind; index: number; score: number } | null;
@@ -3091,6 +3171,7 @@ export class HouseEngine {
     if (b?.kind === 'vehicle') text = `${key} · Drive the ${this.cars[b.index].spec.name}`;
     if (b?.kind === 'riddle') text = `${key} · Read the riddle`;
     if (b?.kind === 'kiosk') text = `${key} · USP Room Finder (3D campus map)`;
+    if (b?.kind === 'plot') text = `${key} · Build on plot ${b.index + 1}`;
     if (b?.kind === 'promo') text = `${key} · You found a hidden reward card! Pick it up`;
     if (b?.kind === 'seat') { const st = SEATS[b.index]; text = `${key} · Sit on ${st.label}${st.swing !== undefined ? ' (then hold W to swing)' : ''}`; }
     if (b?.kind === 'shop') { const sp = SHOP_SPOTS[b.index]; text = `${key} · ${sp.kind === 'empty' ? `Look at ${sp.name}` : `Visit ${sp.name}`}${sp.offers.length ? ' · offers inside' : ''}`; }
@@ -3288,6 +3369,7 @@ export class HouseEngine {
       use: () => this.interact(),
       moveCar: (i: number, x: number, z: number, yaw: number) => { const c = this.cars[i]; c.x = x; c.z = z; c.yaw = yaw; c.y = floorAt(x, z, heightAt(x, z) + 0.3); this.placeCar(c, 0); },
       sunsetRun: () => ({ ...this.run }),
+      plots: () => this.plotBuilds.map((b) => (b ? { id: b.build.id, name: b.build.name, mine: b.mine, bricks: b.build.bricks.length } : null)),
       games: () => ({ hop: { ...this.hop }, riddles: [...this.riddleDone], spinner: spinnerAngle(this.time) }),
       cars: () => ({ driving: this.driving, list: this.cars.map((c) => ({ id: c.spec.id, x: c.x, z: c.z, y: c.y, yaw: c.yaw, speed: c.speed })) }),
       mode: () => this.mode,

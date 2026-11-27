@@ -26,6 +26,8 @@ export interface LinkEvents {
   chat(id: string, text: string): void;
   /** Something to tell the player: a message that didn't go, a mute, a report received. */
   notice(text: string): void;
+  /** LvTS approved or removed a build: fetch the builds again. */
+  builds?(): void;
 }
 
 /** Is there a shared world to join in this build? */
@@ -144,6 +146,7 @@ export class WorldLink {
       case 's': this.on.moves(((m.m as [string, ...number[]][]) ?? []).filter((x) => x[0] !== this.you)); break;
       case 'c': this.on.chat(String(m.id), String(m.text)); break;
       case 'no': this.on.notice(String(m.text)); break;
+      case 'builds': this.on.builds?.(); break;
       case 'muted': this.on.notice(`You can't chat for a while (until ${new Date(Number(m.until)).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}) after several blocked messages.`); break;
       case 'reported': this.on.notice('Thanks. Your report went to LvTS, who will look at it.'); break;
     }

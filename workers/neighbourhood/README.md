@@ -52,6 +52,18 @@ messages a second while they move, so that's very roughly 100 player-hours of
 moving about a day. Past it, the shared world stops until 00:00 UTC (12 noon in
 Fiji) and the game carries on with everyone exploring on their own.
 
+## Builds (the Build Zone)
+
+- Six empty plots behind the house (`src/game/house/buildZone.ts`). Anyone exploring
+  can type what to build ("a bure with a coconut tree"); Claude answers with a list
+  of bricks (place, size, colour), never code (`src/builds.ts` checks every brick).
+- Claude is reached through Loma's Worker (`workers/loma/src/bricks.ts`), with a
+  service binding called `BRICKS`, so this server needs no Claude key of its own
+  and the brick builder has no web address anyone else can call.
+- Every build waits for LvTS to approve it on the admin page; until then only the
+  player who made it sees it. Approving one puts it on its plot for everyone
+  online (it replaces what was there). At most 5 builds per visitor per day.
+
 ## Setting it up (once)
 
 1. Cloudflare dashboard → **My Profile → API Tokens → Create Token** → use the
@@ -79,6 +91,9 @@ re-run the Pages deploy.
 | Call | What it does |
 |---|---|
 | `GET /characters` | Approved characters (newest 60) |
+| `GET /builds` | Approved builds (one per plot) |
+| `POST /builds` | `{ prompt, plot }` → Claude builds it → `{ build, status: 'pending' }` |
+| `GET /admin/builds`, `POST /admin/builds/:id/approve`, `POST /admin/builds/:id/reject`, `DELETE /admin/builds/:id` | Builds waiting and on the plots; approve, reject, remove |
 | `POST /characters` `{ name, look }` | Make one → `{ id, key, status: 'pending' }` |
 | `POST /characters/:id` `{ key }` | The creator checks its status |
 | `PUT /characters/:id` `{ key, name, look }` | Change it |
