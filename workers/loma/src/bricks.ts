@@ -7,7 +7,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { WorkerEntrypoint } from 'cloudflare:workers';
-import { GRID, LAYERS, MAX_ADD, MAX_BRICKS, MAX_SIZE, MAX_TOTAL, PALETTE, cleanBricks, floorPlan, type AddTo, type BrickReply } from '../../neighbourhood/src/builds.ts';
+import { GRID, LAYERS, MAX_ADD, MAX_BRICKS, MAX_SIZE, MAX_TOTAL, PALETTE, cleanBricks, floorPlan, salvage, type AddTo, type BrickReply } from '../../neighbourhood/src/builds.ts';
 
 interface Env { ANTHROPIC_API_KEY: string; LOMA_MODEL?: string }
 
@@ -67,22 +67,25 @@ export async function makeBricks(env: Env, prompt: string, add?: AddTo): Promise
   if (!env.ANTHROPIC_API_KEY) return { ok: false, why: 'failed' };
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
   try {
-    const res = await client.messages.create({
+    // streamed: the SDK refuses a non-streamed request this big (it could take over 10 minutes),
+    // and streaming keeps the connection busy while a big build is written
+    const res = await client.messages.stream({
       model: env.LOMA_MODEL || 'claude-haiku-5-5',
       max_tokens: add ? 8000 : 24000,
       // a new build is seen by everyone: medium effort for a detailed, well made build
       output_config: { effort: add ? 'low' : 'medium', format: { type: 'json_schema', schema: SCHEMA } },
       system: add ? ADD_TO : NEW_BUILD,
       messages: [{ role: 'user', content: add ? `The build on the plot now, seen from above:\n${floorPlan(add.bricks, add.at)}\n\nAdd this where the player is standing: ${prompt}` : `Build this: ${prompt}` }],
-    });
+    }).finalMessage();
     if (res.stop_reason === 'refusal') return { ok: false, why: 'refused' };
-    if (res.stop_reason === 'max_tokens') return { ok: false, why: 'failed' };
     const text = res.content.flatMap((b) => (b.type === 'text' ? [b.text] : [])).join('');
-    const data = JSON.parse(text) as { refused?: boolean; name?: string; bricks?: unknown };
+    // a build cut off at the token limit still has every brick written before the cut
+    const data = res.stop_reason === 'max_tokens' ? salvage(text) : (JSON.parse(text) as { refused?: boolean; name?: string; bricks?: unknown });
     if (data.refused) return { ok: false, why: 'refused' };
     return { ok: true, name: String(data.name ?? ''), bricks: data.bricks };
   } catch (err) {
     const status = (err as { status?: number }).status;
+    console.error('brick builder:', status ?? '', (err as Error).message);
     return { ok: false, why: status === 429 || status === 529 ? 'busy' : 'failed' };
   }
 }
