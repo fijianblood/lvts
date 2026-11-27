@@ -9,6 +9,7 @@ import { heightAt, roomAtLevel } from '../../src/game/house/layout.ts';
 
 test('bricks: only ones that fit the plot, trimmed at the edge, no repeats, at most MAX_BRICKS', () => {
   assert.deepEqual(cleanBricks([[0, 0, 0, 2, 2, 4], [19, 0, 19, 4, 4, 1], [0, 0, 0, 2, 2, 4], [20, 0, 0, 1, 1, 0], [0, -1, 0, 1, 1, 0], [0, 0, 0, 1, 1, 99], [1.5, 0, 0, 1, 1, 0], 'x', [0, 0, 0, 1, 1]]), [[0, 0, 0, 2, 2, 4], [19, 0, 19, 1, 1, 1]]);
+  assert.deepEqual(cleanBricks([[5, 0, 9, 2, 5, 16], [0, 1, 0, 9, 1, 3]]), [[5, 0, 9, 2, 4, 16], [5, 0, 13, 2, 1, 16], [0, 1, 0, 4, 1, 3], [4, 1, 0, 4, 1, 3], [8, 1, 0, 1, 1, 3]], 'long bricks are split, not dropped');
   assert.equal(cleanBricks([]), null);
   assert.equal(cleanBricks('nope'), null);
   const many = Array.from({ length: 1000 }, (_, i) => [i % GRID, Math.floor(i / 400), Math.floor(i / GRID) % GRID, 1, 1, 0]);
