@@ -22,6 +22,9 @@ import { BASE, hrefFor } from './links';
 const HouseHuntPage = lazy(() => import('./pages/HouseHuntPage'));
 // LvTS only (not linked anywhere): approve visitors' neighbourhood characters.
 const NeighbourhoodAdminPage = lazy(() => import('./pages/NeighbourhoodAdminPage'));
+// Neuron Lab and its Learn page load only when someone opens them.
+const NeuronLabPage = lazy(() => import('./pages/NeuronLabPage'));
+const NeuronLearnPage = lazy(() => import('./pages/NeuronLearnPage'));
 
 // Each page has its own address (/lvts/services/), listed in src/data/routes.ts.
 // Links people already shared still use the old # addresses (/lvts/#services):
@@ -85,6 +88,17 @@ function applyPageHead(id: string) {
   }
 }
 
+function PageLoading({ what }: { what: string }) {
+  return <div style={{ padding: '160px 1.5rem', textAlign: 'center', color: '#64748b' }}>Loading {what}…</div>;
+}
+
+/** The menu icon to light up: blog posts light Blog, the Neuron Lab guide lights Neuron Lab. */
+function menuPage(page: string): string {
+  if (page.startsWith('post-')) return 'blog';
+  if (page === 'neuron-learn') return 'neuron-lab';
+  return page;
+}
+
 function renderPage(page: string, onNav: (p: string) => void) {
   switch (page) {
     case 'home':     return <HomePage     onNav={onNav} />;
@@ -105,6 +119,8 @@ function renderPage(page: string, onNav: (p: string) => void) {
     case 'ask':      return <AskLvtsPage />;
     case 'ask-old':  return <AskLvtsPage />; // old address: currentPage moves it to /loma/
     case 'neighbours-admin': return <Suspense fallback={null}><NeighbourhoodAdminPage /></Suspense>;
+    case 'neuron-lab': return <Suspense fallback={<PageLoading what="Neuron Lab" />}><NeuronLabPage onNav={onNav} /></Suspense>;
+    case 'neuron-learn': return <Suspense fallback={<PageLoading what="the guide" />}><NeuronLearnPage onNav={onNav} /></Suspense>;
     case 'blog':     return <BlogPage onNav={onNav} />;
     default: {
       const post = postById(page);
@@ -148,7 +164,7 @@ export default function App() {
 
   return (
     <>
-      <NavBar page={page.startsWith('post-') ? 'blog' : page} onNav={navigate} />
+      <NavBar page={menuPage(page)} onNav={navigate} />
       <AnimatePresence mode="wait" onExitComplete={() => window.scrollTo(0, 0)}>
         <motion.div
           key={page}

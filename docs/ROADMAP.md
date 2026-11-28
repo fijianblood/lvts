@@ -16,8 +16,9 @@ Last updated: 18 November 2026.
   scrolls inside and the wheel scrolls the page (Ctrl + scroll zooms); phones and touch tablets
   open it as its own page. Then PC repair, Vitikart, gas ovens, Website Design. No PS5 price on
   purpose ("quoted before we start").
-- **Pages (13 in Google):** Home, Services (with a Website Design section),
+- **Pages (15 in Google):** Home, Services (with a Website Design section),
   Loma (was Ask LvTS, at /loma/), Rewards, Noqublox, Kids (Noqu Vuli + Little Chef), LabVIEW Help,
+  Neuron Lab (/neuron-lab/, one neuron that learns) and its guide (/neuron-lab/learn/),
   Free Tools (image to PDF, PDF merge, photo sketch, and the LvTS YouTube Downloader: the site
   card copies an "LvTS link" (`?lvts=<quality>[-drive]`, `src/lib/ytLink.ts`) and opens
   `public/colab/LvTS_YouTube_Downloader.ipynb` in Colab, which sends the file straight to the
