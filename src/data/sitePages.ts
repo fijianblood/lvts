@@ -2,7 +2,7 @@ import type { ComponentType } from 'react';
 import {
   IconTool, IconGift,
   IconHammer, IconHeartbeat, IconMessageCircle,
-  IconHomeSearch, IconAbc, IconCpu, IconNews,
+  IconHomeSearch, IconAbc, IconCpu, IconNews, IconBrain,
 } from '@tabler/icons-react';
 
 export interface SitePage {
@@ -22,6 +22,8 @@ export const SITE_PAGES: SitePage[] = [
     blurb: 'Two free games for young children in Fiji, in English and iTaukei: Noqu Vuli (ABC, counting 1 to 10, animals and their sounds, shapes and colours, with a daily challenge, stars and a sticker book) and Little Chef Fiji (pretend cooking for ages 3 to 5). Words are read out loud. No sign-up or ads; progress stays on the device.' },
   { id: 'ask', label: 'Loma', icon: IconMessageCircle, color: '#6366f1',
     blurb: 'Loma, the free LvTS AI assistant: ask about repairs, Windows 11 problems, prices and services, or attach a photo, screenshot, PDF, Word, Excel or text file and ask about it.' },
+  { id: 'neuron-lab', label: 'Neuron Lab', icon: IconBrain, color: '#0d9488',
+    blurb: 'Neuron Lab: watch one artificial neuron learn, right in your browser. Toggle its inputs, move its weights and bias, then press teach and see it learn AND, OR or NOT by itself (and fail at XOR, which needs many neurons). Plain-language notes explain how AI learns, from 1943 to chatbots. No sign-in; nothing is sent anywhere.' },
   { id: 'services', label: 'Services', icon: IconTool, color: '#2563eb',
     blurb: 'PS5 service in Raiwai, Suva: full teardown, deep dust clean and fresh liquid metal for overheating, loud or shutting-down consoles. Also PC and laptop repair, website design, networking, antivirus, printers, email hosting, gas ovens and Vitikart store setup.' },
   { id: 'blog', label: 'Blog', icon: IconNews, color: '#0ea5e9',

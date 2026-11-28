@@ -881,4 +881,18 @@ export const LVTS_KNOWLEDGE: KnowledgeEntry[] = [
       "- **SSD instead of a spinning hard drive:** if your laptop still has a traditional HDD, this is usually the single biggest speed improvement possible — boot times and app launches go from minutes to seconds.\n\n" +
       "Not every laptop can be upgraded (some modern ultra-thins have soldered RAM), so it's worth checking your exact model first. [Message us on WhatsApp](https://wa.me/6797466941) with your laptop model and we'll tell you honestly what's upgradeable and what it'd cost.",
   },
+  {
+    id: 'neuron-lab',
+    keywords: [
+      'neuron lab', 'how does ai learn', 'how ai learns', 'how does ai work', 'artificial neuron', 'perceptron',
+      'neural network', 'neural networks', 'machine learning', 'learn ai', 'learning ai', 'deep learning',
+      'weights and bias', 'what is a neuron',
+    ],
+    answer:
+      "**Neuron Lab** is a free page on the LvTS site where you can watch one artificial neuron learn, right in your browser.\n\n" +
+      "- Switch its two inputs between 0 and 1 and move its weights and bias with sliders\n" +
+      "- Pick a lesson (AND, OR or NOT) and press teach: it fixes its own mistakes until all four answers are right\n" +
+      "- Try XOR to see why real AI needs many neurons in layers\n\n" +
+      "No sign-in, and nothing is sent anywhere. [Open the Neuron Lab](https://fijianblood.github.io/lvts/neuron-lab/), or read the plain-language guide [How AI learns](https://fijianblood.github.io/lvts/neuron-lab/learn/), from 1943 to chatbots and how to start learning AI at home.",
+  },
 ];

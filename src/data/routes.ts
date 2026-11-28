@@ -23,7 +23,7 @@ export interface PageRoute {
   id: string;
   /** Its short name, as in the menu. */
   label: string;
-  /** Its address after the site's base path: '' for home, 'services' for /lvts/services/, 'blog/<post>' for a blog post. */
+  /** Its address after the site's base path: '' for home, 'services' for /lvts/services/, 'blog/<post>' for a blog post, 'neuron-lab/learn' for a page under another. */
   slug: string;
   /** The <title>: shown in Google's results and the browser tab. */
   title: string;
@@ -99,6 +99,19 @@ export const ROUTES: PageRoute[] = [
     title: 'LabVIEW Project Help for University Students in Fiji | LvTS',
     description: 'One-to-one LabVIEW tutoring for university students in Fiji: NI DAQ with NI-DAQmx, Arduino with NI-VISA, debugging VIs and finishing your project.',
     heading: 'LabVIEW project help for university students in Fiji',
+  },
+  {
+    id: 'neuron-lab', label: 'Neuron Lab', slug: 'neuron-lab',
+    title: 'Neuron Lab: See How AI Learns, One Neuron at a Time | LvTS',
+    description: 'Watch one artificial neuron learn AND and OR in your browser. Move its weights, press teach and see how AI learns, in plain words. Free, from LvTS in Suva.',
+    heading: 'Neuron Lab: watch one artificial neuron learn',
+  },
+  {
+    // The Neuron Lab's "Learn more" notes, linked from the Neuron Lab page (not in the menu).
+    id: 'neuron-learn', label: 'How AI Learns', slug: 'neuron-lab/learn',
+    title: 'How AI Learns: From One Neuron to Chatbots | LvTS',
+    description: 'A plain-language guide to AI: how it began in 1943, how one neuron works and learns, why layers matter, how chatbots are made and how to start learning AI.',
+    heading: 'How AI learns: from one neuron to chatbots',
   },
   {
     id: 'tools', label: 'Free Tools', slug: 'tools',

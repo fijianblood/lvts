@@ -11,7 +11,11 @@ test('ids and addresses are unique, and only home has an empty address', () => {
   assert.equal(new Set(ROUTES.map((r) => r.slug)).size, ROUTES.length);
   assert.deepEqual(ROUTES.filter((r) => r.slug === '').map((r) => r.id), ['home']);
   const part = '[a-z0-9]+(-[a-z0-9]+)*';
-  for (const r of ROUTES) assert.match(r.slug, new RegExp(`^$|^${part}$|^blog/${part}$`), r.id);
+  // One level of nesting at most: blog/<post>, neuron-lab/learn.
+  for (const r of ROUTES) assert.match(r.slug, new RegExp(`^$|^${part}(/${part})?$`), r.id);
+  for (const r of ROUTES.filter((x) => x.slug.includes('/') && !x.slug.startsWith('blog/'))) {
+    assert.ok(ROUTES.some((p) => p.slug === r.slug.split('/')[0]), `${r.id} sits under a page that exists`);
+  }
 });
 
 test('every page address turns back into its page, on both hosts', () => {

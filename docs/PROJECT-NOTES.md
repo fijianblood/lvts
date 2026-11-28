@@ -20,8 +20,18 @@ re-explained. Last updated 15 November 2026.
 
 ## Pages
 Home, Services, Loma (/loma/, was Ask LvTS), Rewards, Noqublox, Kids (Noqu Vuli + Little Chef),
-LabVIEW Help, Free Tools, MediTrack, Blog + one page per post. 13 pages in the sitemap.
+LabVIEW Help, Neuron Lab (/neuron-lab/) + its guide (/neuron-lab/learn/), Free Tools, MediTrack,
+Blog + one page per post. 15 pages in the sitemap.
 Each page has its own Google title, description and link-preview image.
+
+## Neuron Lab (/neuron-lab/ and /neuron-lab/learn/)
+- One artificial neuron (perceptron) visitors play with by hand, then teach AND, OR or NOT
+  (XOR never finishes, on purpose). All in the browser: no sign-in, nothing sent anywhere.
+- Maths in `src/lib/perceptron.ts` (learning rate 0.1, stops when all four are right or after
+  100 rounds), tested in `tests/site/perceptron.test.ts`. Page: `src/pages/NeuronLabPage.tsx`,
+  drawing: `src/components/neuron/NeuronDiagram.tsx`.
+- Guide: `src/pages/NeuronLearnPage.tsx` (owner's learning notes, parts 1 to 7). Its worked
+  example and chart are computed by the same code (`src/lib/neuronExamples.ts`).
 
 ## Services page (PS5 first)
 - Top: PS5 overheating / loud / shutting down. Full teardown, deep dust clean, liquid metal,
